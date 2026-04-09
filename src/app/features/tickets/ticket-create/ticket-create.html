@@ -1,0 +1,65 @@
+<mat-toolbar color="primary">
+  <button mat-icon-button (click)="router.navigate(['/tickets'])">←</button>
+  <span>Create New Ticket</span>
+</mat-toolbar>
+
+<div class="page-container">
+  <div class="form-card">
+    <h2>New Support Ticket</h2>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Title</mat-label>
+        <input matInput formControlName="title"
+          placeholder="Brief description of the issue"/>
+        <mat-error *ngIf="form.get('title')?.hasError('required')">
+          Title is required
+        </mat-error>
+        <mat-error *ngIf="form.get('title')?.hasError('minlength')">
+          Minimum 5 characters
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" rows="5"
+          placeholder="Detailed description of the issue..."></textarea>
+        <mat-error *ngIf="form.get('description')?.hasError('required')">
+          Description is required
+        </mat-error>
+      </mat-form-field>
+
+      <div class="two-col">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Category</mat-label>
+          <mat-select formControlName="category">
+            <mat-option *ngFor="let cat of categories" [value]="cat">
+              {{ cat }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Priority</mat-label>
+          <mat-select formControlName="priority">
+            <mat-option *ngFor="let p of priorities" [value]="p">
+              {{ p }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="form-actions">
+        <button mat-button type="button"
+          (click)="router.navigate(['/tickets'])">
+          Cancel
+        </button>
+        <button mat-raised-button color="primary"
+          type="submit" [disabled]="loading">
+          <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+          <span *ngIf="!loading">Submit Ticket</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

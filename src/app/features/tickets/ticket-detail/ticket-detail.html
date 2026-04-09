@@ -1,0 +1,125 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate(['/tickets'])">← Back</button>
+  <span>Ticket Detail</span>
+  <span class="spacer"></span>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container" *ngIf="loading">
+  <div class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+</div>
+
+<div class="page-container" *ngIf="!loading && ticket">
+
+  <!-- Ticket Header -->
+  <mat-card class="ticket-header-card">
+    <mat-card-content>
+      <div class="ticket-meta">
+        <span class="ticket-id">#{{ ticket.id?.substring(0,8) }}</span>
+        <span class="status-badge"
+          [style.background]="getStatusColor(ticket.status) + '20'"
+          [style.color]="getStatusColor(ticket.status)">
+          {{ ticket.status }}
+        </span>
+        <span class="priority-badge"
+          [style.background]="getPriorityColor(ticket.priority) + '20'"
+          [style.color]="getPriorityColor(ticket.priority)">
+          {{ ticket.priority }}
+        </span>
+      </div>
+
+      <h2>{{ ticket.title }}</h2>
+      <p class="description">{{ ticket.description }}</p>
+
+      <div class="ticket-info-row">
+        <div class="info-item">
+          <span class="label">Category</span>
+          <span class="value">{{ ticket.category }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Created By</span>
+          <span class="value">{{ ticket.createdBy?.fullName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Assigned To</span>
+          <span class="value">
+            {{ ticket.assignedTo?.fullName || 'Unassigned' }}
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="label">Created At</span>
+          <span class="value">
+            {{ ticket.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+          </span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Update Status -->
+  <mat-card class="status-card">
+    <mat-card-content>
+      <h3>Update Status</h3>
+      <div class="status-buttons">
+        <button *ngFor="let s of statuses"
+          mat-raised-button
+          [style.background]="ticket.status === s ? getStatusColor(s) : ''"
+          [style.color]="ticket.status === s ? 'white' : ''"
+          [disabled]="updating || ticket.status === s"
+          (click)="updateStatus(s)">
+          {{ s }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Comments -->
+  <mat-card class="comments-card">
+    <mat-card-content>
+      <h3>Comments ({{ ticket.comments?.length || 0 }})</h3>
+      <mat-divider></mat-divider>
+
+      <div class="comments-list">
+        <div *ngIf="ticket.comments?.length === 0" class="no-comments">
+          No comments yet. Be the first to comment!
+        </div>
+
+        <div class="comment-item" *ngFor="let c of ticket.comments">
+          <div class="comment-header">
+            <span class="comment-author">{{ c.user?.fullName }}</span>
+            <span class="comment-date">
+              {{ c.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+            </span>
+          </div>
+          <p class="comment-text">{{ c.comment }}</p>
+        </div>
+      </div>
+
+      <!-- Add Comment Form -->
+      <div class="add-comment">
+        <h4>Add Comment</h4>
+        <form [formGroup]="commentForm" (ngSubmit)="addComment()">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Your comment</mat-label>
+            <textarea matInput formControlName="comment"
+              rows="3" placeholder="Write your comment here...">
+            </textarea>
+            <mat-error *ngIf="commentForm.get('comment')?.hasError('required')">
+              Comment is required
+            </mat-error>
+          </mat-form-field>
+
+          <button mat-raised-button color="primary"
+            type="submit" [disabled]="updating || commentForm.invalid">
+            <mat-spinner *ngIf="updating" diameter="18"></mat-spinner>
+            <span *ngIf="!updating">Add Comment</span>
+          </button>
+        </form>
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+
+</div>

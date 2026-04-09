@@ -1,0 +1,100 @@
+<mat-toolbar color="primary">
+  <span>iM3 Helpdesk</span>
+  <span class="spacer"></span>
+  <span class="user-name">{{ userName }}</span>
+  <button mat-button routerLink="/tickets">Tickets</button>
+  <button mat-button routerLink="/agents">Agents</button>
+  <button mat-button routerLink="/notifications">Notifications</button>
+  <button mat-button routerLink="/reports">Reports</button>
+  <button mat-button routerLink="/profile">Profile</button>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="dashboard-container">
+
+  <div *ngIf="loading" class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading">
+    <h2 class="welcome-text">Welcome back, {{ userName }}!</h2>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <mat-card class="stat-card total" routerLink="/tickets">
+        <mat-card-content>
+          <div class="stat-number">{{ stats.totalTickets }}</div>
+          <div class="stat-label">Total Tickets</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card open" routerLink="/tickets">
+        <mat-card-content>
+          <div class="stat-number">{{ stats.openTickets }}</div>
+          <div class="stat-label">Open</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card progress" routerLink="/tickets">
+        <mat-card-content>
+          <div class="stat-number">{{ stats.inProgressTickets }}</div>
+          <div class="stat-label">In Progress</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card resolved" routerLink="/tickets">
+        <mat-card-content>
+          <div class="stat-number">{{ stats.resolvedTickets }}</div>
+          <div class="stat-label">Resolved</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card agents" routerLink="/agents">
+        <mat-card-content>
+          <div class="stat-number">{{ stats.totalAgents }}</div>
+          <div class="stat-label">Agents</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <div class="actions-row">
+        <button mat-raised-button color="primary"
+          routerLink="/tickets/create">
+          + New Ticket
+        </button>
+        <button mat-raised-button color="accent"
+          routerLink="/agents/invite">
+          + Invite Agent
+        </button>
+        <button mat-raised-button
+          routerLink="/tickets">
+          View All Tickets
+        </button>
+      </div>
+    </div>
+
+    <!-- Recent Tickets -->
+    <div class="recent-tickets" *ngIf="stats.recentTickets?.length > 0">
+      <h3>Recent Tickets</h3>
+      <div class="ticket-row" *ngFor="let t of stats.recentTickets"
+        (click)="router.navigate(['/tickets', t.id])">
+        <div class="ticket-info">
+          <span class="ticket-title">{{ t.title }}</span>
+          <span class="ticket-by">by {{ t.createdBy }}</span>
+        </div>
+        <div class="ticket-meta">
+          <span class="status-pill" [class]="'s-' + getStatusClass(t.status)">
+            {{ getStatusLabel(t.status) }}
+          </span>
+          <span class="ticket-date">
+            {{ t.createdAt | date:'dd MMM' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

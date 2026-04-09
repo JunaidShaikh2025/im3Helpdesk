@@ -1,0 +1,84 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate(['/dashboard'])">← Dashboard</button>
+  <span>Agent Management</span>
+  <span class="spacer"></span>
+  <button mat-raised-button (click)="router.navigate(['/agents/invite'])">
+    + Invite Agent
+  </button>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container">
+  <div *ngIf="loading" class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading">
+    <div class="summary-bar">
+      <span>Total Members: <strong>{{ agents.length }}</strong></span>
+    </div>
+
+    <table mat-table [dataSource]="agents" class="agents-table">
+
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let a">
+          <strong>{{ a.fullName }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="email">
+        <th mat-header-cell *matHeaderCellDef>Email</th>
+        <td mat-cell *matCellDef="let a">{{ a.email }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="role">
+        <th mat-header-cell *matHeaderCellDef>Role</th>
+        <td mat-cell *matCellDef="let a">
+          <span class="role-badge"
+            [style.color]="getRoleColor(a.role)"
+            [style.background]="getRoleColor(a.role) + '20'">
+            {{ a.role }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="verified">
+        <th mat-header-cell *matHeaderCellDef>Verified</th>
+        <td mat-cell *matCellDef="let a">
+          <span class="verified-badge" [class.yes]="a.isEmailVerified">
+            {{ a.isEmailVerified ? 'Yes' : 'No' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="lastLogin">
+        <th mat-header-cell *matHeaderCellDef>Last Login</th>
+        <td mat-cell *matCellDef="let a">
+          {{ a.lastLoginAt ? (a.lastLoginAt | date:'dd MMM yyyy') : 'Never' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let a">
+          <button mat-button color="warn"
+            (click)="deleteAgent(a.id, a.fullName)">
+            Remove
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <div *ngIf="agents.length === 0" class="empty-state">
+      <p>No agents found. Invite your first agent!</p>
+      <button mat-raised-button color="primary"
+        (click)="router.navigate(['/agents/invite'])">
+        Invite Agent
+      </button>
+    </div>
+  </div>
+</div>

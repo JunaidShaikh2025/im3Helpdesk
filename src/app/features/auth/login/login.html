@@ -1,0 +1,33 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h1>iM3 Helpdesk</h1>
+    <h2>Sign in to your account</h2>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" placeholder="you@company.com"/>
+        <mat-error *ngIf="form.get('email')?.hasError('required')">Email is required</mat-error>
+        <mat-error *ngIf="form.get('email')?.hasError('email')">Invalid email</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" type="password"/>
+        <mat-error *ngIf="form.get('password')?.hasError('required')">Password is required</mat-error>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit"
+        class="full-width" [disabled]="loading">
+        <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+        <span *ngIf="!loading">Sign In</span>
+      </button>
+    </form>
+
+    <div class="auth-links">
+      <a routerLink="/forgot-password">Forgot Password?</a>
+      <span> | </span>
+      <a routerLink="/register">Create Account</a>
+    </div>
+  </div>
+</div>

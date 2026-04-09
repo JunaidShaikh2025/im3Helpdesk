@@ -1,0 +1,72 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate(['/agents'])">← Back</button>
+  <span>Invite New Agent</span>
+</mat-toolbar>
+
+<div class="page-container">
+  <mat-card class="invite-card">
+
+    <div *ngIf="success" class="success-box">
+      <div class="success-icon">✓</div>
+      <h3>Agent Invited Successfully!</h3>
+      <p>Share these credentials with the agent:</p>
+      <div class="credentials">
+        <p><strong>Email:</strong> {{ form.get('email')?.value }}</p>
+        <p><strong>Temp Password:</strong>
+          <code>{{ tempPassword }}</code>
+        </p>
+      </div>
+      <p class="note">Agent should change password after first login.</p>
+      <button mat-raised-button color="primary"
+        (click)="router.navigate(['/agents'])">
+        View All Agents
+      </button>
+    </div>
+
+    <div *ngIf="!success">
+      <h2>Invite Agent</h2>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Full Name</mat-label>
+          <input matInput formControlName="fullName" placeholder="Agent Name"/>
+          <mat-error *ngIf="form.get('fullName')?.hasError('required')">
+            Name is required
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email"
+            type="email" placeholder="agent@company.com"/>
+          <mat-error *ngIf="form.get('email')?.hasError('required')">
+            Email is required
+          </mat-error>
+          <mat-error *ngIf="form.get('email')?.hasError('email')">
+            Invalid email
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Phone Number (optional)</mat-label>
+          <input matInput formControlName="phoneNumber"
+            placeholder="+91 9999999999"/>
+        </mat-form-field>
+
+        <div class="form-actions">
+          <button mat-button type="button"
+            (click)="router.navigate(['/agents'])">
+            Cancel
+          </button>
+          <button mat-raised-button color="primary"
+            type="submit" [disabled]="loading">
+            <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+            <span *ngIf="!loading">Send Invite</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </mat-card>
+</div>

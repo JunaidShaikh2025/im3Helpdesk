@@ -1,0 +1,85 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h1>iM3 Helpdesk</h1>
+    <h2>Create your account</h2>
+
+    <div class="success-box" *ngIf="successMessage">
+      <p>{{ successMessage }}</p>
+      <p>Redirecting to login in 3 seconds...</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!successMessage">
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Full Name</mat-label>
+        <input matInput formControlName="fullName" placeholder="John Doe"/>
+        <mat-error *ngIf="form.get('fullName')?.hasError('required')">
+          Full name is required
+        </mat-error>
+        <mat-error *ngIf="form.get('fullName')?.hasError('minlength')">
+          Minimum 3 characters
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" placeholder="you@company.com"/>
+        <mat-error *ngIf="form.get('email')?.hasError('required')">
+          Email is required
+        </mat-error>
+        <mat-error *ngIf="form.get('email')?.hasError('email')">
+          Invalid email address
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Phone Number</mat-label>
+        <input matInput formControlName="phoneNumber" placeholder="+91 9999999999"/>
+        <mat-error *ngIf="form.get('phoneNumber')?.hasError('required')">
+          Phone number is required
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Company Name</mat-label>
+        <input matInput formControlName="companyName" placeholder="Your Company Pvt Ltd"/>
+        <mat-error *ngIf="form.get('companyName')?.hasError('required')">
+          Company name is required
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" type="password"/>
+        <mat-error *ngIf="form.get('password')?.hasError('required')">
+          Password is required
+        </mat-error>
+        <mat-error *ngIf="form.get('password')?.hasError('minlength')">
+          Minimum 6 characters
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Confirm Password</mat-label>
+        <input matInput formControlName="confirmPassword" type="password"/>
+        <mat-error *ngIf="form.get('confirmPassword')?.hasError('required')">
+          Please confirm password
+        </mat-error>
+        <mat-error *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch')">
+          Passwords do not match
+        </mat-error>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit"
+        class="full-width submit-btn" [disabled]="loading">
+        <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+        <span *ngIf="!loading">Create Account</span>
+      </button>
+
+    </form>
+
+    <div class="auth-links">
+      Already have an account? <a routerLink="/login">Sign In</a>
+    </div>
+  </div>
+</div>

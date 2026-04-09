@@ -1,0 +1,180 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate(['/dashboard'])">← Dashboard</button>
+  <span>My Profile</span>
+  <span class="spacer"></span>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container" *ngIf="loading">
+  <div class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+</div>
+
+<div class="page-container" *ngIf="!loading && profile">
+
+  <!-- Profile Header -->
+  <div class="profile-header">
+    <div class="avatar">
+      {{ profile.fullName?.charAt(0)?.toUpperCase() }}
+    </div>
+    <div class="profile-info">
+      <h2>{{ profile.fullName }}</h2>
+      <p>{{ profile.email }}</p>
+      <span class="role-badge">{{ profile.role }}</span>
+    </div>
+  </div>
+
+  <mat-tab-group>
+
+    <!-- Tab 1: Personal Info -->
+    <mat-tab label="Personal Info">
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-content>
+            <h3>Update Profile</h3>
+            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Full Name</mat-label>
+                <input matInput formControlName="fullName"/>
+                <mat-error *ngIf="profileForm.get('fullName')?.hasError('required')">
+                  Name is required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Email</mat-label>
+                <input matInput [value]="profile.email" readonly/>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Phone Number</mat-label>
+                <input matInput formControlName="phoneNumber"/>
+              </mat-form-field>
+
+              <button mat-raised-button color="primary"
+                type="submit" [disabled]="savingProfile">
+                <mat-spinner *ngIf="savingProfile" diameter="18"></mat-spinner>
+                <span *ngIf="!savingProfile">Save Changes</span>
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Change Password -->
+    <mat-tab label="Change Password">
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-content>
+            <h3>Change Password</h3>
+            <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Current Password</mat-label>
+                <input matInput formControlName="currentPassword" type="password"/>
+                <mat-error *ngIf="passwordForm.get('currentPassword')?.hasError('required')">
+                  Required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>New Password</mat-label>
+                <input matInput formControlName="newPassword" type="password"/>
+                <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('minlength')">
+                  Minimum 6 characters
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Confirm New Password</mat-label>
+                <input matInput formControlName="confirmNewPassword" type="password"/>
+                <mat-error *ngIf="passwordForm.get('confirmNewPassword')?.hasError('mismatch')">
+                  Passwords do not match
+                </mat-error>
+              </mat-form-field>
+
+              <button mat-raised-button color="primary"
+                type="submit" [disabled]="savingPassword">
+                <mat-spinner *ngIf="savingPassword" diameter="18"></mat-spinner>
+                <span *ngIf="!savingPassword">Change Password</span>
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 3: Organization -->
+    <mat-tab label="Organization" *ngIf="profile.role === 'CompanyAdmin'">
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-content>
+            <h3>Organization Settings</h3>
+            <form [formGroup]="orgForm" (ngSubmit)="saveOrganization()">
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Company Name</mat-label>
+                <input matInput formControlName="name"/>
+                <mat-error *ngIf="orgForm.get('name')?.hasError('required')">
+                  Required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Support Email</mat-label>
+                <input matInput formControlName="supportEmail" type="email"/>
+                <mat-error *ngIf="orgForm.get('supportEmail')?.hasError('email')">
+                  Invalid email
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Logo URL</mat-label>
+                <input matInput formControlName="logoUrl"
+                  placeholder="https://yourcompany.com/logo.png"/>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Brand Color</mat-label>
+                <input matInput formControlName="brandColor" placeholder="#1976d2"/>
+              </mat-form-field>
+
+              <div class="color-preview"
+                [style.background]="orgForm.get('brandColor')?.value">
+                Brand Color Preview
+              </div>
+
+              <button mat-raised-button color="primary"
+                type="submit" [disabled]="savingOrg" style="margin-top: 16px;">
+                <mat-spinner *ngIf="savingOrg" diameter="18"></mat-spinner>
+                <span *ngIf="!savingOrg">Save Organization</span>
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Trial Info -->
+        <mat-card class="trial-card" *ngIf="profile.organization">
+          <mat-card-content>
+            <h3>Trial Information</h3>
+            <p>Trial ends:
+              <strong>
+                {{ profile.organization.trialEndsAt | date:'dd MMM yyyy' }}
+              </strong>
+            </p>
+            <p>Status:
+              <span class="active-badge"
+                [class.inactive]="!profile.organization.isActive">
+                {{ profile.organization.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </p>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+</div>

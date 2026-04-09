@@ -1,0 +1,24 @@
+<div class="verify-container">
+  <div class="verify-card">
+    <div *ngIf="loading" class="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Verifying your email...</p>
+    </div>
+
+    <div *ngIf="!loading && success" class="success">
+      <div class="icon success-icon">✓</div>
+      <h2>Email Verified!</h2>
+      <p>{{ message }}</p>
+      <a mat-raised-button color="primary" routerLink="/login">
+        Go to Login
+      </a>
+    </div>
+
+    <div *ngIf="!loading && !success" class="error">
+      <div class="icon error-icon">✗</div>
+      <h2>Verification Failed</h2>
+      <p>{{ message }}</p>
+      <a mat-raised-button routerLink="/login">Back to Login</a>
+    </div>
+  </div>
+</div>

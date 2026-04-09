@@ -1,0 +1,131 @@
+<mat-toolbar color="primary">
+  <span>iM3 Helpdesk — Tickets</span>
+  <span class="spacer"></span>
+  <button mat-raised-button (click)="router.navigate(['/tickets/create'])">
+    + New Ticket
+  </button>
+  <button mat-button (click)="router.navigate(['/dashboard'])">Dashboard</button>
+  <button mat-button (click)="router.navigate(['/profile'])">Profile</button>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container">
+
+  <mat-card class="filter-card">
+    <mat-card-content>
+      <form [formGroup]="filterForm" class="filter-form">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search tickets...</mat-label>
+          <input matInput formControlName="query"/>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="select-field">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            <mat-option *ngFor="let s of statuses" [value]="s">{{ s }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="select-field">
+          <mat-label>Priority</mat-label>
+          <mat-select formControlName="priority">
+            <mat-option *ngFor="let p of priorities" [value]="p">{{ p }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="select-field">
+          <mat-label>Category</mat-label>
+          <mat-select formControlName="category">
+            <mat-option *ngFor="let c of categories" [value]="c">{{ c }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-button type="button" (click)="clearFilters()">Clear</button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="stats-bar">
+    <span>Total: <strong>{{ tickets.length }}</strong></span>
+    <span class="open">Open: <strong>{{ tickets | statusFilter:'Open' }}</strong></span>
+    <span class="progress">In Progress: <strong>{{ tickets | statusFilter:'InProgress' }}</strong></span>
+    <span class="resolved">Resolved: <strong>{{ tickets | statusFilter:'Resolved' }}</strong></span>
+  </div>
+
+  <div *ngIf="loading" class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading">
+    <table mat-table [dataSource]="tickets" class="tickets-table">
+
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Title</th>
+        <td mat-cell *matCellDef="let t">
+          <strong>{{ t.title }}</strong>
+          <div class="comments-count" *ngIf="t.commentsCount > 0">
+            {{ t.commentsCount }} comment(s)
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="category">
+        <th mat-header-cell *matHeaderCellDef>Category</th>
+        <td mat-cell *matCellDef="let t">{{ t.category }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let t">
+          <span class="status-badge" [class]="'status-' + t.status?.toLowerCase()">
+            {{ t.status }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="priority">
+        <th mat-header-cell *matHeaderCellDef>Priority</th>
+        <td mat-cell *matCellDef="let t">
+          <span class="priority-dot" [style.background]="getPriorityColor(t.priority)"></span>
+          {{ t.priority }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createdBy">
+        <th mat-header-cell *matHeaderCellDef>Created By</th>
+        <td mat-cell *matCellDef="let t">{{ t.createdBy }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="assignedTo">
+        <th mat-header-cell *matHeaderCellDef>Assigned To</th>
+        <td mat-cell *matCellDef="let t">
+          <span *ngIf="t.assignedTo" class="assigned-badge">{{ t.assignedTo }}</span>
+          <span *ngIf="!t.assignedTo" class="unassigned">Unassigned</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let t">{{ t.createdAt | date:'dd MMM yyyy' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Action</th>
+        <td mat-cell *matCellDef="let t">
+          <button mat-button color="primary" (click)="viewTicket(t.id)">View</button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="ticket-row"></tr>
+    </table>
+
+    <div *ngIf="tickets.length === 0" class="empty-state">
+      <p>No tickets found.</p>
+      <button mat-raised-button color="primary"
+        (click)="router.navigate(['/tickets/create'])">
+        Create First Ticket
+      </button>
+    </div>
+  </div>
+</div>

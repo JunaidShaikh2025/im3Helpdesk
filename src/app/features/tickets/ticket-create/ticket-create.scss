@@ -1,0 +1,32 @@
+.page-container {
+  padding: 32px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.form-card {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+
+  h2 {
+    color: #1976d2;
+    margin-bottom: 24px;
+  }
+}
+
+.full-width { width: 100%; margin-bottom: 12px; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
