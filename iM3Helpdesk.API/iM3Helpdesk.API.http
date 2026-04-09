@@ -1,0 +1,6 @@
+@iM3Helpdesk.API_HostAddress = http://localhost:5103
+
+GET {{iM3Helpdesk.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
