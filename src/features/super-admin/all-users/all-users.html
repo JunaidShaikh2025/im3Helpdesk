@@ -1,0 +1,82 @@
+<mat-toolbar color="warn">
+  <button mat-button (click)="router.navigate(['/admin'])">← Dashboard</button>
+  <span>All Users</span>
+  <span class="spacer"></span>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container">
+  <div class="search-bar">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search by name, email or company...</mat-label>
+      <input matInput [(ngModel)]="searchQuery"
+        (input)="search()"/>
+    </mat-form-field>
+    <span class="count">{{ filteredUsers.length }} users</span>
+  </div>
+
+  <div *ngIf="loading" class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading">
+    <table mat-table [dataSource]="filteredUsers" class="users-table">
+
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let u">
+          <strong>{{ u.fullName }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="email">
+        <th mat-header-cell *matHeaderCellDef>Email</th>
+        <td mat-cell *matCellDef="let u">{{ u.email }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="role">
+        <th mat-header-cell *matHeaderCellDef>Role</th>
+        <td mat-cell *matCellDef="let u">
+          <span class="role-badge"
+            [style.color]="getRoleColor(u.role)"
+            [style.background]="getRoleColor(u.role) + '20'">
+            {{ u.role }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="organization">
+        <th mat-header-cell *matHeaderCellDef>Organization</th>
+        <td mat-cell *matCellDef="let u">
+          <span *ngIf="u.organization">
+            {{ u.organization.name }}
+            <span class="org-status"
+              [class.inactive]="!u.organization.isActive">
+              {{ u.organization.isActive ? '' : '(Inactive)' }}
+            </span>
+          </span>
+          <span *ngIf="!u.organization" class="na">—</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="verified">
+        <th mat-header-cell *matHeaderCellDef>Verified</th>
+        <td mat-cell *matCellDef="let u">
+          <span class="verified-badge" [class.yes]="u.isEmailVerified">
+            {{ u.isEmailVerified ? 'Yes' : 'No' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="lastLogin">
+        <th mat-header-cell *matHeaderCellDef>Last Login</th>
+        <td mat-cell *matCellDef="let u">
+          {{ u.lastLoginAt ? (u.lastLoginAt | date:'dd MMM yyyy') : 'Never' }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </div>
+</div>

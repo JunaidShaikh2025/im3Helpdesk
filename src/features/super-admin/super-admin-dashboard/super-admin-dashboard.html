@@ -1,0 +1,78 @@
+<mat-toolbar color="warn">
+  <span>iM3 Helpdesk — SuperAdmin</span>
+  <span class="spacer"></span>
+  <button mat-button routerLink="/admin/organizations">Organizations</button>
+  <button mat-button routerLink="/admin/users">All Users</button>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container">
+  <div *ngIf="loading" class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading && stats">
+    <h2 class="page-title">SuperAdmin Dashboard</h2>
+
+    <div class="stats-grid">
+      <mat-card class="stat-card" routerLink="/admin/organizations">
+        <mat-card-content>
+          <div class="stat-num blue">{{ stats.totalOrganizations }}</div>
+          <div class="stat-label">Total Organizations</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card" routerLink="/admin/organizations">
+        <mat-card-content>
+          <div class="stat-num green">{{ stats.activeOrganizations }}</div>
+          <div class="stat-label">Active Organizations</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card" routerLink="/admin/users">
+        <mat-card-content>
+          <div class="stat-num purple">{{ stats.totalUsers }}</div>
+          <div class="stat-label">Total Users</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-num orange">{{ stats.totalTickets }}</div>
+          <div class="stat-label">Total Tickets</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-num teal">{{ stats.newOrgsThisMonth }}</div>
+          <div class="stat-label">New Orgs This Month</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card class="recent-card">
+      <mat-card-content>
+        <h3>Recent Organizations</h3>
+        <div class="org-row" *ngFor="let org of stats.recentOrgs"
+          (click)="router.navigate(['/admin/organizations'])">
+          <div class="org-info">
+            <span class="org-name">{{ org.name }}</span>
+            <span class="org-date">
+              Joined {{ org.createdAt | date:'dd MMM yyyy' }}
+            </span>
+          </div>
+          <div class="org-meta">
+            <span class="trial-date">
+              Trial ends {{ org.trialEndsAt | date:'dd MMM yyyy' }}
+            </span>
+            <span class="status-pill" [class.active]="org.isActive"
+              [class.inactive]="!org.isActive">
+              {{ org.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

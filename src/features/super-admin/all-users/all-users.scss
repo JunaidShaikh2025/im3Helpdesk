@@ -1,0 +1,50 @@
+.spacer { flex: 1 1 auto; }
+
+.page-container {
+  padding: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  .search-field { flex: 1; max-width: 500px; }
+  .count { font-size: 14px; color: #666; }
+}
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 60px;
+}
+
+.users-table {
+  width: 100%;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.role-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.verified-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: #ffebee;
+  color: #c62828;
+
+  &.yes { background: #e8f5e9; color: #2e7d32; }
+}
+
+.org-status.inactive { color: #f44336; font-size: 11px; }
+.na { color: #bbb; }
