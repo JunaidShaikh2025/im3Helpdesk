@@ -1,4 +1,4 @@
-﻿using iM3Helpdesk.Domain.Enums;
+using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Domain.Interfaces;
 
 namespace iM3Helpdesk.Domain.Entities;
@@ -17,6 +17,9 @@ public class Ticket : IMustHaveTenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
+    public DateTime? SlaDeadline { get; set; }
+    public bool IsSlaBreached { get; set; } = false;
+    public string? SlaStatus { get; set; }
 
     public User? CreatedBy { get; set; }
     public User? AssignedTo { get; set; }

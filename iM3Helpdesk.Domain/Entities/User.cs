@@ -1,4 +1,4 @@
-﻿using iM3Helpdesk.Domain.Enums;
+using iM3Helpdesk.Domain.Enums;
 
 namespace iM3Helpdesk.Domain.Entities;
 
@@ -15,6 +15,9 @@ public class User
     public Guid? OrganizationId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
-
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiresAt { get; set; }
     public Organization? Organization { get; set; }
+    public int FailedLoginAttempts { get; set; } = 0;
+    public DateTime? LockedUntil { get; set; }
 }

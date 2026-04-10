@@ -1,4 +1,4 @@
-﻿namespace iM3Helpdesk.API.DTOs.Tickets;
+namespace iM3Helpdesk.API.DTOs.Tickets;
 
 public class TicketResponseDto
 {
@@ -12,4 +12,7 @@ public class TicketResponseDto
     public string? AssignedTo { get; set; }
     public DateTime CreatedAt { get; set; }
     public int CommentsCount { get; set; }
+    public DateTime? SlaDeadline { get; set; }
+    public string? SlaStatus { get; set; }
+    public bool IsSlaBreached { get; set; }
 }

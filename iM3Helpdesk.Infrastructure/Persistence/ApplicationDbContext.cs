@@ -1,4 +1,4 @@
-﻿using iM3Helpdesk.Domain.Entities;
+using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,8 +23,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<TicketComment> TicketComments => Set<TicketComment>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+    public DbSet<KbArticle> KbArticles => Set<KbArticle>();
+    public DbSet<TicketTemplate> TicketTemplates => Set<TicketTemplate>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
@@ -126,5 +128,27 @@ public class ApplicationDbContext : DbContext
              .HasForeignKey(a => a.UserId)
              .OnDelete(DeleteBehavior.Restrict);
         });
-    }
+        modelBuilder.Entity<KbArticle>(e => {
+          e.HasKey(x => x.Id);
+          e.Property(x => x.Title).HasMaxLength(300).IsRequired();
+          e.Property(x => x.Content).IsRequired();
+          e.Property(x => x.Category).HasMaxLength(100);
+
+          e.HasQueryFilter(a =>
+              _isSuperAdmin ||
+              a.OrganizationId == _currentTenantId);
+
+          e.HasOne(a => a.CreatedBy)
+           .WithMany()
+           .HasForeignKey(a => a.CreatedByUserId)
+           .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<TicketTemplate>(e => {
+          e.HasKey(x => x.Id);
+          e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+          e.HasQueryFilter(t =>
+              _isSuperAdmin ||
+              t.OrganizationId == _currentTenantId);
+        });
+  }
 }

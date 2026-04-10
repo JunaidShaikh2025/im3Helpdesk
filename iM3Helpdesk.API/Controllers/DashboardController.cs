@@ -1,4 +1,4 @@
-﻿using iM3Helpdesk.Domain.Enums;
+using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,51 +12,76 @@ namespace iM3Helpdesk.API.Controllers;
 [Authorize]
 public class DashboardController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-    private readonly ICurrentTenantService _tenantService;
+  private readonly ApplicationDbContext _context;
+  private readonly ICurrentTenantService _tenantService;
 
-    public DashboardController(
-        ApplicationDbContext context,
-        ICurrentTenantService tenantService)
+  public DashboardController(
+      ApplicationDbContext context,
+      ICurrentTenantService tenantService)
+  {
+    _context = context;
+    _tenantService = tenantService;
+  }
+
+  [HttpGet("stats")]
+  public async Task<IActionResult> GetStats()
+  {
+    var tickets = await _context.Tickets.ToListAsync();
+    var users = await _context.Users
+        .IgnoreQueryFilters()
+        .Where(u => u.OrganizationId == _tenantService.OrganizationId)
+        .ToListAsync();
+
+    var org = await _context.Organizations
+        .FirstOrDefaultAsync(o => o.Id == _tenantService.OrganizationId);
+
+    var today = DateTime.UtcNow.Date;
+    var weekAgo = DateTime.UtcNow.AddDays(-7);
+
+    var stats = new
     {
-        _context = context;
-        _tenantService = tenantService;
-    }
+      totalTickets = tickets.Count,
+      openTickets = tickets.Count(t => t.Status == TicketStatus.Open),
+      inProgressTickets = tickets.Count(t =>
+          t.Status == TicketStatus.InProgress),
+      resolvedTickets = tickets.Count(t =>
+          t.Status == TicketStatus.Resolved),
+      closedTickets = tickets.Count(t => t.Status == TicketStatus.Closed),
 
-    [HttpGet("stats")]
-    public async Task<IActionResult> GetStats()
-    {
-        var tickets = await _context.Tickets.ToListAsync();
-        var users = await _context.Users
-            .IgnoreQueryFilters()
-            .Where(u => u.OrganizationId == _tenantService.OrganizationId)
-            .ToListAsync();
+      // Added Priority Stats
+      lowPriority = tickets.Count(t => t.Priority == TicketPriority.Low),
+      mediumPriority = tickets.Count(t => t.Priority == TicketPriority.Medium),
+      highPriority = tickets.Count(t => t.Priority == TicketPriority.High),
+      criticalPriority = tickets.Count(t => t.Priority == TicketPriority.Critical),
 
-        var stats = new
-        {
-            totalTickets = tickets.Count,
-            openTickets = tickets.Count(t => t.Status == TicketStatus.Open),
-            inProgressTickets = tickets.Count(t => t.Status == TicketStatus.InProgress),
-            resolvedTickets = tickets.Count(t => t.Status == TicketStatus.Resolved),
-            closedTickets = tickets.Count(t => t.Status == TicketStatus.Closed),
-            totalAgents = users.Count(u => u.Role == UserRole.Agent),
-            totalAdmins = users.Count(u => u.Role == UserRole.CompanyAdmin),
-            recentTickets = await _context.Tickets
+      totalAgents = users.Count(u => u.Role == UserRole.Agent),
+      totalAdmins = users.Count(u => u.Role == UserRole.CompanyAdmin),
+      newTicketsToday = tickets.Count(t => t.CreatedAt.Date == today),
+      newTicketsThisWeek = tickets.Count(t => t.CreatedAt >= weekAgo),
+      avgResolutionHours = Math.Round(
+            tickets.Where(t => t.ResolvedAt.HasValue)
+                .Select(t => (t.ResolvedAt!.Value - t.CreatedAt).TotalHours)
+                .DefaultIfEmpty(0).Average(), 1),
+      trialDaysLeft = org != null
+            ? Math.Max(0, (int)(org.TrialEndsAt - DateTime.UtcNow).TotalDays)
+            : 0,
+      organizationName = org?.Name ?? "",
+      recentTickets = await _context.Tickets
             .Include(t => t.CreatedBy)
             .OrderByDescending(t => t.CreatedAt)
             .Take(5)
             .Select(t => new
             {
-                t.Id,
-                t.Title,
-                Status = t.Status.ToString(),
-                Priority = t.Priority.ToString(),
-                t.CreatedAt,
-                CreatedBy = t.CreatedBy!.FullName
+              t.Id,
+              t.Title,
+              Status = t.Status.ToString(),
+              Priority = t.Priority.ToString(),
+              t.CreatedAt,
+              CreatedBy = t.CreatedBy!.FullName
             })
             .ToListAsync()
-        };
+    };
 
-        return Ok(stats);
-    }
+    return Ok(stats);
+  }
 }

@@ -6,7 +6,7 @@ using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.RateLimiting; 
+using Microsoft.AspNetCore.RateLimiting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -87,7 +87,7 @@ public class AuthController : ControllerBase
   }
 
   [HttpPost("login")]
-  [EnableRateLimiting("login")] // Applied the "login" policy defined in Program.cs
+  [EnableRateLimiting("login")] // Added back your original rate limiting policy
   public async Task<IActionResult> Login([FromBody] LoginDto dto)
   {
     var user = await _context.Users
@@ -95,21 +95,62 @@ public class AuthController : ControllerBase
         .Include(u => u.Organization)
         .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-    if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+    if (user == null)
       return Unauthorized(new { message = "Invalid email or password" });
+
+    // Check account locked
+    if (user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
+    {
+      var minutesLeft = (int)(user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes + 1;
+      return Unauthorized(new
+      {
+        message = $"Account locked. Try again in {minutesLeft} minutes."
+      });
+    }
+
+    if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+    {
+      user.FailedLoginAttempts++;
+
+      if (user.FailedLoginAttempts >= 5)
+      {
+        user.LockedUntil = DateTime.UtcNow.AddMinutes(30);
+        user.FailedLoginAttempts = 0;
+        await _context.SaveChangesAsync();
+        return Unauthorized(new
+        {
+          message = "Account locked for 30 minutes due to multiple failed attempts."
+        });
+      }
+
+      await _context.SaveChangesAsync();
+      return Unauthorized(new
+      {
+        message = $"Invalid email or password. " +
+              $"{5 - user.FailedLoginAttempts} attempts remaining."
+      });
+    }
 
     if (!user.IsEmailVerified)
       return Unauthorized(new { message = "Please verify your email first" });
 
+    // Reset failed attempts on success
+    user.FailedLoginAttempts = 0;
+    user.LockedUntil = null;
+
     var token = GenerateJwtToken(user);
+    var refreshToken = Guid.NewGuid().ToString();
     var isFirstLogin = user.LastLoginAt == null;
 
+    user.RefreshToken = refreshToken;
+    user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
     user.LastLoginAt = DateTime.UtcNow;
     await _context.SaveChangesAsync();
 
     return Ok(new
     {
       token,
+      refreshToken,
       isFirstLogin,
       user = new
       {
@@ -119,6 +160,33 @@ public class AuthController : ControllerBase
         organizationId = user.OrganizationId,
         organizationName = user.Organization?.Name
       }
+    });
+  }
+
+  [HttpPost("refresh")]
+  public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
+  {
+    var user = await _context.Users
+        .IgnoreQueryFilters()
+        .Include(u => u.Organization)
+        .FirstOrDefaultAsync(u =>
+            u.RefreshToken == dto.RefreshToken &&
+            u.RefreshTokenExpiresAt > DateTime.UtcNow);
+
+    if (user == null)
+      return Unauthorized(new { message = "Invalid or expired refresh token" });
+
+    var newToken = GenerateJwtToken(user);
+    var newRefreshToken = Guid.NewGuid().ToString();
+
+    user.RefreshToken = newRefreshToken;
+    user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+      token = newToken,
+      refreshToken = newRefreshToken
     });
   }
 
@@ -191,4 +259,9 @@ public class AuthController : ControllerBase
 
     return new JwtSecurityTokenHandler().WriteToken(token);
   }
+}
+
+public class RefreshTokenDto
+{
+  public string RefreshToken { get; set; } = string.Empty;
 }

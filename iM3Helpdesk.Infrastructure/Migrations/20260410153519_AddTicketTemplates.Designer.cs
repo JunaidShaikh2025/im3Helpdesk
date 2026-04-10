@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410153519_AddTicketTemplates")]
+    partial class AddTicketTemplates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -347,9 +350,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<string>("EmailVerificationToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("FailedLoginAttempts")
-                        .HasColumnType("int");
-
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -359,9 +359,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastLoginAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LockedUntil")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("OrganizationId")
