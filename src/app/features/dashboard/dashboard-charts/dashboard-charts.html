@@ -1,0 +1,15 @@
+<div class="charts-row" *ngIf="stats">
+  <div class="chart-card">
+    <h3>Tickets by Status</h3>
+    <div class="chart-wrap">
+      <canvas #statusChart></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Tickets by Priority</h3>
+    <div class="chart-wrap">
+      <canvas #priorityChart></canvas>
+    </div>
+  </div>
+</div>

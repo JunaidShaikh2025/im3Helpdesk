@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -15,6 +15,7 @@ import { ToastrService } from 'ngx-toastr';
 import { TicketService } from '../../../services/ticket';
 import { AuthService } from '../../../services/auth.service';
 import { AgentService } from '../../../services/agent';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -28,7 +29,7 @@ import { AgentService } from '../../../services/agent';
   templateUrl: './ticket-detail.html',
   styleUrls: ['./ticket-detail.scss']
 })
-export class TicketDetailComponent implements OnInit {
+export class TicketDetailComponent implements OnInit, OnDestroy {
   ticket: any = null;
   loading = true;
   updating = false;
@@ -39,6 +40,8 @@ export class TicketDetailComponent implements OnInit {
   private agentService = inject(AgentService);
   agents: any[] = [];
   selectedAgentId = '';
+  private destroy$ = new Subject<void>();
+  newCommentText = '';
 
   statuses = ['Open', 'InProgress', 'Resolved', 'Closed'];
 
@@ -60,6 +63,23 @@ export class TicketDetailComponent implements OnInit {
     this.ticketId = this.route.snapshot.paramMap.get('id') || '';
     this.loadTicket();
     this.loadAgents();
+    this.startPolling();
+  }
+
+  startPolling() {
+    this.ticketService.pollTicket(this.ticketId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data: any) => {
+          this.ticket = data;
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadTicket() {
@@ -148,6 +168,28 @@ export class TicketDetailComponent implements OnInit {
       error: () => {
         this.updating = false;
         this.toastr.error('Failed to add comment');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  quickComment() {
+    if (!this.newCommentText?.trim()) return;
+    this.updating = true;
+    this.cdr.detectChanges();
+
+    this.ticketService.addComment(
+      this.ticketId, this.newCommentText
+    ).subscribe({
+      next: () => {
+        this.newCommentText = '';
+        this.updating = false;
+        this.toastr.success('Reply sent!');
+        this.loadTicket();
+      },
+      error: () => {
+        this.updating = false;
+        this.toastr.error('Failed to send reply');
         this.cdr.detectChanges();
       }
     });

@@ -1,0 +1,71 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate(['/dashboard'])">
+    ← Dashboard
+  </button>
+  <span>Audit Log</span>
+  <span class="spacer"></span>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container">
+
+  <div class="filter-row">
+    <mat-form-field appearance="outline" class="type-filter">
+      <mat-label>Filter by Type</mat-label>
+      <mat-select [(ngModel)]="selectedType"
+        (selectionChange)="page=1; loadLogs()">
+        <mat-option value="">All Types</mat-option>
+        <mat-option *ngFor="let t of entityTypes.slice(1)" [value]="t">
+          {{ t }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <span class="total-count">{{ total }} records</span>
+  </div>
+
+  <div *ngIf="loading" class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading">
+    <mat-card class="log-card">
+      <mat-card-content>
+        <div *ngIf="logs.length === 0" class="empty-state">
+          No audit logs found.
+        </div>
+
+        <div class="log-item" *ngFor="let log of logs">
+          <div class="log-icon"
+            [style.background]="getActionColor(log.action) + '20'"
+            [style.color]="getActionColor(log.action)">
+            {{ log.action?.charAt(0) }}
+          </div>
+          <div class="log-content">
+            <div class="log-desc">{{ log.description }}</div>
+            <div class="log-meta">
+              <span class="log-user">{{ log.user }}</span>
+              <span class="log-type">{{ log.entityType }}</span>
+              <span class="log-time">
+                {{ log.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+              </span>
+            </div>
+          </div>
+          <span class="action-badge"
+            [style.background]="getActionColor(log.action) + '20'"
+            [style.color]="getActionColor(log.action)">
+            {{ log.action }}
+          </span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button mat-button [disabled]="page === 1"
+        (click)="prevPage()">← Prev</button>
+      <span>Page {{ page }} of {{ totalPages }}</span>
+      <button mat-button [disabled]="page === totalPages"
+        (click)="nextPage()">Next →</button>
+    </div>
+  </div>
+</div>

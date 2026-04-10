@@ -45,6 +45,39 @@
     </mat-card-content>
   </mat-card>
 
+  <div class="bulk-bar" *ngIf="selectedTicketIds.size > 0">
+    <span>{{ selectedTicketIds.size }} selected</span>
+
+    <mat-form-field appearance="outline" class="bulk-select">
+      <mat-label>Change Status</mat-label>
+      <mat-select [(ngModel)]="bulkStatus">
+        <mat-option value="Open">Open</mat-option>
+        <mat-option value="InProgress">InProgress</mat-option>
+        <mat-option value="Resolved">Resolved</mat-option>
+        <mat-option value="Closed">Closed</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary"
+      (click)="bulkUpdateStatus()"
+      [disabled]="!bulkStatus || bulkUpdating">
+      Apply
+    </button>
+
+    <button mat-button (click)="clearSelection()">
+      Clear
+    </button>
+  </div>
+
+  <div class="export-row">
+    <button mat-stroked-button (click)="exportCsv()">
+      Export CSV
+    </button>
+    <button mat-stroked-button (click)="selectAll()">
+      {{ selectedTicketIds.size === tickets.length ? 'Deselect All' : 'Select All' }}
+    </button>
+  </div>
+
   <div class="stats-bar">
     <span>Total: <strong>{{ tickets.length }}</strong></span>
     <span class="open">Open: <strong>{{ tickets | statusFilter:'Open' }}</strong></span>
@@ -58,6 +91,21 @@
 
   <div *ngIf="!loading">
     <table mat-table [dataSource]="tickets" class="tickets-table">
+
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox
+            [checked]="selectedTicketIds.size === tickets.length && tickets.length > 0"
+            (change)="selectAll()">
+          </mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let t">
+          <mat-checkbox
+            [checked]="selectedTicketIds.has(t.id)"
+            (change)="toggleSelect(t.id)">
+          </mat-checkbox>
+        </td>
+      </ng-container>
 
       <ng-container matColumnDef="title">
         <th mat-header-cell *matHeaderCellDef>Title</th>
@@ -101,6 +149,15 @@
         <td mat-cell *matCellDef="let t">
           <span *ngIf="t.assignedTo" class="assigned-badge">{{ t.assignedTo }}</span>
           <span *ngIf="!t.assignedTo" class="unassigned">Unassigned</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sla">
+        <th mat-header-cell *matHeaderCellDef>SLA</th>
+        <td mat-cell *matCellDef="let t">
+          <span class="sla-badge" [class]="'sla-' + (t.slaStatus || 'notrack')">
+            {{ t.slaStatus || 'No SLA' }}
+          </span>
         </td>
       </ng-container>
 

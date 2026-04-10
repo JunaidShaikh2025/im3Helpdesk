@@ -1,17 +1,30 @@
 <mat-toolbar color="primary">
   <span>iM3 Helpdesk</span>
   <span class="spacer"></span>
-  <span class="user-name">{{ userName }}</span>
+  <app-global-search></app-global-search>
+  <span class="user-name" style="margin-left:16px">{{ userName }}</span>
   <button mat-button routerLink="/tickets">Tickets</button>
   <button mat-button routerLink="/agents">Agents</button>
+  <button mat-button routerLink="/kb">KB</button>
   <button mat-button routerLink="/notifications">Notifications</button>
   <button mat-button routerLink="/reports">Reports</button>
   <button mat-button routerLink="/profile">Profile</button>
   <button mat-button (click)="logout()">Logout</button>
+  <button mat-button routerLink="/settings/templates">Templates</button>
+  <button mat-button routerLink="/settings">Settings</button>
+  <button mat-button routerLink="/audit">Audit Log</button>
 </mat-toolbar>
 
-<div class="dashboard-container">
+<div class="trial-banner"
+  *ngIf="!loading && stats.trialDaysLeft <= 30"
+  [style.background]="getTrialColor()">
+  <span>
+    Trial period: <strong>{{ stats.trialDaysLeft }} days remaining</strong>
+    — Upgrade to continue using iM3 Helpdesk after trial ends.
+  </span>
+</div>
 
+<div class="dashboard-container">
   <div *ngIf="loading" class="loading-center">
     <mat-spinner diameter="48"></mat-spinner>
   </div>
@@ -19,46 +32,79 @@
   <div *ngIf="!loading">
     <h2 class="welcome-text">Welcome back, {{ userName }}!</h2>
 
-    <!-- Stats Cards -->
     <div class="stats-grid">
-      <mat-card class="stat-card total" routerLink="/tickets">
+      <mat-card class="stat-card" routerLink="/tickets">
         <mat-card-content>
-          <div class="stat-number">{{ stats.totalTickets }}</div>
+          <div class="stat-number blue">{{ stats.totalTickets }}</div>
           <div class="stat-label">Total Tickets</div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card open" routerLink="/tickets">
+      <mat-card class="stat-card" routerLink="/tickets">
         <mat-card-content>
-          <div class="stat-number">{{ stats.openTickets }}</div>
+          <div class="stat-number red">{{ stats.openTickets }}</div>
           <div class="stat-label">Open</div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card progress" routerLink="/tickets">
+      <mat-card class="stat-card" routerLink="/tickets">
         <mat-card-content>
-          <div class="stat-number">{{ stats.inProgressTickets }}</div>
+          <div class="stat-number orange">{{ stats.inProgressTickets }}</div>
           <div class="stat-label">In Progress</div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card resolved" routerLink="/tickets">
+      <mat-card class="stat-card" routerLink="/tickets">
         <mat-card-content>
-          <div class="stat-number">{{ stats.resolvedTickets }}</div>
+          <div class="stat-number green">{{ stats.resolvedTickets }}</div>
           <div class="stat-label">Resolved</div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card agents" routerLink="/agents">
+      <mat-card class="stat-card" routerLink="/agents">
         <mat-card-content>
-          <div class="stat-number">{{ stats.totalAgents }}</div>
+          <div class="stat-number purple">{{ stats.totalAgents }}</div>
           <div class="stat-label">Agents</div>
         </mat-card-content>
       </mat-card>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
+    <div class="secondary-stats">
+      <mat-card class="secondary-card">
+        <mat-card-content>
+          <div class="secondary-num">{{ stats.newTicketsToday }}</div>
+          <div class="secondary-label">New Today</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="secondary-card">
+        <mat-card-content>
+          <div class="secondary-num">{{ stats.newTicketsThisWeek }}</div>
+          <div class="secondary-label">This Week</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="secondary-card">
+        <mat-card-content>
+          <div class="secondary-num">{{ stats.avgResolutionHours }}h</div>
+          <div class="secondary-label">Avg Resolution</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="secondary-card">
+        <mat-card-content>
+          <div class="secondary-num"
+            [style.color]="getTrialColor()">
+            {{ stats.trialDaysLeft }}d
+          </div>
+          <div class="secondary-label">Trial Days Left</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <app-dashboard-charts [stats]="stats"></app-dashboard-charts>
+
+    <div class="quick-actions-card">
       <h3>Quick Actions</h3>
       <div class="actions-row">
         <button mat-raised-button color="primary"
@@ -73,13 +119,17 @@
           routerLink="/tickets">
           View All Tickets
         </button>
+        <button mat-raised-button
+          routerLink="/reports">
+          View Reports
+        </button>
       </div>
     </div>
 
-    <!-- Recent Tickets -->
-    <div class="recent-tickets" *ngIf="stats.recentTickets?.length > 0">
+    <div class="recent-section" *ngIf="stats.recentTickets?.length > 0">
       <h3>Recent Tickets</h3>
-      <div class="ticket-row" *ngFor="let t of stats.recentTickets"
+      <div class="ticket-row"
+        *ngFor="let t of stats.recentTickets"
         (click)="router.navigate(['/tickets', t.id])">
         <div class="ticket-info">
           <span class="ticket-title">{{ t.title }}</span>

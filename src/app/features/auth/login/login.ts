@@ -48,8 +48,14 @@ export class LoginComponent {
         this.cdr.detectChanges();
         this.authService.saveUserData(res);
         this.toastr.success('Login successful!');
-        if (res.isFirstLogin) {
+        
+        // Updated Role-based Redirection
+        if (res.isFirstLogin && res.user?.role === 'CompanyAdmin') {
           this.router.navigate(['/onboarding']);
+        } else if (res.user?.role === 'SuperAdmin') {
+          this.router.navigate(['/admin']);
+        } else if (res.user?.role === 'Customer') {
+          this.router.navigate(['/customer']);
         } else {
           this.router.navigate(['/dashboard']);
         }

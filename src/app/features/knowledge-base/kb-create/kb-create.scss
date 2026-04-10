@@ -1,0 +1,30 @@
+.page-container {
+  padding: 32px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-card {
+  border-radius: 12px !important;
+
+  mat-card-content { padding: 32px !important; }
+
+  h2 { color: #1976d2; margin-bottom: 24px; }
+}
+
+.full-width { width: 100%; margin-bottom: 12px; }
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0 20px;
+}
+
+.toggle-hint { font-size: 13px; color: #999; }
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

@@ -1,9 +1,24 @@
 .spacer { flex: 1 1 auto; }
 
+.org-name {
+  margin-right: 8px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
 .user-name {
   margin-right: 16px;
   font-size: 14px;
   opacity: 0.9;
+}
+
+.trial-banner {
+  color: white;
+  text-align: center;
+  padding: 10px 24px;
+  font-size: 13px;
+
+  strong { font-weight: 500; }
 }
 
 .dashboard-container {
@@ -29,7 +44,7 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 
 .stat-card {
@@ -48,28 +63,48 @@
     font-size: 36px;
     font-weight: 500;
     margin-bottom: 6px;
+
+    &.blue { color: #1976d2; }
+    &.red { color: #f44336; }
+    &.orange { color: #ff9800; }
+    &.green { color: #4caf50; }
+    &.purple { color: #9c27b0; }
   }
 
-  .stat-label {
-    font-size: 13px;
-    color: #666;
-  }
-
-  &.total .stat-number { color: #1976d2; }
-  &.open .stat-number { color: #f44336; }
-  &.progress .stat-number { color: #ff9800; }
-  &.resolved .stat-number { color: #4caf50; }
-  &.agents .stat-number { color: #9c27b0; }
+  .stat-label { font-size: 12px; color: #666; }
 }
 
-.quick-actions {
+.secondary-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.secondary-card {
+  border-radius: 12px !important;
+  text-align: center;
+
+  mat-card-content { padding: 16px !important; }
+
+  .secondary-num {
+    font-size: 24px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .secondary-label { font-size: 12px; color: #999; }
+}
+
+.quick-actions-card {
   background: white;
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 
-  h3 { color: #333; margin-bottom: 16px; }
+  h3 { color: #333; margin-bottom: 16px; font-size: 16px; }
 
   .actions-row {
     display: flex;
@@ -78,13 +113,13 @@
   }
 }
 
-.recent-tickets {
+.recent-section {
   background: white;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 
-  h3 { color: #333; margin-bottom: 16px; }
+  h3 { color: #333; margin-bottom: 16px; font-size: 16px; }
 }
 
 .ticket-row {
@@ -112,10 +147,7 @@
     color: #333;
   }
 
-  .ticket-by {
-    font-size: 12px;
-    color: #999;
-  }
+  .ticket-by { font-size: 12px; color: #999; }
 }
 
 .ticket-meta {

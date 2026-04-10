@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +8,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { Subject, interval, takeUntil } from 'rxjs';
+import { DashboardChartsComponent } from '../dashboard-charts/dashboard-charts';
+import { GlobalSearchComponent } from '../../../shared/global-search/global-search';
+
+// imports array mein:
+
 
 @Component({
   selector: 'app-dashboard',
@@ -15,77 +21,100 @@ import { ToastrService } from 'ngx-toastr';
   imports: [
     CommonModule, RouterModule,
     MatButtonModule, MatCardModule,
-    MatToolbarModule, MatProgressSpinnerModule
+    MatToolbarModule, MatProgressSpinnerModule,DashboardChartsComponent,GlobalSearchComponent
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   public router = inject(Router);
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
+  private destroy$ = new Subject<void>();
 
   userName = '';
   userRole = '';
   loading = true;
   stats: any = {
-    totalTickets: 0,
-    openTickets: 0,
-    inProgressTickets: 0,
-    resolvedTickets: 0,
-    totalAgents: 0,
+    totalTickets: 0, openTickets: 0,
+    inProgressTickets: 0, resolvedTickets: 0,
+    totalAgents: 0, newTicketsToday: 0,
+    newTicketsThisWeek: 0, avgResolutionHours: 0,
+    trialDaysLeft: 0, organizationName: '',
     recentTickets: []
   };
-
-  getStatusClass(status: any): string {
-  const map: any = {
-    0: 'open', 1: 'inprogress', 2: 'resolved', 3: 'closed',
-    'Open': 'open', 'InProgress': 'inprogress',
-    'Resolved': 'resolved', 'Closed': 'closed'
-  };
-  return map[status] || 'open';
-}
-
-getStatusLabel(status: any): string {
-  const map: any = {
-    0: 'Open', 1: 'InProgress', 2: 'Resolved', 3: 'Closed',
-    'Open': 'Open', 'InProgress': 'InProgress',
-    'Resolved': 'Resolved', 'Closed': 'Closed'
-  };
-  return map[status] || 'Open';
-}
 
   ngOnInit() {
     const token = this.authService.getToken();
     if (token) {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
-        || payload.email || 'User';
-      this.userRole = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
-        || payload.role || '';
+      this.userName = payload[
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
+      ] || payload.email || 'User';
+      this.userRole = payload[
+        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
+      ] || payload.role || '';
     }
     this.loadStats();
+
+    // Auto refresh every 60 seconds
+    interval(60000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadStats());
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private getHeaders() {
+    return new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
   }
 
   loadStats() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
+    this.http.get<any>(
+      'https://localhost:7071/api/Dashboard/stats',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.stats = data;
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
     });
+  }
 
-    this.http.get<any>('https://localhost:7071/api/Dashboard/stats', { headers })
-      .subscribe({
-        next: (data) => {
-          this.stats = data;
-          this.loading = false;
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.loading = false;
-          this.cdr.detectChanges();
-        }
-      });
+  getStatusClass(status: any): string {
+    const map: any = {
+      0: 'open', 1: 'inprogress', 2: 'resolved', 3: 'closed',
+      'Open': 'open', 'InProgress': 'inprogress',
+      'Resolved': 'resolved', 'Closed': 'closed'
+    };
+    return map[status] || 'open';
+  }
+
+  getStatusLabel(status: any): string {
+    const map: any = {
+      0: 'Open', 1: 'InProgress', 2: 'Resolved', 3: 'Closed',
+      'Open': 'Open', 'InProgress': 'InProgress',
+      'Resolved': 'Resolved', 'Closed': 'Closed'
+    };
+    return map[status] || 'Open';
+  }
+
+  getTrialColor(): string {
+    if (this.stats.trialDaysLeft > 15) return '#4caf50';
+    if (this.stats.trialDaysLeft > 5) return '#ff9800';
+    return '#f44336';
   }
 
   logout() {

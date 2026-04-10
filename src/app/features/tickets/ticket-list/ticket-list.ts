@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ToastrService } from 'ngx-toastr';
 import { TicketService } from '../../../services/ticket';
 import { AuthService } from '../../../services/auth.service';
@@ -21,11 +22,11 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
   selector: 'app-ticket-list',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, ReactiveFormsModule,
+    CommonModule, RouterModule, ReactiveFormsModule, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule,
     MatToolbarModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatCardModule,
+    MatSelectModule, MatCardModule, MatCheckboxModule,
     StatusFilterPipe
   ],
   templateUrl: './ticket-list.html',
@@ -42,10 +43,10 @@ export class TicketListComponent implements OnInit {
   tickets: any[] = [];
   allTickets: any[] = [];
   loading = true;
+  
   displayedColumns = [
-    'title', 'category', 'status',
-    'priority', 'createdBy', 'assignedTo',
-    'createdAt', 'actions'
+    'select', 'title', 'category', 'status', 'priority',
+    'createdBy', 'assignedTo', 'sla', 'createdAt', 'actions'
   ];
 
   filterForm: FormGroup = this.fb.group({
@@ -58,6 +59,11 @@ export class TicketListComponent implements OnInit {
   statuses = ['All', 'Open', 'InProgress', 'Resolved', 'Closed'];
   priorities = ['All', 'Low', 'Medium', 'High', 'Critical'];
   categories = ['All', 'General', 'Technical', 'Billing', 'Sales', 'Network'];
+
+  // --- Bulk Select Properties ---
+  selectedTicketIds: Set<string> = new Set();
+  bulkStatus = '';
+  bulkUpdating = false;
 
   ngOnInit() {
     this.loadTickets();
@@ -125,5 +131,69 @@ export class TicketListComponent implements OnInit {
 
   logout() {
     this.authService.logout();
+  }
+
+  // --- Bulk Select & Export Methods ---
+
+  toggleSelect(id: string) {
+    if (this.selectedTicketIds.has(id)) {
+      this.selectedTicketIds.delete(id);
+    } else {
+      this.selectedTicketIds.add(id);
+    }
+    this.cdr.detectChanges();
+  }
+
+  selectAll() {
+    if (this.selectedTicketIds.size === this.tickets.length) {
+      this.selectedTicketIds.clear();
+    } else {
+      this.tickets.forEach(t => this.selectedTicketIds.add(t.id));
+    }
+    this.cdr.detectChanges();
+  }
+
+  clearSelection() {
+    this.selectedTicketIds.clear();
+    this.cdr.detectChanges();
+  }
+
+  bulkUpdateStatus() {
+    if (!this.bulkStatus || !this.selectedTicketIds.size) return;
+    this.bulkUpdating = true;
+    this.cdr.detectChanges();
+
+    this.ticketService.bulkUpdate({
+      ticketIds: Array.from(this.selectedTicketIds),
+      status: this.bulkStatus
+    }).subscribe({
+      next: (res: any) => {
+        this.bulkUpdating = false;
+        this.selectedTicketIds.clear();
+        this.bulkStatus = '';
+        this.toastr.success(res.message);
+        this.loadTickets();
+      },
+      error: () => {
+        this.bulkUpdating = false;
+        this.toastr.error('Bulk update failed');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  exportCsv() {
+    this.ticketService.exportTickets().subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tickets-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.toastr.success('CSV exported!');
+      },
+      error: () => this.toastr.error('Export failed')
+    });
   }
 }

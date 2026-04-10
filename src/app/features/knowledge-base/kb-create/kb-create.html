@@ -1,0 +1,76 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate(['/kb'])">← Back</button>
+  <span>{{ isEdit ? 'Edit Article' : 'New Article' }}</span>
+</mat-toolbar>
+
+<div class="page-container">
+  <mat-card class="form-card">
+    <mat-card-content>
+      <h2>{{ isEdit ? 'Edit Article' : 'Create New Article' }}</h2>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title"
+            placeholder="Article title..."/>
+          <mat-error *ngIf="form.get('title')?.hasError('required')">
+            Title is required
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Category</mat-label>
+          <mat-select formControlName="category">
+            <mat-option *ngFor="let c of categories" [value]="c">
+              {{ c }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Tags (comma separated)</mat-label>
+          <input matInput formControlName="tags"
+            placeholder="login, password, reset"/>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Content</mat-label>
+          <textarea matInput formControlName="content"
+            rows="12"
+            placeholder="Write your article content here...">
+          </textarea>
+          <mat-error *ngIf="form.get('content')?.hasError('required')">
+            Content is required
+          </mat-error>
+        </mat-form-field>
+
+        <div class="toggle-row">
+          <mat-slide-toggle formControlName="isPublished" color="primary">
+            Published
+          </mat-slide-toggle>
+          <span class="toggle-hint">
+            {{ form.get('isPublished')?.value
+              ? 'Visible to all users'
+              : 'Saved as draft' }}
+          </span>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button"
+            (click)="router.navigate(['/kb'])">
+            Cancel
+          </button>
+          <button mat-raised-button color="primary"
+            type="submit" [disabled]="loading">
+            <mat-spinner *ngIf="loading" diameter="18"></mat-spinner>
+            <span *ngIf="!loading">
+              {{ isEdit ? 'Update Article' : 'Publish Article' }}
+            </span>
+          </button>
+        </div>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

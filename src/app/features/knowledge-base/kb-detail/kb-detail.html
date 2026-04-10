@@ -1,0 +1,49 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate([getBackRoute()])">← Back</button>
+  <span>Knowledge Base</span>
+  <span class="spacer"></span>
+  <button mat-button *ngIf="canManage() && article"
+    (click)="router.navigate(['/kb/edit', article.id])">
+    Edit
+  </button>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container" *ngIf="loading">
+  <div class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+</div>
+
+<div class="page-container" *ngIf="!loading && article">
+  <mat-card class="article-card">
+    <mat-card-content>
+
+      <div class="article-meta">
+        <span class="category-tag">{{ article.category }}</span>
+        <span class="views">{{ article.viewCount }} views</span>
+        <span class="date">{{ article.createdAt | date:'dd MMM yyyy' }}</span>
+      </div>
+
+      <h1 class="article-title">{{ article.title }}</h1>
+
+      <div class="article-tags" *ngIf="article.tags">
+        <span class="tag" *ngFor="let tag of article.tags?.split(',')">
+          {{ tag.trim() }}
+        </span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="article-content">{{ article.content }}</div>
+
+      <div class="author-row">
+        <span>Written by <strong>{{ article.createdBy }}</strong></span>
+        <span *ngIf="article.updatedAt">
+          Updated {{ article.updatedAt | date:'dd MMM yyyy' }}
+        </span>
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+</div>

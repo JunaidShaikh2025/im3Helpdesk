@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth-guard';
-import { superAdminGuard } from './guards/super-admin.guard';
+import { superAdminGuard } from './guards/super-admin-guard';
+import { customerGuard } from './guards/customer-guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -98,30 +99,96 @@ export const routes: Routes = [
       .then(m => m.ReportsPageComponent),
   canActivate: [authGuard]
 },
-
-
-// Routes mein add karo:
 {
   path: 'admin',
   loadComponent: () =>
-    import('./features/super-admin/super-admin-dashboard/super-admin-dashboard')
+  import('../features/super-admin/super-admin-dashboard/super-admin-dashboard')
       .then(m => m.SuperAdminDashboardComponent),
   canActivate: [superAdminGuard]
 },
 {
   path: 'admin/organizations',
   loadComponent: () =>
-    import('./features/super-admin/organizations-list/organizations-list')
+    import('../features/super-admin/organizations-list/organizations-list')
       .then(m => m.OrganizationsListComponent),
   canActivate: [superAdminGuard]
 },
 {
   path: 'admin/users',
   loadComponent: () =>
-    import('./features/super-admin/all-users/all-users')
+    import('../features/super-admin/all-users/all-users')
       .then(m => m.AllUsersComponent),
   canActivate: [superAdminGuard]
 },
-
+{
+  path: 'customer',
+  loadComponent: () =>
+    import('./features/customer/customer-portal/customer-portal')
+      .then(m => m.CustomerPortalComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'customer/ticket/:id',
+  loadComponent: () =>
+    import('./features/customer/customer-ticket-detail/customer-ticket-detail')
+      .then(m => m.CustomerTicketDetailComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'kb',
+  loadComponent: () =>
+    import('./features/knowledge-base/kb-list/kb-list')
+      .then(m => m.KbListComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'kb/create',
+  loadComponent: () =>
+    import('./features/knowledge-base/kb-create/kb-create')
+      .then(m => m.KbCreateComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'kb/edit/:id',
+  loadComponent: () =>
+    import('./features/knowledge-base/kb-create/kb-create')
+      .then(m => m.KbCreateComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'kb/:id',
+  loadComponent: () =>
+    import('./features/knowledge-base/kb-detail/kb-detail')
+      .then(m => m.KbDetailComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'settings/templates',
+  loadComponent: () =>
+    import('./features/settings/ticket-templates/ticket-templates')
+      .then(m => m.TicketTemplatesComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'settings',
+  loadComponent: () =>
+    import('./features/settings/settings-page/settings-page')
+      .then(m => m.SettingsPageComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'settings',
+  loadComponent: () =>
+    import('./features/settings/settings-page/settings-page')
+      .then(m => m.SettingsPageComponent),
+  canActivate: [authGuard]
+},
+{
+  path: 'audit',
+  loadComponent: () =>
+    import('./features/settings/audit-log/audit-log')
+      .then(m => m.AuditLogComponent),
+  canActivate: [authGuard]
+},
   { path: '**', redirectTo: 'login' }
 ];

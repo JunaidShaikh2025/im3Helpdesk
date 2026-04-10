@@ -1,0 +1,52 @@
+<div class="search-wrapper">
+  <input class="search-input"
+    [(ngModel)]="searchQuery"
+    (input)="onSearch()"
+    (blur)="closeResults()"
+    placeholder="Search tickets, agents, articles..."
+    autocomplete="off"/>
+
+  <div class="search-results" *ngIf="showResults && results">
+    <div *ngIf="!hasResults" class="no-results">
+      No results found
+    </div>
+
+    <div *ngIf="results.tickets?.length > 0">
+      <div class="result-section">Tickets</div>
+      <div class="result-item"
+        *ngFor="let t of results.tickets"
+        (mousedown)="navigate('ticket', t.id)">
+        <span class="result-icon">🎫</span>
+        <div>
+          <div class="result-title">{{ t.title }}</div>
+          <div class="result-sub">{{ t.status }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="results.articles?.length > 0">
+      <div class="result-section">Knowledge Base</div>
+      <div class="result-item"
+        *ngFor="let a of results.articles"
+        (mousedown)="navigate('article', a.id)">
+        <span class="result-icon">📄</span>
+        <div>
+          <div class="result-title">{{ a.title }}</div>
+          <div class="result-sub">{{ a.category }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="results.agents?.length > 0">
+      <div class="result-section">Agents</div>
+      <div class="result-item"
+        *ngFor="let a of results.agents">
+        <span class="result-icon">👤</span>
+        <div>
+          <div class="result-title">{{ a.name }}</div>
+          <div class="result-sub">{{ a.email }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
