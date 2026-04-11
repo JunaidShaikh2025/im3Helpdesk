@@ -56,6 +56,28 @@
       </div>
     </mat-card-content>
   </mat-card>
+  
+  <!-- Time Tracking -->
+  <mat-card class="time-card">
+    <mat-card-content>
+      <h3>Time Tracking</h3>
+      <div class="time-info" *ngIf="ticket.timeSpentMinutes > 0">
+        <span class="time-spent">
+          Total: {{ ticket.timeSpentMinutes }} min
+          ({{ (ticket.timeSpentMinutes / 60).toFixed(1) }} hrs)
+        </span>
+      </div>
+      <div class="log-time-row">
+        <input class="time-input" type="number"
+          [(ngModel)]="timeToLog" min="1"
+          placeholder="Minutes..."/>
+        <button mat-raised-button color="accent"
+          (click)="logTime()" [disabled]="!timeToLog || updating">
+          Log Time
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
 
   <mat-card class="status-card">
     <mat-card-content>
@@ -68,6 +90,27 @@
           [disabled]="updating || ticket.status === s"
           (click)="updateStatus(s)">
           {{ s }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+    <!-- Tags -->
+  <mat-card class="tags-card">
+    <mat-card-content>
+      <h3>Tags</h3>
+      <div class="tags-row">
+        <span class="tag-chip" *ngFor="let tag of getTagsArray()">
+          {{ tag }}
+        </span>
+        <span *ngIf="!ticket.tags" class="no-tags">No tags</span>
+      </div>
+      <div class="add-tag-row">
+        <input class="tag-input" [(ngModel)]="newTag"
+          placeholder="Add tag..."
+          (keyup.enter)="addTag()"/>
+        <button mat-button color="primary" (click)="addTag()">
+          Add
         </button>
       </div>
     </mat-card-content>

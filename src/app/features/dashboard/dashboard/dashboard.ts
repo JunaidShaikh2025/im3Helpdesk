@@ -11,6 +11,10 @@ import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil } from 'rxjs';
 import { DashboardChartsComponent } from '../dashboard-charts/dashboard-charts';
 import { GlobalSearchComponent } from '../../../shared/global-search/global-search';
+import { DashboardTrendComponent } from '../dashboard-trend/dashboard-trend';
+
+// imports array mein:
+
 
 // imports array mein:
 
@@ -21,7 +25,9 @@ import { GlobalSearchComponent } from '../../../shared/global-search/global-sear
   imports: [
     CommonModule, RouterModule,
     MatButtonModule, MatCardModule,
-    MatToolbarModule, MatProgressSpinnerModule,DashboardChartsComponent,GlobalSearchComponent
+    MatToolbarModule, MatProgressSpinnerModule,
+    DashboardChartsComponent,GlobalSearchComponent,
+    DashboardTrendComponent
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss']
@@ -37,6 +43,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   userName = '';
   userRole = '';
   loading = true;
+  widgetData: any = null;
   stats: any = {
     totalTickets: 0, openTickets: 0,
     inProgressTickets: 0, resolvedTickets: 0,
@@ -70,16 +77,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
+private getHeaders() {
+  return new HttpHeaders({
+    'Authorization': `Bearer ${this.authService.getToken()}`
+  });
+}
+
+
 
   loadStats() {
+    const headers = this.getHeaders();
     this.http.get<any>(
-      'https://localhost:7071/api/Dashboard/stats',
-      { headers: this.getHeaders() }
+      'https://localhost:7071/api/Dashboard/stats', { headers }
     ).subscribe({
       next: (data) => {
         this.stats = data;
@@ -91,7 +100,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       }
     });
-  }
+
+  this.http.get<any>(
+    'https://localhost:7071/api/Dashboard/widgets', { headers }
+  ).subscribe({
+    next: (data) => {
+      this.widgetData = data;
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   getStatusClass(status: any): string {
     const map: any = {

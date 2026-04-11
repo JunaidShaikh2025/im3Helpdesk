@@ -28,6 +28,11 @@ export class TicketService {
     return this.http.post(this.apiUrl, data, { headers: this.getHeaders() });
   }
 
+  logTime(id: string, minutes: number, note?: string): Observable<any> {
+  return this.http.put(`${this.apiUrl}/${id}/log-time`,
+    { minutes, note }, { headers: this.getHeaders() });
+}
+
   updateStatus(id: string, status: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/status`,
       { status }, { headers: this.getHeaders() });
@@ -58,7 +63,7 @@ export class TicketService {
     return this.http.post(`${this.apiUrl}/bulk-update`, data,
       { headers: this.getHeaders() });
   }
-
+  
   exportTickets(status?: string, priority?: string): Observable<Blob> {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
@@ -68,6 +73,17 @@ export class TicketService {
       `${this.apiUrl}/export?${params.toString()}`,
       { headers: this.getHeaders(), responseType: 'blob' }
     );
+  }
+
+  updateTags(id: string, tags: string[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}/tags`,
+      { tags }, { headers: this.getHeaders() });
+  }
+
+  getByTag(tag: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/by-tag/${tag}`,
+      { headers: this.getHeaders() });
   }
 
   // Poll ticket every 15 seconds for real-time updates

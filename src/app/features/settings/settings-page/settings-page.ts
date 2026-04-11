@@ -38,10 +38,12 @@ export class SettingsPageComponent implements OnInit {
   browserNotifications = false;
   language = 'en';
 
-  languages = [
+languages = [
     { code: 'en', name: 'English' },
-    { code: 'hi', name: 'Hindi' },
-    { code: 'mr', name: 'Marathi' }
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'zh', name: 'Chinese' },
+     { code: 'hi', name: 'Hindi' }
   ];
 
   ngOnInit() {

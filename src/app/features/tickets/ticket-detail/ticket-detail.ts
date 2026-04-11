@@ -42,7 +42,9 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   selectedAgentId = '';
   private destroy$ = new Subject<void>();
   newCommentText = '';
-
+  newTag = '';
+  currentTags: string[] = [];
+  timeToLog: number | null = null;
   statuses = ['Open', 'InProgress', 'Resolved', 'Closed'];
 
   constructor(
@@ -150,6 +152,29 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  logTime() {
+    if (!this.timeToLog || this.timeToLog < 1) return;
+    this.updating = true;
+    this.cdr.detectChanges();
+
+    this.ticketService.logTime(this.ticketId, this.timeToLog)
+      .subscribe({
+        next: (res: any) => {
+          this.updating = false;
+          this.timeToLog = null;
+          this.toastr.success(
+            `${res.totalMinutes} min (${res.totalHours} hrs) total`
+          );
+          this.loadTicket();
+        },
+        error: () => {
+          this.updating = false;
+          this.toastr.error('Failed to log time');
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
   addComment() {
     if (this.commentForm.invalid) return;
     this.updating = true;
@@ -194,6 +219,26 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+    getTagsArray(): string[] {
+      if (!this.ticket?.tags) return [];
+      return this.ticket.tags.split(',').filter((t: string) => t.trim());
+    }
+
+    addTag() {
+      if (!this.newTag.trim()) return;
+      const tags = this.getTagsArray();
+      if (!tags.includes(this.newTag.trim().toLowerCase())) {
+        tags.push(this.newTag.trim().toLowerCase());
+      }
+      this.ticketService.updateTags(this.ticketId, tags).subscribe({
+        next: () => {
+          this.newTag = '';
+          this.toastr.success('Tag added!');
+          this.loadTicket();
+        }
+      });
+    }
 
   getStatusColor(status: string): string {
     const colors: any = {
