@@ -1,41 +1,31 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterModule,
-    MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatProgressSpinnerModule
-  ],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './login.html',
   styleUrls: ['./login.scss']
 })
 export class LoginComponent {
-  loading = false;
-  form: FormGroup;
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private toastr = inject(ToastrService);
+  private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private toastr: ToastrService,
-    private cdr: ChangeDetectorRef
-  ) {
-    this.form = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required]
-    });
-  }
+  loading = false;
+  showPassword = false;
+
+  form: FormGroup = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required]
+  });
 
   onSubmit() {
     if (this.form.invalid) return;
@@ -44,12 +34,9 @@ export class LoginComponent {
 
     this.authService.login(this.form.value).subscribe({
       next: (res) => {
+        this.authService.saveUserData(res);
         this.loading = false;
         this.cdr.detectChanges();
-        this.authService.saveUserData(res);
-        this.toastr.success('Login successful!');
-        
-        // Updated Role-based Redirection
         if (res.isFirstLogin && res.user?.role === 'CompanyAdmin') {
           this.router.navigate(['/onboarding']);
         } else if (res.user?.role === 'SuperAdmin') {
@@ -63,7 +50,9 @@ export class LoginComponent {
       error: (err) => {
         this.loading = false;
         this.cdr.detectChanges();
-        this.toastr.error(err.error?.message || 'Login failed');
+        Promise.resolve().then(() =>
+          this.toastr.error(err.error?.message || 'Login failed')
+        );
       }
     });
   }

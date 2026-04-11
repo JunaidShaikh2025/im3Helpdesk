@@ -15,8 +15,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ToastrService } from 'ngx-toastr';
 import { TicketService } from '../../../services/ticket';
 import { AuthService } from '../../../services/auth.service';
-import { StatusFilterPipe } from '../../../pipes/status-filter-pipe';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-ticket-list',
@@ -27,7 +27,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
     MatToolbarModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule,
     MatSelectModule, MatCardModule, MatCheckboxModule,
-    StatusFilterPipe
+    LayoutComponent // StatusFilterPipe removed because it's not used in HTML
   ],
   templateUrl: './ticket-list.html',
   styleUrls: ['./ticket-list.scss']
@@ -37,13 +37,17 @@ export class TicketListComponent implements OnInit {
   private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
-  private cdr = inject(ChangeDetectorRef);
+  public cdr = inject(ChangeDetectorRef); // Changed from private to public
   private fb = inject(FormBuilder);
 
   tickets: any[] = [];
   allTickets: any[] = [];
   loading = true;
   
+  // --- New Properties ---
+  showFilters = false;
+  agents: any[] = [];
+
   displayedColumns = [
     'select', 'title', 'category', 'status', 'priority',
     'createdBy', 'assignedTo', 'sla', 'createdAt', 'actions'
@@ -66,10 +70,19 @@ export class TicketListComponent implements OnInit {
   bulkUpdating = false;
 
   ngOnInit() {
-    this.loadTickets();
-    this.filterForm.valueChanges
-      .pipe(debounceTime(400), distinctUntilChanged())
-      .subscribe(() => this.applyFilters());
+    this.loading = true;
+    
+    // NOTE: onAgentFilter is a UI event function, not an API service.
+    // Setting agents to an empty array for now. If you have an AgentService, call it here.
+    this.agents = []; 
+
+    // Load tickets after view init
+    Promise.resolve().then(() => {
+      this.loadTickets();
+      this.filterForm.valueChanges
+        .pipe(debounceTime(400), distinctUntilChanged())
+        .subscribe(() => this.applyFilters());
+    });
   }
 
   loadTickets() {
@@ -109,6 +122,8 @@ export class TicketListComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  // --- UI Helper Methods ---
+
   getStatusColor(status: string): string {
     const colors: any = {
       'Open': '#f44336', 'InProgress': '#ff9800',
@@ -123,6 +138,69 @@ export class TicketListComponent implements OnInit {
       'Medium': '#2196f3', 'Low': '#4caf50'
     };
     return colors[priority] || '#666';
+  }
+
+  hasActiveFilters(): boolean {
+    const v = this.filterForm.value;
+    return v.status !== 'All' || v.priority !== 'All'
+      || v.category !== 'All' || !!v.query;
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = ['#ef4444','#f97316','#eab308','#22c55e',
+      '#3b82f6','#8b5cf6','#ec4899'];
+    const idx = (name?.charCodeAt(0) || 0) % colors.length;
+    return colors[idx];
+  }
+
+  isNew(createdAt: string): boolean {
+    const diff = Date.now() - new Date(createdAt).getTime();
+    return diff < 24 * 60 * 60 * 1000;
+  }
+
+  getTagsArr(tags: string): string[] {
+    if (!tags) return [];
+    return tags.split(',').filter(t => t.trim());
+  }
+
+  getTicketNum(id: string): string {
+    return id.substring(0, 5).toUpperCase();
+  }
+
+  getTimeAgo(date: string): string {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)} days ago`;
+  }
+
+  getStatusLabel(status: string): string {
+    const map: any = {
+      'Open': 'Open', 'InProgress': 'Pending',
+      'Resolved': 'Resolved', 'Closed': 'Closed'
+    };
+    return map[status] || status;
+  }
+
+  getSlaText(t: any): string {
+    if (!t.slaDeadline) return '';
+    if (t.slaStatus === 'Breached') return 'SLA Breached';
+    const diff = new Date(t.slaDeadline).getTime() - Date.now();
+    const hrs = Math.floor(diff / 3600000);
+    if (hrs < 0) return 'Overdue';
+    if (hrs < 24) return `First response due in ${hrs} hours`;
+    return `Due in ${Math.floor(hrs/24)} days`;
+  }
+
+  onAgentFilter(event: any) {
+    // Filter by agent logic here
+  }
+
+  // Added missing toggleFilter method
+  toggleFilter(filterName: string) {
+    // Toggle logic for filters
   }
 
   viewTicket(id: string) {

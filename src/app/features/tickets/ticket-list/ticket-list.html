@@ -1,188 +1,210 @@
-<mat-toolbar color="primary">
-  <span>iM3 Helpdesk — Tickets</span>
-  <span class="spacer"></span>
-  <button mat-raised-button (click)="router.navigate(['/tickets/create'])">
-    + New Ticket
-  </button>
-  <button mat-button (click)="router.navigate(['/dashboard'])">Dashboard</button>
-  <button mat-button (click)="router.navigate(['/profile'])">Profile</button>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<app-layout>
+  <div class="tickets-page">
 
-<div class="page-container">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>All Tickets</h1>
+        <span class="ticket-count">{{ tickets.length }} tickets</span>
+      </div>
+      <div class="page-header-right">
+        <button class="sort-btn">
+          Sort by: Date created ▼
+        </button>
+        <button class="layout-btn">
+          Layout: Card ▼
+        </button>
+        <button class="export-btn" (click)="exportCsv()">
+          ↓ Export
+        </button>
+        <span class="pagination">1 - {{ tickets.length }} of {{ tickets.length }}</span>
+        <button class="filter-btn"
+          (click)="showFilters = !showFilters">
+          ⊟ Filters
+          <span *ngIf="hasActiveFilters()" class="filter-count">1</span>
+        </button>
+      </div>
+    </div>
 
-  <mat-card class="filter-card">
-    <mat-card-content>
-      <form [formGroup]="filterForm" class="filter-form">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search tickets...</mat-label>
-          <input matInput formControlName="query"/>
-        </mat-form-field>
+    <div class="tickets-layout">
+      <div class="tickets-main">
 
-        <mat-form-field appearance="outline" class="select-field">
-          <mat-label>Status</mat-label>
-          <mat-select formControlName="status">
-            <mat-option *ngFor="let s of statuses" [value]="s">{{ s }}</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <div class="bulk-bar" *ngIf="selectedTicketIds.size > 0">
+          <span>{{ selectedTicketIds.size }} selected</span>
+          <select class="bulk-select" [(ngModel)]="bulkStatus">
+            <option value="">Change Status</option>
+            <option value="Open">Open</option>
+            <option value="InProgress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+          </select>
+          <button class="bulk-apply-btn"
+            (click)="bulkUpdateStatus()"
+            [disabled]="!bulkStatus">Apply</button>
+          <button class="bulk-clear-btn"
+            (click)="selectedTicketIds.clear(); cdr.detectChanges()">
+            Clear
+          </button>
+        </div>
 
-        <mat-form-field appearance="outline" class="select-field">
-          <mat-label>Priority</mat-label>
-          <mat-select formControlName="priority">
-            <mat-option *ngFor="let p of priorities" [value]="p">{{ p }}</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <div *ngIf="loading" class="loading-center">
+          <div class="spinner"></div>
+        </div>
 
-        <mat-form-field appearance="outline" class="select-field">
-          <mat-label>Category</mat-label>
-          <mat-select formControlName="category">
-            <mat-option *ngFor="let c of categories" [value]="c">{{ c }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <button mat-button type="button" (click)="clearFilters()">Clear</button>
-      </form>
-    </mat-card-content>
-  </mat-card>
-
-  <div class="bulk-bar" *ngIf="selectedTicketIds.size > 0">
-    <span>{{ selectedTicketIds.size }} selected</span>
-
-    <mat-form-field appearance="outline" class="bulk-select">
-      <mat-label>Change Status</mat-label>
-      <mat-select [(ngModel)]="bulkStatus">
-        <mat-option value="Open">Open</mat-option>
-        <mat-option value="InProgress">InProgress</mat-option>
-        <mat-option value="Resolved">Resolved</mat-option>
-        <mat-option value="Closed">Closed</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <button mat-raised-button color="primary"
-      (click)="bulkUpdateStatus()"
-      [disabled]="!bulkStatus || bulkUpdating">
-      Apply
-    </button>
-
-    <button mat-button (click)="clearSelection()">
-      Clear
-    </button>
-  </div>
-
-  <div class="export-row">
-    <button mat-stroked-button (click)="exportCsv()">
-      Export CSV
-    </button>
-    <button mat-stroked-button (click)="selectAll()">
-      {{ selectedTicketIds.size === tickets.length ? 'Deselect All' : 'Select All' }}
-    </button>
-  </div>
-
-  <div class="stats-bar">
-    <span>Total: <strong>{{ tickets.length }}</strong></span>
-    <span class="open">Open: <strong>{{ tickets | statusFilter:'Open' }}</strong></span>
-    <span class="progress">In Progress: <strong>{{ tickets | statusFilter:'InProgress' }}</strong></span>
-    <span class="resolved">Resolved: <strong>{{ tickets | statusFilter:'Resolved' }}</strong></span>
-  </div>
-
-  <div *ngIf="loading" class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
-
-  <div *ngIf="!loading">
-    <table mat-table [dataSource]="tickets" class="tickets-table">
-
-      <ng-container matColumnDef="select">
-        <th mat-header-cell *matHeaderCellDef>
-          <mat-checkbox
-            [checked]="selectedTicketIds.size === tickets.length && tickets.length > 0"
-            (change)="selectAll()">
-          </mat-checkbox>
-        </th>
-        <td mat-cell *matCellDef="let t">
-          <mat-checkbox
-            [checked]="selectedTicketIds.has(t.id)"
-            (change)="toggleSelect(t.id)">
-          </mat-checkbox>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="title">
-        <th mat-header-cell *matHeaderCellDef>Title</th>
-        <td mat-cell *matCellDef="let t">
-          <strong>{{ t.title }}</strong>
-          <div class="comments-count" *ngIf="t.commentsCount > 0">
-            {{ t.commentsCount }} comment(s)
+        <div *ngIf="!loading">
+          <div *ngIf="tickets.length === 0" class="empty-tickets">
+            <div class="empty-icon">🎫</div>
+            <h3>No tickets found</h3>
+            <p>Try clearing filters or create a new ticket</p>
+            <button class="create-ticket-btn"
+              (click)="router.navigate(['/tickets/create'])">
+              + Create Ticket
+            </button>
           </div>
-        </td>
-      </ng-container>
 
-      <ng-container matColumnDef="category">
-        <th mat-header-cell *matHeaderCellDef>Category</th>
-        <td mat-cell *matCellDef="let t">{{ t.category }}</td>
-      </ng-container>
+          <div class="ticket-cards">
+            <div class="ticket-card"
+              *ngFor="let t of tickets"
+              (click)="viewTicket(t.id)">
 
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef>Status</th>
-        <td mat-cell *matCellDef="let t">
-          <span class="status-badge" [class]="'status-' + t.status?.toLowerCase()">
-            {{ t.status }}
-          </span>
-        </td>
-      </ng-container>
+              <div class="ticket-card-left">
+                <input type="checkbox"
+                  class="ticket-checkbox"
+                  [checked]="selectedTicketIds.has(t.id)"
+                  (change)="toggleSelect(t.id)"
+                  (click)="$event.stopPropagation()"/>
 
-      <ng-container matColumnDef="priority">
-        <th mat-header-cell *matHeaderCellDef>Priority</th>
-        <td mat-cell *matCellDef="let t">
-          <span class="priority-dot" [style.background]="getPriorityColor(t.priority)"></span>
-          {{ t.priority }}
-        </td>
-      </ng-container>
+                <div class="ticket-avatar"
+                  [style.background]="getAvatarColor(t.createdBy)">
+                  {{ t.createdBy?.charAt(0)?.toUpperCase() }}
+                </div>
 
-      <ng-container matColumnDef="createdBy">
-        <th mat-header-cell *matHeaderCellDef>Created By</th>
-        <td mat-cell *matCellDef="let t">{{ t.createdBy }}</td>
-      </ng-container>
+                <div class="ticket-main-info">
+                  <div class="ticket-badges">
+                    <span class="new-badge" *ngIf="isNew(t.createdAt)">New</span>
+                    <span class="responded-badge"
+                      *ngIf="t.commentsCount > 0 && t.status === 'InProgress'">
+                      Customer responded
+                    </span>
+                    <span class="tag-pill"
+                      *ngFor="let tag of getTagsArr(t.tags).slice(0,2)">
+                      {{ tag }}
+                    </span>
+                    <span class="more-tags"
+                      *ngIf="getTagsArr(t.tags).length > 2">
+                      +{{ getTagsArr(t.tags).length - 2 }}
+                    </span>
+                  </div>
 
-      <ng-container matColumnDef="assignedTo">
-        <th mat-header-cell *matHeaderCellDef>Assigned To</th>
-        <td mat-cell *matCellDef="let t">
-          <span *ngIf="t.assignedTo" class="assigned-badge">{{ t.assignedTo }}</span>
-          <span *ngIf="!t.assignedTo" class="unassigned">Unassigned</span>
-        </td>
-      </ng-container>
+                  <div class="ticket-title-row">
+                    <span class="ticket-title">{{ t.title }}</span>
+                    <span class="ticket-num">#{{ getTicketNum(t.id) }}</span>
+                  </div>
 
-      <ng-container matColumnDef="sla">
-        <th mat-header-cell *matHeaderCellDef>SLA</th>
-        <td mat-cell *matCellDef="let t">
-          <span class="sla-badge" [class]="'sla-' + (t.slaStatus || 'notrack')">
-            {{ t.slaStatus || 'No SLA' }}
-          </span>
-        </td>
-      </ng-container>
+                  <div class="ticket-meta-info">
+                    <span class="meta-email">✉ {{ t.category }}</span>
+                    <span class="meta-sep">·</span>
+                    <span class="meta-time">
+                      Created {{ getTimeAgo(t.createdAt) }}
+                    </span>
+                    <span class="meta-sep">·</span>
+                    <span class="meta-sla"
+                      [class.sla-warn]="t.slaStatus === 'Warning'"
+                      [class.sla-breach]="t.slaStatus === 'Breached'">
+                      {{ getSlaText(t) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-      <ng-container matColumnDef="createdAt">
-        <th mat-header-cell *matHeaderCellDef>Date</th>
-        <td mat-cell *matCellDef="let t">{{ t.createdAt | date:'dd MMM yyyy' }}</td>
-      </ng-container>
+              <div class="ticket-card-right">
+                <div class="ticket-priority"
+                  [class]="'priority-' + t.priority?.toLowerCase()">
+                  <span class="priority-dot"></span>
+                  {{ t.priority }} ▼
+                </div>
 
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Action</th>
-        <td mat-cell *matCellDef="let t">
-          <button mat-button color="primary" (click)="viewTicket(t.id)">View</button>
-        </td>
-      </ng-container>
+                <div class="ticket-assign">
+                  <span class="assign-icon">👤</span>
+                  <span class="assign-text">
+                    {{ t.assignedTo ? t.assignedTo + ' / --' : 'Customer S... / --' }}
+                  </span>
+                  <span>▼</span>
+                </div>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="ticket-row"></tr>
-    </table>
+                <div class="ticket-status-wrap">
+                  <span class="ticket-status"
+                    [class]="'status-' + t.status?.toLowerCase()">
+                    {{ getStatusLabel(t.status) }}
+                  </span>
+                  <span>▼</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div *ngIf="tickets.length === 0" class="empty-state">
-      <p>No tickets found.</p>
-      <button mat-raised-button color="primary"
-        (click)="router.navigate(['/tickets/create'])">
-        Create First Ticket
-      </button>
+      <div class="filter-panel" *ngIf="showFilters">
+        <div class="filter-header">
+          <strong>FILTERS</strong>
+          <a class="show-applied">Show applied filters</a>
+        </div>
+
+        <div class="filter-search">
+          <input placeholder="Search fields..."
+            class="filter-search-input"/>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-group-label" (click)="toggleFilter('agents')">
+            Agents Include ▼
+          </div>
+          <select class="filter-select" (change)="onAgentFilter($event)">
+            <option value="">Any agent</option>
+            <option *ngFor="let a of agents" [value]="a.id">
+              {{ a.fullName }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-group-label">Groups Include ▼</div>
+          <select class="filter-select">
+            <option value="">Any group</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-group-label">Status Include ▼</div>
+          <select class="filter-select"
+            [(ngModel)]="filterForm.value.status"
+            (change)="applyFilters()">
+            <option value="All">All statuses</option>
+            <option *ngFor="let s of statuses.slice(1)" [value]="s">
+              {{ s }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-group-label">Priority Include ▼</div>
+          <select class="filter-select"
+            [(ngModel)]="filterForm.value.priority"
+            (change)="applyFilters()">
+            <option value="All">All priorities</option>
+            <option *ngFor="let p of priorities.slice(1)" [value]="p">
+              {{ p }}
+            </option>
+          </select>
+        </div>
+
+        <button class="apply-filter-btn" (click)="applyFilters()">
+          Apply
+        </button>
+        <button class="clear-filter-btn" (click)="clearFilters()">
+          Clear Filters
+        </button>
+      </div>
     </div>
   </div>
-</div>
+</app-layout>

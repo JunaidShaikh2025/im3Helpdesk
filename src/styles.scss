@@ -1,8 +1,4 @@
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
+// 1. Angular Material Core Theme (VITAL - iske bina buttons/inputs kharab dikhenge)
 @use '@angular/material' as mat;
 
 html {
@@ -19,41 +15,113 @@ html {
   );
 }
 
+/* ===== GLOBAL RESETS ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
-  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  transition: background 0.3s, color 0.3s;
   height: 100%;
+  color-scheme: light;
 }
-/* You can add global styles to this file, and also import other style files */
-* { box-sizing: border-box; }
-body { margin: 0; font-family: Roboto, sans-serif; background: #f5f5f5; }
+
+/* ===== DEFAULT THEME (Blue) ===== */
+body, body.theme-blue {
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --border-color: #f0f0f0;
+  --accent: #1976d2;
+  --hover-bg: #f5f9ff;
+  --toolbar-bg: #1976d2;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ===== DARK THEME ===== */
+body.theme-dark {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-card: #1e1e1e;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #757575;
+  --border-color: #333333;
+  --accent: #90caf9;
+  --hover-bg: #2a2a2a;
+  --toolbar-bg: #1a1a2e;
+  --shadow: 0 2px 8px rgba(0,0,0,0.4);
+  color-scheme: dark;
+}
+
+/* ===== GREEN THEME ===== */
+body.theme-green {
+  --bg-primary: #f1f8f1;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1b2e1b;
+  --text-secondary: #4a6a4a;
+  --text-muted: #8aaa8a;
+  --border-color: #e0f0e0;
+  --accent: #2e7d32;
+  --hover-bg: #f0f9f0;
+  --toolbar-bg: #2e7d32;
+  --shadow: 0 2px 8px rgba(46,125,50,0.12);
+}
+
+/* ===== PURPLE THEME ===== */
+body.theme-purple {
+  --bg-primary: #f5f0ff;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1a0a2e;
+  --text-secondary: #5a3a7a;
+  --text-muted: #9a7aaa;
+  --border-color: #ede0ff;
+  --accent: #6a1b9a;
+  --hover-bg: #f5f0ff;
+  --toolbar-bg: #6a1b9a;
+  --shadow: 0 2px 8px rgba(106,27,154,0.12);
+}
+
+/* ===== GLOBAL STYLES ===== */
+a { text-decoration: none; color: inherit; }
+
+.mat-mdc-card {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.mat-toolbar {
+  background: var(--toolbar-bg) !important;
+  color: white !important;
+}
 
 .ngx-toastr { border-radius: 8px !important; }
-body.dark-mode {
-  background: #121212 !important;
-  color: #e0e0e0 !important;
 
-  .mat-mdc-card {
-    background: #1e1e1e !important;
-    color: #e0e0e0 !important;
-  }
+.page-container {
+  padding: 24px;
+  background: var(--bg-primary);
+  min-height: calc(100vh - 64px);
+}
 
-  .mat-toolbar {
-    background: #1976d2 !important;
-  }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
 
+/* ===== DARK MODE SPECIFIC OVERRIDES (Like old code) ===== */
+/* In form fields aur tables ko sirf dark mode me force kiya gaya hai taaki light themes kharab na hon */
+body.theme-dark {
   .mat-mdc-table {
     background: #1e1e1e !important;
     color: #e0e0e0 !important;
@@ -75,63 +143,15 @@ body.dark-mode {
       background: #2d2d2d !important;
     }
     .mat-mdc-floating-label { color: #bbb !important; }
-    input { color: #e0e0e0 !important; }
-  }
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
-  background: #f5f5f5;
-  color: #333;
-  line-height: 1.5;
-}
-
-a { text-decoration: none; color: inherit; }
-
-.mat-mdc-table {
-  width: 100%;
-
-  .mat-mdc-header-cell {
-    font-weight: 500;
-    color: #555;
-    font-size: 13px;
-    background: #fafafa;
+    input, textarea { color: #e0e0e0 !important; }
   }
 
-  .mat-mdc-cell { font-size: 14px; }
-  .mat-mdc-row:hover { background: #f5f9ff; }
-}
+  .mat-mdc-select-value {
+    color: #e0e0e0 !important;
+  }
 
-.mat-mdc-card {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
-}
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-
-  &:hover { background: #aaa; }
-}
-
-.ngx-toastr { border-radius: 8px !important; }
-
-.page-title {
-  font-size: 22px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 24px;
-}
-
-body.dark-mode {
-  background: #121212 !important;
-  color: #e0e0e0 !important;
-
-  .mat-mdc-card { background: #1e1e1e !important; }
-  .mat-mdc-table { background: #1e1e1e !important; }
-  .mat-mdc-header-cell { background: #2d2d2d !important; color: #bbb !important; }
-  .mat-mdc-cell { color: #e0e0e0 !important; }
-  .mat-mdc-row:hover { background: #2a2a2a !important; }
+  .mat-mdc-menu-panel, .mat-mdc-option {
+    background: #1e1e1e !important;
+    color: #e0e0e0 !important;
+  }
 }

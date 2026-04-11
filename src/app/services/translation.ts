@@ -1,26 +1,26 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { TRANSLATIONS } from '../shared/translations';
 
 @Injectable({ providedIn: 'root' })
 export class TranslationService {
-  private lang = 'en';
-
-  constructor() {
-    this.lang = localStorage.getItem('im3_lang') || 'en';
-  }
+  private langSignal = signal(
+    localStorage.getItem('im3_lang') || 'en'
+  );
 
   setLanguage(lang: string) {
-    this.lang = lang;
+    this.langSignal.set(lang);
     localStorage.setItem('im3_lang', lang);
+    window.location.reload();
   }
 
   t(key: string): string {
-    return TRANSLATIONS[this.lang]?.[key]
+    const lang = this.langSignal();
+    return TRANSLATIONS[lang]?.[key]
       || TRANSLATIONS['en']?.[key]
       || key;
   }
 
   getCurrentLang(): string {
-    return this.lang;
+    return this.langSignal();
   }
 }

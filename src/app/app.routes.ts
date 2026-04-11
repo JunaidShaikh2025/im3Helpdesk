@@ -194,7 +194,14 @@ export const routes: Routes = [
   path: 'register-customer',
   loadComponent: () =>
     import('./features/auth/register-customer/register-customer')
-      .then(m => m.RegisterCustomerComponent)
+      .then(m => m.VerifyEmailComponent)
+},
+{
+  path: 'agents/groups',
+  loadComponent: () =>
+    import('./features/agents/agent-groups/agent-groups')
+      .then(m => m.AgentGroupsComponent),
+  canActivate: [authGuard]
 },
   { path: '**', redirectTo: 'login' }
 ];

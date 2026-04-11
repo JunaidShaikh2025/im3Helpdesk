@@ -1,85 +1,126 @@
-<div class="auth-container">
-  <div class="auth-card">
-    <h1>iM3 Helpdesk</h1>
-    <h2>Create your account</h2>
-
-    <div class="success-box" *ngIf="successMessage">
-      <p>{{ successMessage }}</p>
-      <p>Redirecting to login in 3 seconds...</p>
+<div class="auth-layout">
+  <div class="auth-left">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <span class="brand-name">iM3HelpDesk</span>
     </div>
+    <div class="hero-content">
+      <h1>START YOUR<br>
+        <span class="highlight">FREE TRIAL</span> TODAY.
+      </h1>
+      <p>Set up your helpdesk in minutes. No credit card required.</p>
+      <div class="feature-list">
+        <div class="feature-item">✓ 30-day free trial</div>
+        <div class="feature-item">✓ Unlimited tickets</div>
+        <div class="feature-item">✓ Email support</div>
+        <div class="feature-item">✓ Team collaboration</div>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge-item">⊕ Enterprise Grade</span>
+      <span class="badge-item">⊕ Global Infrastructure</span>
+    </div>
+  </div>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!successMessage">
+  <div class="auth-right">
+    <div class="auth-form-wrap">
+      <a routerLink="/login" class="back-link">← Back to login</a>
+      <h2>Create your account</h2>
+      <p class="auth-subtitle">Start your 30-day free trial. No credit card required.</p>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Full Name</mat-label>
-        <input matInput formControlName="fullName" placeholder="John Doe"/>
-        <mat-error *ngIf="form.get('fullName')?.hasError('required')">
-          Full name is required
-        </mat-error>
-        <mat-error *ngIf="form.get('fullName')?.hasError('minlength')">
-          Minimum 3 characters
-        </mat-error>
-      </mat-form-field>
+      <div class="success-state" *ngIf="success">
+        <div class="success-circle">✓</div>
+        <h3>Account Created!</h3>
+        <p>Please check your email to verify your account.</p>
+        <a routerLink="/login" class="submit-btn"
+          style="display:block;text-align:center;text-decoration:none;margin-top:16px">
+          Go to Login
+        </a>
+      </div>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Email</mat-label>
-        <input matInput formControlName="email" type="email" placeholder="you@company.com"/>
-        <mat-error *ngIf="form.get('email')?.hasError('required')">
-          Email is required
-        </mat-error>
-        <mat-error *ngIf="form.get('email')?.hasError('email')">
-          Invalid email address
-        </mat-error>
-      </mat-form-field>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!success">
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Phone Number</mat-label>
-        <input matInput formControlName="phoneNumber" placeholder="+91 9999999999"/>
-        <mat-error *ngIf="form.get('phoneNumber')?.hasError('required')">
-          Phone number is required
-        </mat-error>
-      </mat-form-field>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name</label>
+            <div class="input-wrap">
+              <span class="input-icon">👤</span>
+              <input type="text" formControlName="fullName"
+                placeholder="John Doe"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Company Name</label>
+            <div class="input-wrap">
+              <span class="input-icon">🏢</span>
+              <input type="text" formControlName="companyName"
+                placeholder="Acme Inc"/>
+            </div>
+          </div>
+        </div>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Company Name</mat-label>
-        <input matInput formControlName="companyName" placeholder="Your Company Pvt Ltd"/>
-        <mat-error *ngIf="form.get('companyName')?.hasError('required')">
-          Company name is required
-        </mat-error>
-      </mat-form-field>
+        <div class="form-group">
+          <label>Work Email</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" formControlName="email"
+              placeholder="name@company.com"/>
+          </div>
+        </div>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Password</mat-label>
-        <input matInput formControlName="password" type="password"/>
-        <mat-error *ngIf="form.get('password')?.hasError('required')">
-          Password is required
-        </mat-error>
-        <mat-error *ngIf="form.get('password')?.hasError('minlength')">
-          Minimum 6 characters
-        </mat-error>
-      </mat-form-field>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <div class="input-wrap">
+            <span class="input-icon">📱</span>
+            <input type="tel" formControlName="phoneNumber"
+              placeholder="+91 9999999999"/>
+          </div>
+        </div>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Confirm Password</mat-label>
-        <input matInput formControlName="confirmPassword" type="password"/>
-        <mat-error *ngIf="form.get('confirmPassword')?.hasError('required')">
-          Please confirm password
-        </mat-error>
-        <mat-error *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch')">
-          Passwords do not match
-        </mat-error>
-      </mat-form-field>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" formControlName="password"
+                placeholder="••••••••"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" formControlName="confirmPassword"
+                placeholder="••••••••"/>
+            </div>
+            <span class="field-error"
+              *ngIf="form.get('confirmPassword')?.hasError('mismatch')
+                && form.get('confirmPassword')?.touched">
+              Passwords do not match
+            </span>
+          </div>
+        </div>
 
-      <button mat-raised-button color="primary" type="submit"
-        class="full-width submit-btn" [disabled]="loading">
-        <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
-        <span *ngIf="!loading">Create Account</span>
-      </button>
+        <button type="submit" class="submit-btn" [disabled]="loading">
+          <span *ngIf="!loading">Create Account →</span>
+          <span *ngIf="loading">Creating...</span>
+        </button>
 
-    </form>
+        <div class="alt-links">
+          <span>Already have an account?</span>
+          <a routerLink="/login" class="create-link">Sign in</a>
+          <span>|</span>
+          <a routerLink="/register-customer" class="create-link">
+            Customer Signup
+          </a>
+        </div>
+      </form>
 
-    <div class="auth-links">
-      Already have an account? <a routerLink="/login">Sign In</a>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
     </div>
   </div>
 </div>

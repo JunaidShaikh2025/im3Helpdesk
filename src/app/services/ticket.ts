@@ -38,9 +38,10 @@ export class TicketService {
       { status }, { headers: this.getHeaders() });
   }
 
-  addComment(id: string, comment: string): Observable<any> {
+  addComment(id: string, comment: string,
+    isInternal: boolean = false): Observable<any> {
     return this.http.post(`${this.apiUrl}/${id}/comments`,
-      { comment }, { headers: this.getHeaders() });
+      { comment, isInternal }, { headers: this.getHeaders() });
   }
 
   assign(id: string, agentId: string | null): Observable<any> {

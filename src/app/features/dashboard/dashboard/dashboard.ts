@@ -13,12 +13,6 @@ import { DashboardChartsComponent } from '../dashboard-charts/dashboard-charts';
 import { GlobalSearchComponent } from '../../../shared/global-search/global-search';
 import { DashboardTrendComponent } from '../dashboard-trend/dashboard-trend';
 
-// imports array mein:
-
-
-// imports array mein:
-
-
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -26,7 +20,7 @@ import { DashboardTrendComponent } from '../dashboard-trend/dashboard-trend';
     CommonModule, RouterModule,
     MatButtonModule, MatCardModule,
     MatToolbarModule, MatProgressSpinnerModule,
-    DashboardChartsComponent,GlobalSearchComponent,
+    DashboardChartsComponent, GlobalSearchComponent,
     DashboardTrendComponent
   ],
   templateUrl: './dashboard.html',
@@ -40,8 +34,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private destroy$ = new Subject<void>();
 
+  // Updated Variables
   userName = '';
+  userEmail = '';
   userRole = '';
+  userInitials = '';
+  unreadCount = 0;
+  
   loading = true;
   widgetData: any = null;
   stats: any = {
@@ -57,19 +56,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const token = this.authService.getToken();
     if (token) {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      
       this.userName = payload[
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
-      ] || payload.email || 'User';
+      ] || payload.email?.split('@')[0] || 'User';
+      
+      this.userEmail = payload.email || '';
+      
       this.userRole = payload[
         'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
       ] || payload.role || '';
+      
+      this.userInitials = this.userName.split(' ')
+        .map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
     }
+    
     this.loadStats();
+    this.loadUnreadCount();
 
     // Auto refresh every 60 seconds
     interval(60000)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadStats());
+      .subscribe(() => {
+        this.loadStats();
+        this.loadUnreadCount();
+      });
   }
 
   ngOnDestroy() {
@@ -77,16 +88,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-private getHeaders() {
-  return new HttpHeaders({
-    'Authorization': `Bearer ${this.authService.getToken()}`
-  });
-}
-
-
+  private getHeaders() {
+    return new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+  }
 
   loadStats() {
     const headers = this.getHeaders();
+
     this.http.get<any>(
       'https://localhost:7071/api/Dashboard/stats', { headers }
     ).subscribe({
@@ -101,15 +111,42 @@ private getHeaders() {
       }
     });
 
-  this.http.get<any>(
-    'https://localhost:7071/api/Dashboard/widgets', { headers }
-  ).subscribe({
-    next: (data) => {
-      this.widgetData = data;
-      this.cdr.detectChanges();
-    }
-  });
-}
+    this.http.get<any>(
+      'https://localhost:7071/api/Dashboard/widgets', { headers }
+    ).subscribe({
+      next: (data) => {
+        this.widgetData = data;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.log('Widget error:', err.status);
+      }
+    });
+  }
+
+  // New Method for Unread Count
+  loadUnreadCount() {
+    const headers = this.getHeaders();
+    this.http.get<any>(
+      'https://localhost:7071/api/Notifications/unread-count',
+      { headers }
+    ).subscribe({
+      next: (data) => {
+        this.unreadCount = data.count || 0;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // New Method for Time Formatting
+  getTimeAgo(date: string): string {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
 
   getStatusClass(status: any): string {
     const map: any = {

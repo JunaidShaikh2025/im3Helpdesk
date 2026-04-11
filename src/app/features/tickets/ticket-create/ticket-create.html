@@ -49,6 +49,18 @@
         </mat-form-field>
       </div>
 
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Ticket Type</mat-label>
+        <mat-select formControlName="ticketType">
+          <mat-option value="Support">Support</mat-option>
+          <mat-option value="Bug">Bug Report</mat-option>
+          <mat-option value="Feature">Feature Request</mat-option>
+          <mat-option value="Inquiry">General Inquiry</mat-option>
+          <mat-option value="Billing">Billing Issue</mat-option>
+          <mat-option value="Other">Other</mat-option>
+        </mat-select>
+      </mat-form-field>
+
       <div class="form-actions">
         <button mat-button type="button"
           (click)="router.navigate(['/tickets'])">

@@ -44,7 +44,8 @@ export class TicketCreateComponent {
       title: ['', [Validators.required, Validators.minLength(5)]],
       description: ['', [Validators.required, Validators.minLength(10)]],
       category: ['General', Validators.required],
-      priority: ['Medium', Validators.required]
+      priority: ['Medium', Validators.required],
+      ticketType: ['Support', Validators.required]
     });
   }
 

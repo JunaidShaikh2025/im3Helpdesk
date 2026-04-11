@@ -1,0 +1,77 @@
+.spacer { flex: 1 1 auto; }
+
+.page-container {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.create-card {
+  border-radius: 12px !important;
+  margin-bottom: 24px;
+
+  mat-card-content { padding: 24px !important; }
+  h3 { color: #333; margin-bottom: 16px; }
+}
+
+.full-width { width: 100%; margin-bottom: 12px; }
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 60px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+}
+
+.group-panel {
+  border-radius: 10px !important;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+}
+
+.members-section {
+  padding: 16px 0;
+
+  h4 { color: #555; margin-bottom: 12px; font-size: 14px; }
+}
+
+.member-list { margin-bottom: 16px; }
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+
+  &:last-child { border-bottom: none; }
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.member-name { font-size: 14px; font-weight: 500; color: #333; }
+.member-email { font-size: 12px; color: #999; }
+.no-members { color: #bbb; font-size: 13px; padding: 12px 0; }
+
+.add-member-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.flex-input { flex: 1; }

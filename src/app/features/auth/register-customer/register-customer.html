@@ -1,72 +1,130 @@
-<div class="auth-container">
-  <div class="auth-card">
-    <h1>iM3 Helpdesk</h1>
-    <h2>Create Customer Account</h2>
-
-    <div class="success-box" *ngIf="success">
-      <div class="success-icon">✓</div>
-      <p>Account created! Check your email to verify.</p>
-      <p class="redirect">Redirecting to login...</p>
+<div class="auth-layout">
+  <div class="auth-left">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <span class="brand-name">iM3HelpDesk</span>
     </div>
-
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!success">
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Full Name</mat-label>
-        <input matInput formControlName="fullName"/>
-        <mat-error *ngIf="form.get('fullName')?.hasError('required')">
-          Required
-        </mat-error>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Email</mat-label>
-        <input matInput formControlName="email" type="email"/>
-        <mat-error *ngIf="form.get('email')?.hasError('email')">
-          Invalid email
-        </mat-error>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Phone (optional)</mat-label>
-        <input matInput formControlName="phoneNumber"/>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Organization Slug</mat-label>
-        <input matInput formControlName="organizationSlug"
-          placeholder="e.g. techsolutions"/>
-        <mat-hint>Ask your company for the organization slug</mat-hint>
-        <mat-error *ngIf="form.get('organizationSlug')?.hasError('required')">
-          Required
-        </mat-error>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Password</mat-label>
-        <input matInput formControlName="password" type="password"/>
-        <mat-error *ngIf="form.get('password')?.hasError('minlength')">
-          Minimum 6 characters
-        </mat-error>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Confirm Password</mat-label>
-        <input matInput formControlName="confirmPassword" type="password"/>
-        <mat-error *ngIf="form.get('confirmPassword')?.hasError('mismatch')">
-          Passwords do not match
-        </mat-error>
-      </mat-form-field>
-
-      <button mat-raised-button color="primary"
-        type="submit" class="full-width submit-btn" [disabled]="loading">
-        <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
-        <span *ngIf="!loading">Create Account</span>
-      </button>
-
-      <div class="auth-links">
-        Already have an account? <a routerLink="/login">Sign In</a>
+    <div class="hero-content">
+      <h1>GET SUPPORT<br>
+        <span class="highlight">FASTER</span> THAN EVER.
+      </h1>
+      <p>Submit tickets, track progress, and get help from our support team.</p>
+      <div class="feature-list">
+        <div class="feature-item">✓ Submit support tickets</div>
+        <div class="feature-item">✓ Real-time updates</div>
+        <div class="feature-item">✓ Chat with support team</div>
       </div>
-    </form>
+    </div>
+    <div class="badges">
+      <span class="badge-item">⊕ Enterprise Grade</span>
+      <span class="badge-item">⊕ Global Infrastructure</span>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-form-wrap">
+      <a routerLink="/login" class="back-link">← Back to login</a>
+      <h2>Customer Registration</h2>
+      <p class="auth-subtitle">
+        Create your account to submit and track support tickets.
+      </p>
+
+      <div class="success-state" *ngIf="success">
+        <div class="success-circle">✓</div>
+        <h3>Account Created!</h3>
+        <p>Please check your email to verify your account.</p>
+        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:8px">
+          Redirecting to login in 3 seconds...
+        </p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!success">
+
+        <div class="form-group">
+          <label>Full Name</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input type="text" formControlName="fullName"
+              placeholder="Your full name"/>
+          </div>
+          <span class="field-error"
+            *ngIf="form.get('fullName')?.invalid && form.get('fullName')?.touched">
+            Required (min 3 characters)
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" formControlName="email"
+              placeholder="your@email.com"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Phone (optional)</label>
+          <div class="input-wrap">
+            <span class="input-icon">📱</span>
+            <input type="tel" formControlName="phoneNumber"
+              placeholder="+91 9999999999"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Organization Slug</label>
+          <div class="input-wrap">
+            <span class="input-icon">🏢</span>
+            <input type="text" formControlName="organizationSlug"
+              placeholder="your-company-slug"/>
+          </div>
+          <span class="field-hint">
+            Ask your company for the organization slug
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" formControlName="password"
+                placeholder="••••••••"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" formControlName="confirmPassword"
+                placeholder="••••••••"/>
+            </div>
+            <span class="field-error"
+              *ngIf="form.get('confirmPassword')?.hasError('mismatch')
+                && form.get('confirmPassword')?.touched">
+              Passwords do not match
+            </span>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" [disabled]="loading">
+          <span *ngIf="!loading">Create Account →</span>
+          <span *ngIf="loading">Creating...</span>
+        </button>
+
+        <div class="alt-links">
+          <span>Already have an account?</span>
+          <a routerLink="/login" class="create-link">Sign in</a>
+          <span>|</span>
+          <a routerLink="/register" class="create-link">Company Signup</a>
+        </div>
+      </form>
+
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
   </div>
 </div>
