@@ -15,4 +15,5 @@ public class TicketResponseDto
     public DateTime? SlaDeadline { get; set; }
     public string? SlaStatus { get; set; }
     public bool IsSlaBreached { get; set; }
+    public string? Tags { get; set; }
 }

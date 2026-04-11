@@ -34,6 +34,10 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 builder.Services.AddScoped<ISlaService, SlaService>();
+builder.Services.AddSingleton<IEmailQueueService, EmailQueueService>();
+builder.Services.AddHostedService<EmailWorker>();
+builder.Services.AddSingleton<IEscalationService, EscalationService>();
+builder.Services.AddHostedService<EscalationWorker>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(

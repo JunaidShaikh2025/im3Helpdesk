@@ -84,4 +84,32 @@ public class DashboardController : ControllerBase
 
     return Ok(stats);
   }
+
+  [HttpGet("widgets")]
+  public async Task<IActionResult> GetWidgetData()
+  {
+    var tickets = await _context.Tickets.ToListAsync();
+    var today = DateTime.UtcNow.Date;
+    var last7Days = Enumerable.Range(0, 7)
+        .Select(i => today.AddDays(-i))
+        .Reverse()
+        .ToList();
+
+    var ticketsByDay = last7Days.Select(day => new
+    {
+      date = day.ToString("dd MMM"),
+      count = tickets.Count(t => t.CreatedAt.Date == day)
+    }).ToList();
+
+    var resolvedByDay = last7Days.Select(day => new
+    {
+      date = day.ToString("dd MMM"),
+      count = tickets.Count(t =>
+          t.ResolvedAt.HasValue &&
+          t.ResolvedAt.Value.Date == day)
+    }).ToList();
+
+    return Ok(new { ticketsByDay, resolvedByDay });
+  }
+
 }

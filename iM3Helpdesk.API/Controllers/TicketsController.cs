@@ -423,6 +423,79 @@ public class TicketsController : ControllerBase
 
     return Ok(result);
   }
+
+  [HttpPut("{id}/tags")]
+  public async Task<IActionResult> UpdateTags(Guid id, [FromBody] UpdateTagsDto dto)
+  {
+    var ticket = await _context.Tickets.FindAsync(id);
+    if (ticket == null) return NotFound();
+
+    ticket.Tags = string.Join(",", dto.Tags
+        .Select(t => t.Trim().ToLower())
+        .Where(t => !string.IsNullOrEmpty(t))
+        .Distinct());
+
+    ticket.UpdatedAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Tags updated", tags = ticket.Tags });
+  }
+
+  [HttpGet("by-tag/{tag}")]
+  public async Task<IActionResult> GetByTag(string tag)
+  {
+    var tickets = await _context.Tickets
+        .Include(t => t.CreatedBy)
+        .Where(t => t.Tags != null && t.Tags.Contains(tag.ToLower()))
+        .OrderByDescending(t => t.CreatedAt)
+        .Select(t => new TicketResponseDto
+        {
+          Id = t.Id,
+          Title = t.Title,
+          Description = t.Description,
+          Category = t.Category,
+          Status = t.Status.ToString(),
+          Priority = t.Priority.ToString(),
+          CreatedBy = t.CreatedBy!.FullName,
+          CreatedAt = t.CreatedAt,
+          CommentsCount = t.Comments.Count
+        })
+        .ToListAsync();
+
+    return Ok(tickets);
+  }
+
+  [HttpPut("{id}/log-time")]
+  public async Task<IActionResult> LogTime(Guid id,
+    [FromBody] LogTimeDto dto)
+  {
+    var ticket = await _context.Tickets.FindAsync(id);
+    if (ticket == null) return NotFound();
+
+    ticket.TimeSpentMinutes += dto.Minutes;
+    ticket.LastActivityAt = DateTime.UtcNow;
+    ticket.UpdatedAt = DateTime.UtcNow;
+
+    await _context.SaveChangesAsync();
+
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+    if (Guid.TryParse(userIdClaim, out var uid))
+    {
+      await _notificationService.CreateActivityAsync(
+          uid, ticket.OrganizationId,
+          "TimeLogged",
+          $"Logged {dto.Minutes} minutes on: {ticket.Title}",
+          "Ticket", ticket.Id);
+    }
+
+    return Ok(new
+    {
+      message = "Time logged",
+      totalMinutes = ticket.TimeSpentMinutes,
+      totalHours = Math.Round(ticket.TimeSpentMinutes / 60.0, 1)
+    });
+  }
 }
 
 public class UpdateStatusDto
@@ -445,4 +518,15 @@ public class BulkUpdateDto
   public List<Guid> TicketIds { get; set; } = new();
   public string? Status { get; set; }
   public Guid? AssignedToUserId { get; set; }
+}
+
+public class UpdateTagsDto
+{
+  public List<string> Tags { get; set; } = new();
+}
+
+public class LogTimeDto
+{
+  public int Minutes { get; set; }
+  public string? Note { get; set; }
 }

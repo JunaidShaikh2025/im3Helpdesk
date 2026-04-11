@@ -20,8 +20,11 @@ public class Ticket : IMustHaveTenant
     public DateTime? SlaDeadline { get; set; }
     public bool IsSlaBreached { get; set; } = false;
     public string? SlaStatus { get; set; }
+    public string Tags { get; set; } = string.Empty;
+    public int TimeSpentMinutes { get; set; } = 0;
+    public DateTime? LastActivityAt { get; set; }
 
-    public User? CreatedBy { get; set; }
+  public User? CreatedBy { get; set; }
     public User? AssignedTo { get; set; }
     public Organization? Organization { get; set; }
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();

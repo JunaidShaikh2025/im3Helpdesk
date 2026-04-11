@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
     public DbSet<TicketTemplate> TicketTemplates => Set<TicketTemplate>();
+    public DbSet<EmailQueue> EmailQueues => Set<EmailQueue>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -149,6 +150,11 @@ public class ApplicationDbContext : DbContext
           e.HasQueryFilter(t =>
               _isSuperAdmin ||
               t.OrganizationId == _currentTenantId);
+        });
+        modelBuilder.Entity<EmailQueue>(e => {
+          e.HasKey(x => x.Id);
+          e.Property(x => x.ToEmail).HasMaxLength(256).IsRequired();
+          e.Property(x => x.Subject).HasMaxLength(500).IsRequired();
         });
   }
 }
