@@ -1,12 +1,5 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/dashboard'])">← Dashboard</button>
-  <span>Reports</span>
-  <span class="spacer"></span>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
-
-<div class="page-container">
-
+<app-layout>
+  <div class="page-content">
   <!-- Date Filter -->
   <mat-card class="filter-card">
     <mat-card-content>
@@ -135,5 +128,5 @@
 
     </div>
   </div>
-
 </div>
+</app-layout>

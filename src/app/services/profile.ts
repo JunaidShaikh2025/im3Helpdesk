@@ -24,12 +24,10 @@ export class ProfileService {
   }
 
   changePassword(data: any): Observable<any> {
-    return this.http.put(`${this.apiUrl}/change-password`, data,
-      { headers: this.getHeaders() });
+    return this.http.put(`${this.apiUrl}/change-password`, data, { headers: this.getHeaders() });
   }
 
   updateOrganization(data: any): Observable<any> {
-    return this.http.put(`${this.apiUrl}/organization`, data,
-      { headers: this.getHeaders() });
+    return this.http.put('https://localhost:7071/api/Organizations/current', data, { headers: this.getHeaders() });
   }
 }

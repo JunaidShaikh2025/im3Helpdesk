@@ -17,6 +17,10 @@ import { TicketService } from '../../../services/ticket';
 import { AuthService } from '../../../services/auth.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { AgentService } from '../../../services/agent';
+
+// Class ke andar inject karo
+
 
 @Component({
   selector: 'app-ticket-list',
@@ -37,8 +41,9 @@ export class TicketListComponent implements OnInit {
   private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
-  public cdr = inject(ChangeDetectorRef); // Changed from private to public
+  public cdr = inject(ChangeDetectorRef); 
   private fb = inject(FormBuilder);
+  private agentService = inject(AgentService);
 
   tickets: any[] = [];
   allTickets: any[] = [];
@@ -69,19 +74,27 @@ export class TicketListComponent implements OnInit {
   bulkStatus = '';
   bulkUpdating = false;
 
-  ngOnInit() {
+ngOnInit() {
+  Promise.resolve().then(() => {
     this.loading = true;
-    
-    // NOTE: onAgentFilter is a UI event function, not an API service.
-    // Setting agents to an empty array for now. If you have an AgentService, call it here.
-    this.agents = []; 
+    this.cdr.detectChanges();
+    this.loadTickets();
+    this.loadAgents();
+    this.filterForm.valueChanges
+      .pipe(debounceTime(400), distinctUntilChanged())
+      .subscribe(() => this.applyFilters());
+  });
+}
 
-    // Load tickets after view init
-    Promise.resolve().then(() => {
-      this.loadTickets();
-      this.filterForm.valueChanges
-        .pipe(debounceTime(400), distinctUntilChanged())
-        .subscribe(() => this.applyFilters());
+  loadAgents() {
+    this.agentService.getAll().subscribe({
+      next: (data: any[]) => {
+        this.agents = data;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.agents = [];
+      }
     });
   }
 

@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-audit-log',
@@ -18,7 +19,8 @@ import { ToastrService } from 'ngx-toastr';
   imports: [
     CommonModule, RouterModule, FormsModule,
     MatButtonModule, MatToolbarModule, MatCardModule,
-    MatProgressSpinnerModule, MatSelectModule, MatFormFieldModule
+    MatProgressSpinnerModule, MatSelectModule, 
+    MatFormFieldModule,LayoutComponent
   ],
   templateUrl: './audit-log.html',
   styleUrls: ['./audit-log.scss']

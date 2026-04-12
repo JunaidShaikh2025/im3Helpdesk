@@ -1,6 +1,7 @@
 import {
   Component, OnInit, OnDestroy,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject,
+  ViewChild, ElementRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -11,15 +12,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+
 import { TicketService } from '../../../services/ticket';
 import { AgentService } from '../../../services/agent';
 import { AgentGroupService } from '../../../services/agent-group';
 import { AuthService } from '../../../services/auth.service';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { ViewChild, ElementRef } from '@angular/core';
 import { LayoutComponent } from '../../../shared/layout/layout';
-
-
 
 @Component({
   selector: 'app-ticket-detail',
@@ -27,7 +26,7 @@ import { LayoutComponent } from '../../../shared/layout/layout';
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     MatButtonModule, MatToolbarModule,
-    MatProgressSpinnerModule, MatDividerModule,LayoutComponent
+    MatProgressSpinnerModule, MatDividerModule, LayoutComponent
   ],
   templateUrl: './ticket-detail.html',
   styleUrls: ['./ticket-detail.scss']
@@ -62,7 +61,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
 
   statuses = ['Open', 'InProgress', 'Resolved', 'Closed'];
 
-  // New properties for Editor and Attachments
+  // Properties for Editor and Attachments
   activeTab = 'reply';
   expandReply = false;
   showPrevThread = false;
@@ -75,7 +74,14 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   forwardText = '';
   pendingFiles: File[] = [];
   attachments: any[] = [];
-  orgSupportEmail = 'support@helpdesk.com'; // You can update this dynamically later
+
+  // Newly Added Properties
+  notifyTo = '';
+  notifyAgents: any[] = [];
+  mentionResults: any[] = [];
+  agentSignature = '';
+  expandComposer = false;
+  orgSupportEmail = '';
 
   @ViewChild('replyEditor') replyEditorRef: any;
   @ViewChild('noteEditor') noteEditorRef: any;
@@ -100,9 +106,11 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
 
     Promise.resolve().then(() => {
       this.loadTicket();
-      this.loadAttachments(); // Load attachments on init
+      this.loadAttachments(); 
       this.loadAgents();
       this.loadGroups();
+      this.loadOrgInfo();          // Added from new methods
+      this.loadAgentSignature();   // Added from new methods
       this.startPolling();
     });
   }
@@ -132,7 +140,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Load attachments
   loadAttachments() {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.authService.getToken()}`
@@ -364,7 +371,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
 
     try {
-      // Upload files first
       for (const file of this.pendingFiles) {
         await this.uploadFile(file);
       }
@@ -438,5 +444,86 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
 
   logout() {
     this.authService.logout();
+  }
+
+  // --- Newly Added Methods ---
+
+  loadOrgInfo() {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+    this.http.get<any>(
+      'https://localhost:7071/api/Organizations/current',
+      { headers }
+    ).subscribe({
+      next: (data) => {
+        this.orgSupportEmail = data.supportEmail || '';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadAgentSignature() {
+    const token = this.authService.getToken();
+    if (!token) return;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub
+      || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+    if (!userId) return;
+
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+    this.http.get<any>(
+      `https://localhost:7071/api/Agents/${userId}`,
+      { headers }
+    ).subscribe({
+      next: (data) => {
+        this.agentSignature = data.signature || '';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  searchAgentsForMention(event: any) {
+    const q = event.target.value?.toLowerCase();
+    if (!q || q.length < 1) {
+      this.mentionResults = [];
+      return;
+    }
+    this.mentionResults = this.agents.filter(a =>
+      a.fullName?.toLowerCase().includes(q)
+    ).slice(0, 5);
+    this.cdr.detectChanges();
+  }
+
+  addMention(agent: any) {
+    if (!this.notifyAgents.find(a => a.id === agent.id)) {
+      this.notifyAgents.push(agent);
+    }
+    this.notifyTo = '';
+    this.mentionResults = [];
+    this.cdr.detectChanges();
+  }
+
+  removeNotify(agent: any) {
+    this.notifyAgents = this.notifyAgents
+      .filter(a => a.id !== agent.id);
+    this.cdr.detectChanges();
+  }
+
+  execCmd(command: string, value?: string) {
+    document.execCommand(command, false, value);
+  }
+
+  clearComposer() {
+    this.quickReplyText = '';
+    this.noteText = '';
+    this.pendingFiles = [];
+    if (this.replyEditorRef?.nativeElement)
+      this.replyEditorRef.nativeElement.innerHTML = '';
+    if (this.noteEditorRef?.nativeElement)
+      this.noteEditorRef.nativeElement.innerHTML = '';
+    this.cdr.detectChanges();
   }
 }

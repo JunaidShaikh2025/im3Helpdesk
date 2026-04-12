@@ -9,6 +9,9 @@ import { ToastrService } from 'ngx-toastr';
 import { NotificationService } from '../../../services/notification';
 import { AuthService } from '../../../services/auth.service';
 import { Subject, interval, takeUntil } from 'rxjs';
+import { LayoutComponent } from '../../../shared/layout/layout';
+
+
 
 @Component({
   selector: 'app-notifications-page',
@@ -16,7 +19,7 @@ import { Subject, interval, takeUntil } from 'rxjs';
   imports: [
     CommonModule, RouterModule,
     MatButtonModule, MatToolbarModule,
-    MatTabsModule, MatProgressSpinnerModule
+    MatTabsModule, MatProgressSpinnerModule,LayoutComponent
   ],
   templateUrl: './notifications-page.html',
   styleUrls: ['./notifications-page.scss']

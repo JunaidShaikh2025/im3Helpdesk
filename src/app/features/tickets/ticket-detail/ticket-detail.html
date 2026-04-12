@@ -1,470 +1,392 @@
 <app-layout>
   <div class="page-content">
-<div class="helpdesk-layout" *ngIf="!loading && ticket">
+    <div class="helpdesk-layout" *ngIf="!loading && ticket">
 
-  <div class="main-content">
+      <div class="main-content">
 
-    <!-- <div class="ticket-header-bar">
-      <button mat-icon-button (click)="router.navigate(['/tickets'])">
-        ←
-      </button>
-      <div class="ticket-header-info">
-        <h2>{{ ticket.title }}</h2>
-        <div class="ticket-meta-row">
-
-
-        </div>
-      </div>
-    </div> -->
-
-    <div class="ticket-body-card">
-      <div class="email-header">
-        <div class="sender-avatar">
-          {{ (ticket.createdBy?.fullName || 'U').charAt(0).toUpperCase() }}
-        </div>
-        <div class="sender-info">
-          <span class="sender-name">{{ ticket.createdBy?.fullName }}</span>
-          <span class="sender-email">{{ ticket.createdBy?.email }}</span>
-          <span class="reported-via">reported via helpdesk</span>
-        </div>
-        <span class="ticket-time-right">
-          <span class="type-badge">{{ ticket.ticketType || 'Support' }}</span>
-          <span class="cat-badge">{{ ticket.category }}</span>
-          {{ ticket.createdAt | date:'EEE dd MMM yyyy, hh:mm a' }}
-        </span>
-      </div>
-      <div class="ticket-description">
-        {{ ticket.description }}
-      </div>
-    </div>
-
-    <div class="conversation-section">
-      <div class="comment-thread">
-
-        <div *ngFor="let c of ticket.comments"
-          class="comment-item"
-          [class.internal-note]="c.isInternal"
-          [class.agent-comment]="c.isAgent"
-          [class.customer-comment]="!c.isAgent">
-
-          <div class="comment-avatar"
-            [class.agent-avatar]="c.isAgent"
-            [class.customer-avatar]="!c.isAgent">
-            {{ (c.user?.fullName || 'U').charAt(0).toUpperCase() }}
-          </div>
-
-          <div class="comment-bubble">
-            <div class="comment-meta">
-              <span class="commenter-name">{{ c.user?.fullName }}</span>
-              <span class="internal-tag" *ngIf="c.isInternal">
-                Note
-              </span>
-              <span class="commenter-time">
-                {{ c.createdAt | date:'dd MMM yyyy, hh:mm a' }}
-              </span>
+        <div class="ticket-body-card">
+          <div class="email-header">
+            <div class="sender-avatar">
+              {{ (ticket.createdBy?.fullName || 'U').charAt(0).toUpperCase() }}
             </div>
-            <p class="comment-body">{{ c.comment }}</p>
+            <div class="sender-info">
+              <span class="sender-name">{{ ticket.createdBy?.fullName }}</span>
+              <span class="sender-email">{{ ticket.createdBy?.email }}</span>
+              <span class="reported-via">reported via helpdesk</span>
+            </div>
+            <span class="ticket-time-right">
+              <span class="type-badge">{{ ticket.ticketType || 'Support' }}</span>
+              <span class="cat-badge">{{ ticket.category }}</span>
+              {{ ticket.createdAt | date:'EEE dd MMM yyyy, hh:mm a' }}
+            </span>
+          </div>
+          <div class="ticket-description">
+            {{ ticket.description }}
           </div>
         </div>
 
-        <div *ngIf="!ticket.comments?.length" class="no-comments">
-          No replies yet.
-        </div>
-      </div>
+        <div class="conversation-section">
+          <div class="comment-thread">
 
-      <div class="reply-box" *ngIf="ticket.status !== 'Closed'">
+            <div *ngFor="let c of ticket.comments" class="comment-item" [class.internal-note]="c.isInternal"
+              [class.agent-comment]="c.isAgent" [class.customer-comment]="!c.isAgent">
 
-        <div class="reply-tabs">
-          <button class="reply-tab"
-            [class.active]="activeTab === 'reply'"
-            (click)="activeTab = 'reply'; isInternalNote = false">
-            ✉ Reply
-          </button>
-          <button class="reply-tab note-tab"
-            [class.active]="activeTab === 'note'"
-            (click)="activeTab = 'note'; isInternalNote = true"
-            *ngIf="isAgent">
-            📝 Note
-          </button>
-          <button class="reply-tab"
-            [class.active]="activeTab === 'forward'"
-            (click)="activeTab = 'forward'"
-            *ngIf="isAgent">
-            → Forward
-          </button>
-          <span class="expand-btn" (click)="expandReply = !expandReply">
-            {{ expandReply ? '⊡' : '⊞' }}
-          </span>
-        </div>
-
-        <div class="reply-content" *ngIf="activeTab === 'reply'">
-          <div class="reply-meta">
-            <div class="meta-row">
-              <span class="meta-label">From :</span>
-              <span class="meta-val">iM3 Support ({{ orgSupportEmail }})</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-label">To :</span>
-              <span class="meta-val reply-to">
-                {{ ticket.createdBy?.email }}
-              </span>
-              <span class="cc-links">
-                <a (click)="showCc = !showCc">Cc</a>
-                <a (click)="showBcc = !showBcc">Bcc</a>
-              </span>
-            </div>
-            <div class="meta-row" *ngIf="showCc">
-              <span class="meta-label">Cc :</span>
-              <input class="cc-input" [(ngModel)]="ccEmails"
-                placeholder="cc@example.com"/>
-            </div>
-            <div class="meta-row" *ngIf="showBcc">
-              <span class="meta-label">Bcc :</span>
-              <input class="cc-input" [(ngModel)]="bccEmails"
-                placeholder="bcc@example.com"/>
-            </div>
-          </div>
-
-          <div class="rich-editor-wrap">
-            <div class="editor-toolbar">
-              <button class="tb-btn" (click)="formatText('bold')" title="Bold">
-                <strong>B</strong>
-              </button>
-              <button class="tb-btn" (click)="formatText('italic')" title="Italic">
-                <em>I</em>
-              </button>
-              <button class="tb-btn" (click)="formatText('underline')" title="Underline">
-                <u>U</u>
-              </button>
-              <span class="tb-sep"></span>
-              <button class="tb-btn" (click)="formatText('insertUnorderedList')">
-                ≡
-              </button>
-              <button class="tb-btn" (click)="formatText('insertOrderedList')">
-                1.
-              </button>
-              <span class="tb-sep"></span>
-              <button class="tb-btn" (click)="insertLink()">🔗</button>
-            </div>
-
-            <div class="editor-body"
-              contenteditable="true"
-              #replyEditor
-              (input)="onReplyInput($event)"
-              [attr.data-placeholder]="'Type your reply here...'">
-            </div>
-
-            <div class="prev-thread" *ngIf="showPrevThread">
-              <div class="prev-sep">
-                <span>···</span>
+              <div class="comment-avatar" [class.agent-avatar]="c.isAgent" [class.customer-avatar]="!c.isAgent">
+                {{ (c.user?.fullName || 'U').charAt(0).toUpperCase() }}
               </div>
-              <div class="prev-content">
-                <em>Previous conversation hidden</em>
+
+              <div class="comment-bubble">
+                <div class="comment-meta">
+                  <span class="commenter-name">{{ c.user?.fullName }}</span>
+                  <span class="internal-tag" *ngIf="c.isInternal">
+                    Note
+                  </span>
+                  <span class="commenter-time">
+                    {{ c.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+                  </span>
+                </div>
+                <p class="comment-body">{{ c.comment }}</p>
               </div>
             </div>
-            <button class="prev-btn"
-              (click)="showPrevThread = !showPrevThread">
-              {{ showPrevThread ? '▲' : '···' }}
+
+            <div *ngIf="!ticket.comments?.length" class="no-comments">
+              No replies yet.
+            </div>
+          </div>
+
+          <div class="reply-composer" *ngIf="ticket?.status !== 'Closed'">
+
+            <div class="composer-tabs">
+              <div class="tabs-left">
+                <button class="comp-tab" [class.active-reply]="activeTab === 'reply'"
+                  (click)="activeTab = 'reply'; isInternalNote = false">
+                  ✉ Reply
+                </button>
+                <button class="comp-tab note-btn" [class.active-note]="activeTab === 'note'"
+                  (click)="activeTab = 'note'; isInternalNote = true" *ngIf="isAgent">
+                  📋 Note
+                </button>
+                <button class="comp-tab" [class.active-fwd]="activeTab === 'forward'" (click)="activeTab = 'forward'"
+                  *ngIf="isAgent">
+                  → Forward
+                </button>
+              </div>
+              <div class="tabs-right">
+                <span class="not-visible-badge" *ngIf="activeTab === 'note'">
+                  🔒 Not visible to contact ▼
+                </span>
+                <button class="expand-btn" (click)="expandComposer = !expandComposer">
+                  {{ expandComposer ? '⊡' : '⊞' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="composer-body" *ngIf="activeTab === 'reply'">
+
+              <div class="email-meta">
+                <div class="email-meta-row">
+                  <span class="em-label">From :</span>
+                  <span class="em-val">
+                    iM3 Support ({{ orgSupportEmail || 'support@company.com' }})
+                  </span>
+                </div>
+                <div class="email-meta-row">
+                  <span class="em-label">To :</span>
+                  <span class="em-val blue">
+                    {{ ticket?.createdBy?.email || ticket?.createdBy?.fullName }}
+                  </span>
+                  <div class="cc-bcc-links">
+                    <span (click)="showCc = !showCc" class="cc-link">Cc</span>
+                    <span (click)="showBcc = !showBcc" class="cc-link">Bcc</span>
+                  </div>
+                </div>
+                <div class="email-meta-row" *ngIf="showCc">
+                  <span class="em-label">Cc :</span>
+                  <input class="meta-input" [(ngModel)]="ccEmails" placeholder="Add CC emails..." />
+                </div>
+                <div class="email-meta-row" *ngIf="showBcc">
+                  <span class="em-label">Bcc :</span>
+                  <input class="meta-input" [(ngModel)]="bccEmails" placeholder="Add BCC emails..." />
+                </div>
+              </div>
+
+              <div class="editor-area" contenteditable="true" #replyEditor (input)="onReplyInput($event)"
+                data-placeholder="Type your reply here...">
+              </div>
+
+              <div class="signature-area" *ngIf="agentSignature">
+                <div class="sig-separator">···</div>
+                <div class="signature-text">{{ agentSignature }}</div>
+              </div>
+
+            </div>
+
+            <div class="composer-body note-composer" *ngIf="activeTab === 'note'">
+
+              <div class="notify-row">
+                <span class="notify-label">Notify to:</span>
+                <div class="notify-agents">
+                  <input class="notify-input" [(ngModel)]="notifyTo" placeholder="@mention agent..."
+                    (input)="searchAgentsForMention($event)" />
+                  <div class="mention-dropdown" *ngIf="mentionResults.length > 0">
+                    <div class="mention-item" *ngFor="let a of mentionResults" (click)="addMention(a)">
+                      <div class="mention-av">
+                        {{ a.fullName?.charAt(0) }}
+                      </div>
+                      {{ a.fullName }}
+                    </div>
+                  </div>
+                  <div class="notify-tags">
+                    <span class="notify-tag" *ngFor="let a of notifyAgents">
+                      {{ a.fullName }}
+                      <button (click)="removeNotify(a)">×</button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="editor-area note-editor" contenteditable="true" #noteEditor (input)="onNoteInput($event)"
+                data-placeholder="Add a note, @mention...">
+              </div>
+
+            </div>
+
+            <div class="composer-body" *ngIf="activeTab === 'forward'">
+              <div class="email-meta">
+                <div class="email-meta-row">
+                  <span class="em-label">To :</span>
+                  <input class="meta-input flex-1" [(ngModel)]="forwardEmail" placeholder="Forward to email..." />
+                </div>
+              </div>
+              <div class="editor-area" contenteditable="true" #forwardEditor (input)="onForwardInput($event)"
+                data-placeholder="Add message...">
+              </div>
+            </div>
+
+            <div class="comp-attachments" *ngIf="pendingFiles.length > 0">
+              <div class="comp-att-item" *ngFor="let f of pendingFiles; let i = index">
+                <span>{{ getFileIcon(f.type) }}</span>
+                <span class="att-name">{{ f.name }}</span>
+                <span class="att-sz">{{ formatFileSize(f.size) }}</span>
+                <button (click)="removePendingFile(i)">×</button>
+              </div>
+            </div>
+
+            <div class="composer-toolbar">
+              <div class="toolbar-left">
+                <button class="tb" title="Bold" (click)="execCmd('bold')">
+                  <strong>B</strong>
+                </button>
+                <button class="tb" title="Italic" (click)="execCmd('italic')">
+                  <em>I</em>
+                </button>
+                <button class="tb" title="Underline" (click)="execCmd('underline')">
+                  <u>U</u>
+                </button>
+                <button class="tb" title="H1" (click)="execCmd('formatBlock','h1')">
+                  H₁
+                </button>
+                <button class="tb" title="H2" (click)="execCmd('formatBlock','h2')">
+                  H₂
+                </button>
+                <span class="tb-divider"></span>
+                <button class="tb" (click)="execCmd('foreColor','#333')">A</button>
+                <button class="tb" (click)="execCmd('hiliteColor','yellow')">
+                  <strong>A</strong>
+                </button>
+                <span class="tb-divider"></span>
+                <button class="tb" (click)="execCmd('insertUnorderedList')">≡</button>
+                <button class="tb" (click)="execCmd('insertOrderedList')">1.</button>
+                <button class="tb" (click)="execCmd('indent')">¶</button>
+                <span class="tb-divider"></span>
+                <button class="tb" (click)="insertLink()">🔗</button>
+                <label class="tb" title="Image">
+                  🖼
+                  <input type="file" hidden accept="image/*" (change)="onFileSelect($event)" />
+                </label>
+                <button class="tb">{{ '{}' }}</button>
+                <button class="tb">∅</button>
+                <button class="tb">⏱</button>
+              </div>
+
+              <div class="toolbar-bottom">
+                <div class="bottom-left">
+                  <span class="font-size-btn">A</span>
+                  <label class="attach-file" title="Attach file">
+                    📎
+                    <input type="file" multiple hidden (change)="onFileSelect($event)" />
+                  </label>
+                  <button class="tb">😊</button>
+                  <button class="tb">📖</button>
+                </div>
+
+                <div class="bottom-right">
+                  <span class="saved-text">Saved</span>
+                  <button class="discard" (click)="clearComposer()">🗑</button>
+
+                  <div class="send-wrap" *ngIf="activeTab === 'reply'">
+                    <button class="send-main" (click)="sendReply()" [disabled]="!quickReplyText?.trim() || updating">
+                      ✉ Send
+                    </button>
+                    <button class="send-drop">▾</button>
+                  </div>
+
+                  <button class="note-send-btn" *ngIf="activeTab === 'note'" (click)="sendNote()"
+                    [disabled]="!noteText?.trim() || updating">
+                    📋 Add note
+                  </button>
+
+                  <div class="send-wrap" *ngIf="activeTab === 'forward'">
+                    <button class="send-main" (click)="doForward()" [disabled]="!forwardEmail?.trim()">
+                      → Forward
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="attachments-section" *ngIf="attachments.length > 0">
+            <h4>Attachments ({{ attachments.length }})</h4>
+            <div class="attachment-grid">
+              <div class="attachment-item" *ngFor="let a of attachments">
+                <div class="att-preview" *ngIf="a.isImage">
+                  <img [src]="'https://localhost:7071' + a.fileUrl" [alt]="a.fileName" />
+                </div>
+                <div class="att-icon" *ngIf="!a.isImage">
+                  {{ getFileIcon(a.contentType) }}
+                </div>
+                <div class="att-info">
+                  <span class="att-name">{{ a.fileName }}</span>
+                  <span class="att-size">{{ a.sizeFormatted }}</span>
+                </div>
+                <a [href]="'https://localhost:7071' + a.fileUrl" target="_blank" class="att-download">↓</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="properties-panel">
+
+        <div class="prop-card">
+          <div class="prop-card-header">
+            <span class="status-indicator" [class]="'si-' + ticket.status?.toLowerCase()">
+            </span>
+            <span class="status-text">{{ ticket.status }}</span>
+            <span class="sla-badge" *ngIf="ticket.slaDeadline" [class]="'sla-' + (ticket.slaStatus || 'notrack')">
+              {{ ticket.slaStatus }}
+            </span>
+          </div>
+          <div class="sla-info" *ngIf="ticket.slaDeadline">
+            <div class="sla-row">
+              <span class="sla-icon">⏱</span>
+              <div>
+                <div class="sla-label">Response due</div>
+                <div class="sla-time">
+                  {{ ticket.slaDeadline | date:'EEE dd MMM yyyy, hh:mm a' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="prop-card">
+          <div class="prop-title">PROPERTIES</div>
+
+          <div class="prop-group">
+            <label class="prop-label">Tags</label>
+            <div class="tags-display">
+              <span class="tag-chip" *ngFor="let tag of getTagsArray()">
+                {{ tag }}
+              </span>
+            </div>
+            <div class="tag-add-row">
+              <input class="tag-input-sm" [(ngModel)]="newTag" placeholder="Add tag..." (keyup.enter)="addTag()" />
+              <button class="tag-add-btn" (click)="addTag()">+</button>
+            </div>
+          </div>
+
+          <div class="prop-group">
+            <label class="prop-label">Type <span class="required">*</span></label>
+            <select class="prop-select" [(ngModel)]="ticket.ticketType" (change)="updateTicketType()">
+              <option value="">--</option>
+              <option value="Support">Support</option>
+              <option value="Bug">Bug</option>
+              <option value="Feature">Feature Request</option>
+              <option value="Inquiry">Inquiry</option>
+              <option value="Billing">Billing</option>
+            </select>
+          </div>
+
+          <div class="prop-group">
+            <label class="prop-label">Status <span class="required">*</span></label>
+            <select class="prop-select" [(ngModel)]="ticket.status" (change)="updateStatus(ticket.status)">
+              <option *ngFor="let s of statuses" [value]="s">
+                {{ s }}
+              </option>
+            </select>
+          </div>
+
+          <div class="prop-group">
+            <label class="prop-label">Priority</label>
+            <select class="prop-select" [(ngModel)]="ticket.priority" (change)="updatePriority(ticket.priority)">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+
+          <div class="prop-group" *ngIf="isAgent">
+            <label class="prop-label">Assign To</label>
+            <select class="prop-select" [(ngModel)]="selectedAgentId">
+              <option value="">Unassigned</option>
+              <option *ngFor="let a of agents" [value]="a.id">
+                {{ a.fullName }}
+              </option>
+            </select>
+            <button class="assign-btn" (click)="assignTicket()" [disabled]="updating">
+              Assign
             </button>
           </div>
 
-          <div class="attachments-preview" *ngIf="pendingFiles.length > 0">
-            <div class="pending-file"
-              *ngFor="let f of pendingFiles; let i = index">
-              <span class="file-icon">{{ getFileIcon(f.type) }}</span>
-              <span class="file-name">{{ f.name }}</span>
-              <span class="file-size">{{ formatFileSize(f.size) }}</span>
-              <button class="remove-file" (click)="removePendingFile(i)">×</button>
-            </div>
+          <div class="prop-group" *ngIf="isAgent">
+            <label class="prop-label">Group</label>
+            <select class="prop-select" [(ngModel)]="selectedGroupId" (change)="assignGroup()">
+              <option value="">No Group</option>
+              <option *ngFor="let g of groups" [value]="g.id">
+                {{ g.name }}
+              </option>
+            </select>
           </div>
 
-          <div class="reply-footer">
-            <div class="reply-footer-left">
-              <label class="attach-btn" title="Attach file">
-                📎
-                <input type="file" multiple hidden
-                  (change)="onFileSelect($event)"
-                  accept="*/*"/>
-              </label>
-              <label class="attach-btn" title="Attach image">
-                🖼
-                <input type="file" multiple hidden
-                  (change)="onFileSelect($event)"
-                  accept="image/*"/>
-              </label>
-              <button class="tb-btn" title="Emoji">😊</button>
-              <button class="tb-btn" title="KB Article">📖</button>
-            </div>
+          <button class="update-btn" (click)="updateAllProps()">
+            Update
+          </button>
+        </div>
 
-            <div class="reply-footer-right">
-              <span class="saved-indicator">Saved</span>
-              <button class="discard-btn" (click)="clearReply()">🗑</button>
-              <div class="send-group">
-                <button class="send-btn-main"
-                  (click)="sendReply()"
-                  [disabled]="!quickReplyText.trim() || updating">
-                  ✉ Send
-                </button>
-                <button class="send-dropdown">▼</button>
-              </div>
-            </div>
+        <div class="prop-card" *ngIf="isAgent">
+          <div class="prop-title">TIME TRACKING</div>
+          <div class="time-display" *ngIf="ticket.timeSpentMinutes > 0">
+            {{ ticket.timeSpentMinutes }} min
+            ({{ (ticket.timeSpentMinutes / 60).toFixed(1) }} hrs)
+          </div>
+          <div class="time-log-row">
+            <input class="time-input" type="number" [(ngModel)]="timeToLog" min="1" placeholder="Minutes" />
+            <button class="assign-btn" (click)="logTime()" [disabled]="!timeToLog || updating">
+              Log
+            </button>
           </div>
         </div>
 
-        <div class="reply-content note-mode" *ngIf="activeTab === 'note'">
-          <div class="note-header">
-            <span class="note-badge">📝 Internal Note</span>
-            <span class="note-hint">Not visible to contact</span>
-          </div>
-
-          <div class="rich-editor-wrap">
-            <div class="editor-toolbar">
-              <button class="tb-btn" (click)="formatText('bold')">
-                <strong>B</strong>
-              </button>
-              <button class="tb-btn" (click)="formatText('italic')">
-                <em>I</em>
-              </button>
-              <span class="tb-sep"></span>
-              <button class="tb-btn">≡</button>
-              <button class="tb-btn">1.</button>
-            </div>
-
-            <div class="editor-body note-editor"
-              contenteditable="true"
-              #noteEditor
-              (input)="onNoteInput($event)"
-              [attr.data-placeholder]="'Add internal note for your team...'">
-            </div>
-          </div>
-
-          <div class="attachments-preview" *ngIf="pendingFiles.length > 0">
-            <div class="pending-file"
-              *ngFor="let f of pendingFiles; let i = index">
-              <span class="file-icon">{{ getFileIcon(f.type) }}</span>
-              <span class="file-name">{{ f.name }}</span>
-              <button class="remove-file" (click)="removePendingFile(i)">×</button>
-            </div>
-          </div>
-
-          <div class="reply-footer">
-            <div class="reply-footer-left">
-              <label class="attach-btn">
-                📎
-                <input type="file" multiple hidden (change)="onFileSelect($event)"/>
-              </label>
-            </div>
-            <div class="reply-footer-right">
-              <button class="send-btn-main note-send"
-                (click)="sendNote()"
-                [disabled]="!noteText.trim() || updating">
-                Add Note
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="reply-content" *ngIf="activeTab === 'forward'">
-          <div class="reply-meta">
-            <div class="meta-row">
-              <span class="meta-label">From :</span>
-              <span class="meta-val">iM3 Support ({{ orgSupportEmail }})</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-label">To :</span>
-              <input class="cc-input full"
-                [(ngModel)]="forwardEmail"
-                placeholder="Forward to email address..."/>
-            </div>
-          </div>
-
-          <div class="rich-editor-wrap">
-            <div class="editor-body"
-              contenteditable="true"
-              #forwardEditor
-              (input)="onForwardInput($event)"
-              [attr.data-placeholder]="'Add message before forwarding...'">
-            </div>
-          </div>
-
-          <div class="reply-footer">
-            <div class="reply-footer-right">
-              <button class="send-btn-main"
-                (click)="doForward()"
-                [disabled]="!forwardEmail.trim()">
-                → Forward
-              </button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="attachments-section" *ngIf="attachments.length > 0">
-        <h4>Attachments ({{ attachments.length }})</h4>
-        <div class="attachment-grid">
-          <div class="attachment-item" *ngFor="let a of attachments">
-            <div class="att-preview" *ngIf="a.isImage">
-              <img [src]="'https://localhost:7071' + a.fileUrl"
-                [alt]="a.fileName"/>
-            </div>
-            <div class="att-icon" *ngIf="!a.isImage">
-              {{ getFileIcon(a.contentType) }}
-            </div>
-            <div class="att-info">
-              <span class="att-name">{{ a.fileName }}</span>
-              <span class="att-size">{{ a.sizeFormatted }}</span>
-            </div>
-            <a [href]="'https://localhost:7071' + a.fileUrl"
-              target="_blank" class="att-download">↓</a>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="properties-panel">
-
-    <div class="prop-card">
-      <div class="prop-card-header">
-        <span class="status-indicator"
-          [class]="'si-' + ticket.status?.toLowerCase()">
-        </span>
-        <span class="status-text">{{ ticket.status }}</span>
-        <span class="sla-badge"
-          *ngIf="ticket.slaDeadline"
-          [class]="'sla-' + (ticket.slaStatus || 'notrack')">
-          {{ ticket.slaStatus }}
-        </span>
-      </div>
-      <div class="sla-info" *ngIf="ticket.slaDeadline">
-        <div class="sla-row">
-          <span class="sla-icon">⏱</span>
-          <div>
-            <div class="sla-label">Response due</div>
-            <div class="sla-time">
-              {{ ticket.slaDeadline | date:'EEE dd MMM yyyy, hh:mm a' }}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
-    <div class="prop-card">
-      <div class="prop-title">PROPERTIES</div>
-
-      <div class="prop-group">
-        <label class="prop-label">Tags</label>
-        <div class="tags-display">
-          <span class="tag-chip"
-            *ngFor="let tag of getTagsArray()">
-            {{ tag }}
-          </span>
-        </div>
-        <div class="tag-add-row">
-          <input class="tag-input-sm"
-            [(ngModel)]="newTag"
-            placeholder="Add tag..."
-            (keyup.enter)="addTag()"/>
-          <button class="tag-add-btn"
-            (click)="addTag()">+</button>
-        </div>
-      </div>
-
-      <div class="prop-group">
-        <label class="prop-label">Type <span class="required">*</span></label>
-        <select class="prop-select"
-          [(ngModel)]="ticket.ticketType"
-          (change)="updateTicketType()">
-          <option value="">--</option>
-          <option value="Support">Support</option>
-          <option value="Bug">Bug</option>
-          <option value="Feature">Feature Request</option>
-          <option value="Inquiry">Inquiry</option>
-          <option value="Billing">Billing</option>
-        </select>
-      </div>
-
-      <div class="prop-group">
-        <label class="prop-label">Status <span class="required">*</span></label>
-        <select class="prop-select"
-          [(ngModel)]="ticket.status"
-          (change)="updateStatus(ticket.status)">
-          <option *ngFor="let s of statuses" [value]="s">
-            {{ s }}
-          </option>
-        </select>
-      </div>
-
-      <div class="prop-group">
-        <label class="prop-label">Priority</label>
-        <select class="prop-select"
-          [(ngModel)]="ticket.priority"
-          (change)="updatePriority(ticket.priority)">
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-          <option value="Critical">Critical</option>
-        </select>
-      </div>
-
-      <div class="prop-group" *ngIf="isAgent">
-        <label class="prop-label">Assign To</label>
-        <select class="prop-select"
-          [(ngModel)]="selectedAgentId">
-          <option value="">Unassigned</option>
-          <option *ngFor="let a of agents" [value]="a.id">
-            {{ a.fullName }}
-          </option>
-        </select>
-        <button class="assign-btn"
-          (click)="assignTicket()"
-          [disabled]="updating">
-          Assign
-        </button>
-      </div>
-
-      <div class="prop-group" *ngIf="isAgent">
-        <label class="prop-label">Group</label>
-        <select class="prop-select"
-          [(ngModel)]="selectedGroupId"
-          (change)="assignGroup()">
-          <option value="">No Group</option>
-          <option *ngFor="let g of groups" [value]="g.id">
-            {{ g.name }}
-          </option>
-        </select>
-      </div>
-
-      <button class="update-btn" (click)="updateAllProps()">
-        Update
-      </button>
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
     </div>
-
-    <div class="prop-card" *ngIf="isAgent">
-      <div class="prop-title">TIME TRACKING</div>
-      <div class="time-display" *ngIf="ticket.timeSpentMinutes > 0">
-        {{ ticket.timeSpentMinutes }} min
-        ({{ (ticket.timeSpentMinutes / 60).toFixed(1) }} hrs)
-      </div>
-      <div class="time-log-row">
-        <input class="time-input"
-          type="number" [(ngModel)]="timeToLog"
-          min="1" placeholder="Minutes"/>
-        <button class="assign-btn"
-          (click)="logTime()"
-          [disabled]="!timeToLog || updating">
-          Log
-        </button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<div class="loading-center" *ngIf="loading">
-  <mat-spinner diameter="48"></mat-spinner>
-</div>
   </div>
 </app-layout>

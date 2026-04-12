@@ -1,77 +1,217 @@
-<mat-toolbar color="primary">
-  <button mat-icon-button (click)="router.navigate(['/tickets'])">←</button>
-  <span>Create New Ticket</span>
-</mat-toolbar>
+<app-layout>
+  <div class="create-page">
 
-<div class="page-container">
-  <div class="form-card">
-    <h2>New Support Ticket</h2>
+    <div class="page-header">
+      <button class="back-btn"
+        (click)="router.navigate(['/tickets'])">
+        ← Back to Tickets
+      </button>
+      <h1>Create New Ticket</h1>
+    </div>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Title</mat-label>
-        <input matInput formControlName="title"
-          placeholder="Brief description of the issue"/>
-        <mat-error *ngIf="form.get('title')?.hasError('required')">
-          Title is required
-        </mat-error>
-        <mat-error *ngIf="form.get('title')?.hasError('minlength')">
-          Minimum 5 characters
-        </mat-error>
-      </mat-form-field>
+    <div class="create-layout">
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Description</mat-label>
-        <textarea matInput formControlName="description" rows="5"
-          placeholder="Detailed description of the issue..."></textarea>
-        <mat-error *ngIf="form.get('description')?.hasError('required')">
-          Description is required
-        </mat-error>
-      </mat-form-field>
+      <!-- Left: Main Form -->
+      <div class="main-form">
+        <div class="form-card">
 
-      <div class="two-col">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Category</mat-label>
-          <mat-select formControlName="category">
-            <mat-option *ngFor="let cat of categories" [value]="cat">
-              {{ cat }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+          <!-- Template Selector -->
+          <div class="template-row" *ngIf="templates.length > 0">
+            <label>Use Template</label>
+            <select class="form-select"
+              [(ngModel)]="selectedTemplateId"
+              [ngModelOptions]="{standalone: true}"
+              (change)="applyTemplate(selectedTemplateId)">
+              <option value="">-- No Template --</option>
+              <option *ngFor="let t of templates" [value]="t.id">
+                {{ t.name }}
+              </option>
+            </select>
+          </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Priority</mat-label>
-          <mat-select formControlName="priority">
-            <mat-option *ngFor="let p of priorities" [value]="p">
-              {{ p }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+            <!-- Subject -->
+      <div class="form-group">
+              <label>Subject <span class="req">*</span></label>
+              <input type="text" formControlName="title"
+                placeholder="Brief description of the issue..."
+                [class.invalid]="form.get('title')?.invalid
+                  && form.get('title')?.touched"/>
+              <span class="error"
+              *ngIf="form.get('title')?.invalid
+                  && form.get('title')?.touched">
+                Subject is required
+              </span>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <label>Description <span class="req">*</span></label>
+            <div class="rich-editor">
+                <div class="editor-toolbar">
+                  <button type="button" class="tb-btn"
+                    (click)="docExec('bold')">
+                    <strong>B</strong>
+                  </button>
+                  <button type="button" class="tb-btn"
+                    (click)="docExec('italic')">
+                    <em>I</em>
+                  </button>
+                  <button type="button" class="tb-btn"
+                    (click)="docExec('underline')">
+                    <u>U</u>
+                  </button>
+                  <span class="tb-sep"></span>
+                  <button type="button" class="tb-btn"
+                    (click)="docExec('insertUnorderedList')">≡</button>
+                  <button type="button" class="tb-btn"
+                    (click)="docExec('insertOrderedList')">1.</button>
+                  <span class="tb-sep"></span>
+                  <label class="tb-btn" title="Attach">
+                    📎
+               <input type="file" multiple hidden
+                (change)="onFileSelect($event)"/>
+                  </label>
+                  <label class="tb-btn" title="Image">
+                    🖼
+                    <input type="file" multiple hidden
+                      (change)="onFileSelect($event)"
+                      accept="image/*"/>
+                  </label>
+                </div>
+                <div class="editor-body"
+                  contenteditable="true"
+                  #descEditor
+                  (input)="onDescInput($event)"
+                  data-placeholder="Describe the issue in detail...">
+                </div>
+              </div>
+            </div>
+
+            <!-- Attachments Preview -->
+            <div class="attachments-preview"
+              *ngIf="pendingFiles.length > 0">
+              <div class="pending-file"
+                *ngFor="let f of pendingFiles; let i = index">
+                <span class="file-icon">
+                  {{ getFileIcon(f.type) }}
+                </span>
+                <span class="file-name">{{ f.name }}</span>
+                <span class="file-size">
+                  {{ formatFileSize(f.size) }}
+                </span>
+                <button type="button" class="remove-file"
+                  (click)="removePendingFile(i)">×</button>
+              </div>
+            </div>
+
+          </form>
+        </div>
       </div>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Ticket Type</mat-label>
-        <mat-select formControlName="ticketType">
-          <mat-option value="Support">Support</mat-option>
-          <mat-option value="Bug">Bug Report</mat-option>
-          <mat-option value="Feature">Feature Request</mat-option>
-          <mat-option value="Inquiry">General Inquiry</mat-option>
-          <mat-option value="Billing">Billing Issue</mat-option>
-          <mat-option value="Other">Other</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <!-- Right: Properties -->
+      <div class="props-panel">
+        <div class="props-card">
+          <h3>Ticket Details</h3>
 
-      <div class="form-actions">
-        <button mat-button type="button"
-          (click)="router.navigate(['/tickets'])">
-          Cancel
-        </button>
-        <button mat-raised-button color="primary"
-          type="submit" [disabled]="loading">
-          <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
-          <span *ngIf="!loading">Submit Ticket</span>
-        </button>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+            <div class="prop-field">
+              <label>Type</label>
+              <select class="form-select" formControlName="ticketType">
+                <option *ngFor="let t of ticketTypes" [value]="t">
+                  {{ t }}
+                </option>
+              </select>
+            </div>
+
+            <div class="prop-field">
+              <label>Status</label>
+              <select class="form-select" formControlName="status">
+                <option *ngFor="let s of statuses" [value]="s">
+                  {{ s }}
+                </option>
+              </select>
+            </div>
+
+            <div class="prop-field">
+              <label>Priority</label>
+              <select class="form-select" formControlName="priority">
+                <option *ngFor="let p of priorities" [value]="p">
+                  {{ p }}
+                </option>
+              </select>
+            </div>
+
+            <div class="prop-field">
+              <label>Category</label>
+              <select class="form-select" formControlName="category">
+                <option *ngFor="let c of categories" [value]="c">
+                  {{ c }}
+                </option>
+              </select>
+            </div>
+
+            <div class="prop-field">
+              <label>Group</label>
+              <select class="form-select" formControlName="agentGroupId">
+                <option value="">No Group</option>
+                <option *ngFor="let g of groups" [value]="g.id">
+                  {{ g.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="prop-field">
+              <label>Agent</label>
+              <select class="form-select"
+                formControlName="assignedToUserId">
+                <option value="">Unassigned</option>
+                <option *ngFor="let a of agents" [value]="a.id">
+                  {{ a.fullName }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Tags -->
+            <div class="prop-field">
+              <label>Tags</label>
+              <div class="tags-input">
+                <div class="tags-display" *ngIf="tags.length > 0">
+                  <span class="tag-chip"
+                    *ngFor="let tag of tags">
+                    {{ tag }}
+                    <button type="button"
+                      (click)="removeTag(tag)">×</button>
+                  </span>
+                </div>
+                <div class="tag-add">
+                  <input [(ngModel)]="tagInput"
+                    [ngModelOptions]="{standalone: true}"
+                    placeholder="Add tag..."
+                    (keyup.enter)="addTag()"/>
+                  <button type="button"
+                    (click)="addTag()">Add</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="cancel-btn"
+                (click)="router.navigate(['/tickets'])">
+                Cancel
+              </button>
+              <button type="submit" class="submit-btn"
+                [disabled]="loading">
+                <span *ngIf="loading">Creating...</span>
+                <span *ngIf="!loading">Create Ticket</span>
+              </button>
+            </div>
+
+          </form>
+        </div>
       </div>
-    </form>
+    </div>
   </div>
-</div>
+</app-layout>
