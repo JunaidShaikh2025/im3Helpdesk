@@ -76,7 +76,8 @@ public class AgentsController : ControllerBase
   }
 
   [HttpPost("invite")]
-  public async Task<IActionResult> InviteAgent([FromBody] InviteAgentDto dto)
+  public async Task<IActionResult> InviteAgent(
+      [FromBody] InviteAgentDto dto)
   {
     var existingUser = await _context.Users
         .IgnoreQueryFilters()
@@ -94,41 +95,45 @@ public class AgentsController : ControllerBase
       PhoneNumber = dto.PhoneNumber ?? "",
       PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
       Role = ParseRole(dto.Role),
-      // Ensure this matches your original type (Guid vs Guid?)
-      OrganizationId = _tenantService.OrganizationId,
+      OrganizationId = _tenantService.OrganizationId!.Value,
       IsEmailVerified = true,
       Signature = dto.Signature ?? "",
       PhotoUrl = dto.PhotoUrl ?? ""
     };
 
     _context.Users.Add(agent);
+
     if (dto.GroupIds?.Any() == true)
     {
       foreach (var groupId in dto.GroupIds)
       {
-        var member = new iM3Helpdesk.Domain.Entities.AgentGroupMember
-        {
-          AgentGroupId = groupId,
-          UserId = agent.Id
-        };
-        _context.AgentGroupMembers.Add(member);
+        _context.AgentGroupMembers.Add(
+            new iM3Helpdesk.Domain.Entities.AgentGroupMember
+            {
+              AgentGroupId = groupId,
+              UserId = agent.Id
+            });
       }
     }
 
     await _context.SaveChangesAsync();
 
     var org = await _context.Organizations
-        .FirstOrDefaultAsync(o => o.Id == _tenantService.OrganizationId);
-
+        .FirstOrDefaultAsync(o =>
+            o.Id == _tenantService.OrganizationId);
     try
     {
       await _emailService.SendAgentInviteEmailAsync(
           agent.Email, agent.FullName,
-          org?.Name ?? "Your Company", tempPassword);
+          org?.Name ?? "Company", tempPassword);
     }
     catch { }
-
-    return Ok(new { message = "Agent invited successfully", tempPassword, agentId = agent.Id });
+    return Ok(new
+    {
+      message = "Agent invited successfully",
+      tempPassword = tempPassword,
+      agentId = agent.Id
+    });
   }
 
   [HttpPut("{id}")]

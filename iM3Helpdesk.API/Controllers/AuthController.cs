@@ -253,7 +253,7 @@ public class AuthController : ControllerBase
     });
   }
 
-  [HttpPost("verify-email")]
+  [HttpGet("verify-email")]
   public async Task<IActionResult> VerifyEmail([FromQuery] string token)
   {
     var user = await _context.Users
@@ -261,13 +261,13 @@ public class AuthController : ControllerBase
         .FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
 
     if (user == null)
-      return BadRequest(new { message = "Invalid or expired verification token" });
+      return BadRequest(new { message = "Invalid or expired token" });
 
     user.IsEmailVerified = true;
     user.EmailVerificationToken = null;
     await _context.SaveChangesAsync();
 
-    return Ok(new { message = "Email verified! You can now login." });
+    return Ok(new { message = "Email verified successfully" });
   }
 
   [HttpPost("forgot-password")]

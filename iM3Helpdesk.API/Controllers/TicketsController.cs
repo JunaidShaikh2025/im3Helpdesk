@@ -100,6 +100,7 @@ public class TicketsController : ControllerBase
     var ticket = await _context.Tickets
         .Include(t => t.CreatedBy)
         .Include(t => t.AssignedTo)
+        .Include(t => t.AgentGroup)
         .Include(t => t.Comments)
             .ThenInclude(c => c.User)
         .FirstOrDefaultAsync(t => t.Id == id);
@@ -107,6 +108,8 @@ public class TicketsController : ControllerBase
     if (ticket == null)
       return NotFound(new { message = "Ticket not found" });
 
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
     var roleClaim = User.FindFirst(
         "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
     )?.Value ?? User.FindFirst("role")?.Value;
@@ -115,41 +118,89 @@ public class TicketsController : ControllerBase
         || roleClaim == "CompanyAdmin"
         || roleClaim == "SuperAdmin";
 
+    var attachments = await _context.TicketAttachments
+        .Include(a => a.UploadedBy)
+        .Where(a => a.TicketId == id)
+        .OrderByDescending(a => a.UploadedAt)
+        .Select(a => new
+        {
+          a.Id,
+          a.FileName,
+          a.FileUrl,
+          a.ContentType,
+          a.FileSize,
+          a.UploadedAt,
+          a.CommentId,
+          UploadedBy = a.UploadedBy!.FullName,
+          IsImage = a.ContentType.StartsWith("image/"),
+          SizeFormatted = FormatSize(a.FileSize)
+        })
+        .ToListAsync();
+
     return Ok(new
     {
       ticket.Id,
       ticket.Title,
-      ticket.Description,
+      Description = ticket.Description, // raw HTML
       ticket.Category,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
+      ticket.TicketType,
+      ticket.Tags,
       ticket.CreatedAt,
       ticket.UpdatedAt,
       ticket.ResolvedAt,
-      createdBy = new
+      ticket.SlaDeadline,
+      ticket.SlaStatus,
+      ticket.IsSlaBreached,
+      ticket.TimeSpentMinutes,
+      ticket.AgentGroupId,
+      CreatedBy = ticket.CreatedBy == null ? null : new
       {
-        ticket.CreatedBy!.FullName,
-        ticket.CreatedBy.Email
+        ticket.CreatedBy.Id,
+        ticket.CreatedBy.FullName,
+        ticket.CreatedBy.Email,
+        ticket.CreatedBy.PhotoUrl
       },
-      assignedTo = ticket.AssignedTo == null ? null : new
+      AssignedTo = ticket.AssignedTo == null ? null : new
       {
+        ticket.AssignedTo.Id,
         ticket.AssignedTo.FullName,
-        ticket.AssignedTo.Email
+        ticket.AssignedTo.Email,
+        ticket.AssignedTo.PhotoUrl
       },
-      comments = ticket.Comments
-          .Where(c => isAgent || !c.IsInternal)
-          .OrderBy(c => c.CreatedAt)
-          .Select(c => new
-          {
-            c.Id,
-            c.Comment,
-            c.CreatedAt,
-            c.IsInternal,
-            user = new { c.User!.FullName },
-            isAgent = c.User.Role == UserRole.Agent
-                  || c.User.Role == UserRole.CompanyAdmin
-          }).ToList()
+      AgentGroup = ticket.AgentGroup == null ? null : new
+      {
+        ticket.AgentGroup.Id,
+        ticket.AgentGroup.Name
+      },
+      Comments = ticket.Comments
+            .Where(c => isAgent || !c.IsInternal)
+            .OrderBy(c => c.CreatedAt)
+            .Select(c => new
+            {
+              c.Id,
+              c.Comment,
+              c.CreatedAt,
+              c.IsInternal,
+              User = new
+              {
+                c.User!.FullName,
+                c.User.Email,
+                c.User.PhotoUrl
+              },
+              IsAgent = c.User.Role == UserRole.Agent
+                    || c.User.Role == UserRole.CompanyAdmin
+            }).ToList(),
+      Attachments = attachments
     });
+  }
+
+  private static string FormatSize(long bytes)
+  {
+    if (bytes < 1024) return $"{bytes} B";
+    if (bytes < 1048576) return $"{bytes / 1024} KB";
+    return $"{bytes / 1048576} MB";
   }
 
   [HttpPost]
@@ -158,9 +209,8 @@ public class TicketsController : ControllerBase
     var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
 
-    if (string.IsNullOrEmpty(userIdClaim) ||
-        !Guid.TryParse(userIdClaim, out var userId))
-      return Unauthorized(new { message = "Invalid user" });
+    if (!Guid.TryParse(userIdClaim, out var userId))
+      return Unauthorized();
 
     var ticket = new Ticket
     {
@@ -169,33 +219,28 @@ public class TicketsController : ControllerBase
       Category = dto.Category,
       Priority = Enum.Parse<TicketPriority>(dto.Priority),
       TicketType = dto.TicketType,
+      Status = TicketStatus.Open,
       OrganizationId = _tenantService.OrganizationId!.Value,
       CreatedByUserId = userId,
-      Status = TicketStatus.Open,
-      SlaDeadline = _slaService.CalculateSlaDeadline(
-            Enum.Parse<TicketPriority>(dto.Priority), DateTime.UtcNow),
-      SlaStatus = "OnTrack"
+      Tags = dto.Tags ?? string.Empty,
+      AssignedToUserId = dto.AssignedToUserId == Guid.Empty
+            ? null : dto.AssignedToUserId,
+      AgentGroupId = dto.AgentGroupId == Guid.Empty
+            ? null : dto.AgentGroupId
     };
+
+    ticket.SlaDeadline = _slaService.CalculateSlaDeadline(
+        ticket.Priority, ticket.CreatedAt);
+    ticket.SlaStatus = "OnTrack";
 
     _context.Tickets.Add(ticket);
     await _context.SaveChangesAsync();
 
-    // Added SLA tracking after the initial creation
-    ticket.SlaDeadline = _slaService.CalculateSlaDeadline(ticket.Priority, ticket.CreatedAt);
-    ticket.SlaStatus = "OnTrack";
-    await _context.SaveChangesAsync();
-
-    await _notificationService.CreateActivityAsync(
-        userId, _tenantService.OrganizationId!.Value,
-        "Created", $"New ticket: {ticket.Title}",
-        "Ticket", ticket.Id);
-
-    // Get Creator Info
+    // Notifications
     var creator = await _context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Id == userId);
 
-    // Notify all agents in org
     var agents = await _context.Users
         .IgnoreQueryFilters()
         .Where(u => u.OrganizationId == _tenantService.OrganizationId
@@ -214,7 +259,6 @@ public class TicketsController : ControllerBase
           ticket.Id);
     }
 
-    // Email to creator
     if (creator != null)
     {
       try
@@ -224,9 +268,14 @@ public class TicketsController : ControllerBase
             ticket.Title, ticket.Id.ToString());
       }
       catch { }
+
+      await _notificationService.CreateActivityAsync(
+          userId, _tenantService.OrganizationId!.Value,
+          "Created", $"Ticket: {ticket.Title}",
+          "Ticket", ticket.Id);
     }
 
-    return Ok(new { message = "Ticket created successfully", id = ticket.Id });
+    return Ok(new { message = "Ticket created", id = ticket.Id });
   }
 
   [HttpPut("{id}/status")]
