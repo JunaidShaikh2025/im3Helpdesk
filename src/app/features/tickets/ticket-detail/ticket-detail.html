@@ -6,46 +6,120 @@
 
         <div class="ticket-body-card">
           <div class="email-header">
-            <div class="sender-avatar">
-              {{ (ticket.createdBy?.fullName || 'U').charAt(0).toUpperCase() }}
+            <div class="sender-avatar"
+              [style.background]="getAvatarColor(ticket.createdBy?.fullName)">
+              <img *ngIf="ticket.createdBy?.photoUrl"
+                [src]="'https://localhost:7071' + ticket.createdBy.photoUrl"
+                [alt]="ticket.createdBy?.fullName"
+                style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+              <span *ngIf="!ticket.createdBy?.photoUrl">
+                {{ ticket.createdBy?.fullName?.charAt(0)?.toUpperCase() }}
+              </span>
             </div>
             <div class="sender-info">
-              <span class="sender-name">{{ ticket.createdBy?.fullName }}</span>
-              <span class="sender-email">{{ ticket.createdBy?.email }}</span>
+              <span class="sender-name">
+                {{ ticket.createdBy?.fullName }}
+              </span>
+              <span class="sender-email">
+                {{ ticket.createdBy?.email }}
+              </span>
               <span class="reported-via">reported via helpdesk</span>
             </div>
-            <span class="ticket-time-right">
-              <span class="type-badge">{{ ticket.ticketType || 'Support' }}</span>
+            <div class="header-tags">
+              <span class="type-badge" *ngIf="ticket.ticketType">
+                {{ ticket.ticketType }}
+              </span>
               <span class="cat-badge">{{ ticket.category }}</span>
+            </div>
+            <span class="ticket-time-right">
               {{ ticket.createdAt | date:'EEE dd MMM yyyy, hh:mm a' }}
             </span>
           </div>
-          <div class="ticket-description">
-            {{ ticket.description }}
+          <!-- HTML description rendered properly -->
+          <div class="ticket-description" [innerHTML]="ticket.description">
+          </div>
+          <!-- Ticket Attachments -->
+          <div class="ticket-attachments" *ngIf="ticket.attachments?.length > 0">
+            <div class="att-sep">
+              <span>Attachments ({{ ticket.attachments.length }})</span>
+            </div>
+            <div class="att-grid">
+              <div class="att-item" *ngFor="let a of ticket.attachments">
+                <div class="att-thumb" *ngIf="a.isImage">
+                  <img [src]="'https://localhost:7071' + a.fileUrl" [alt]="a.fileName"/>
+                </div>
+                <div class="att-thumb file-thumb" *ngIf="!a.isImage">
+                  <span>{{ getFileIcon(a.contentType) }}</span>
+                </div>
+                <div class="att-info">
+                  <div class="att-name">{{ a.fileName }}</div>
+                  <div class="att-size">{{ a.sizeFormatted }}</div>
+                </div>
+                <a class="att-dl"
+                  [href]="'https://localhost:7071' + a.fileUrl"
+                  target="_blank"
+                  title="Download">↓</a>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="conversation-section">
           <div class="comment-thread">
 
-            <div *ngFor="let c of ticket.comments" class="comment-item" [class.internal-note]="c.isInternal"
-              [class.agent-comment]="c.isAgent" [class.customer-comment]="!c.isAgent">
+            <div *ngFor="let c of ticket.comments"
+              class="comment-item"
+              [class.internal-note]="c.isInternal"
+              [class.agent-comment]="c.isAgent"
+              [class.customer-comment]="!c.isAgent">
 
-              <div class="comment-avatar" [class.agent-avatar]="c.isAgent" [class.customer-avatar]="!c.isAgent">
-                {{ (c.user?.fullName || 'U').charAt(0).toUpperCase() }}
+              <div class="comment-avatar"
+                [class.agent-avatar]="c.isAgent"
+                [class.customer-avatar]="!c.isAgent"
+                [style.background]="c.user?.photoUrl ? 'transparent' : getAvatarColor(c.user?.fullName)">
+                <img *ngIf="c.user?.photoUrl"
+                  [src]="'https://localhost:7071' + c.user.photoUrl"
+                  [alt]="c.user.fullName"
+                  style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+                <span *ngIf="!c.user?.photoUrl">
+                  {{ c.user?.fullName?.charAt(0)?.toUpperCase() }}
+                </span>
               </div>
 
               <div class="comment-bubble">
                 <div class="comment-meta">
                   <span class="commenter-name">{{ c.user?.fullName }}</span>
-                  <span class="internal-tag" *ngIf="c.isInternal">
-                    Note
-                  </span>
+                  <span class="agent-tag" *ngIf="c.isAgent">Agent</span>
+                  <span class="internal-tag" *ngIf="c.isInternal">Internal Note</span>
                   <span class="commenter-time">
                     {{ c.createdAt | date:'dd MMM yyyy, hh:mm a' }}
                   </span>
                 </div>
-                <p class="comment-body">{{ c.comment }}</p>
+                <!-- Render HTML comment -->
+                <div class="comment-body" [innerHTML]="c.comment"></div>
+                <!-- Comment Attachments -->
+                <div class="comment-attachments"
+                  *ngIf="(getCommentAttachments(c.id) || []).length > 0">
+                  <div class="att-grid">
+                    <div class="att-item"
+                      *ngFor="let a of getCommentAttachments(c.id)">
+                      <div class="att-thumb" *ngIf="a.isImage">
+                        <img
+                          [src]="'https://localhost:7071' + a.fileUrl"
+                          [alt]="a.fileName"/>
+                      </div>
+                      <div class="att-thumb file-thumb" *ngIf="!a.isImage">
+                        {{ getFileIcon(a.contentType) }}
+                      </div>
+                      <div class="att-info">
+                        <div class="att-name">{{ a.fileName }}</div>
+                        <div class="att-size">{{ a.sizeFormatted }}</div>
+                      </div>
+                      <a [href]="'https://localhost:7071' + a.fileUrl"
+                        target="_blank" class="att-dl">↓</a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -66,8 +140,8 @@
                   (click)="activeTab = 'note'; isInternalNote = true" *ngIf="isAgent">
                   📋 Note
                 </button>
-                <button class="comp-tab" [class.active-fwd]="activeTab === 'forward'" (click)="activeTab = 'forward'"
-                  *ngIf="isAgent">
+                <button class="comp-tab" [class.active-fwd]="activeTab === 'forward'"
+                  (click)="activeTab = 'forward'" *ngIf="isAgent">
                   → Forward
                 </button>
               </div>
@@ -110,7 +184,8 @@
                 </div>
               </div>
 
-              <div class="editor-area" contenteditable="true" #replyEditor (input)="onReplyInput($event)"
+              <div class="editor-area" contenteditable="true" #replyEditor
+                (input)="onReplyInput($event)"
                 data-placeholder="Type your reply here...">
               </div>
 
@@ -126,13 +201,13 @@
               <div class="notify-row">
                 <span class="notify-label">Notify to:</span>
                 <div class="notify-agents">
-                  <input class="notify-input" [(ngModel)]="notifyTo" placeholder="@mention agent..."
+                  <input class="notify-input" [(ngModel)]="notifyTo"
+                    placeholder="@mention agent..."
                     (input)="searchAgentsForMention($event)" />
                   <div class="mention-dropdown" *ngIf="mentionResults.length > 0">
-                    <div class="mention-item" *ngFor="let a of mentionResults" (click)="addMention(a)">
-                      <div class="mention-av">
-                        {{ a.fullName?.charAt(0) }}
-                      </div>
+                    <div class="mention-item" *ngFor="let a of mentionResults"
+                      (click)="addMention(a)">
+                      <div class="mention-av">{{ a.fullName?.charAt(0) }}</div>
                       {{ a.fullName }}
                     </div>
                   </div>
@@ -145,7 +220,8 @@
                 </div>
               </div>
 
-              <div class="editor-area note-editor" contenteditable="true" #noteEditor (input)="onNoteInput($event)"
+              <div class="editor-area note-editor" contenteditable="true" #noteEditor
+                (input)="onNoteInput($event)"
                 data-placeholder="Add a note, @mention...">
               </div>
 
@@ -155,10 +231,12 @@
               <div class="email-meta">
                 <div class="email-meta-row">
                   <span class="em-label">To :</span>
-                  <input class="meta-input flex-1" [(ngModel)]="forwardEmail" placeholder="Forward to email..." />
+                  <input class="meta-input flex-1" [(ngModel)]="forwardEmail"
+                    placeholder="Forward to email..." />
                 </div>
               </div>
-              <div class="editor-area" contenteditable="true" #forwardEditor (input)="onForwardInput($event)"
+              <div class="editor-area" contenteditable="true" #forwardEditor
+                (input)="onForwardInput($event)"
                 data-placeholder="Add message...">
               </div>
             </div>
@@ -225,19 +303,22 @@
                   <button class="discard" (click)="clearComposer()">🗑</button>
 
                   <div class="send-wrap" *ngIf="activeTab === 'reply'">
-                    <button class="send-main" (click)="sendReply()" [disabled]="!quickReplyText?.trim() || updating">
+                    <button class="send-main" (click)="sendReply()"
+                      [disabled]="!quickReplyText.trim() || updating">
                       ✉ Send
                     </button>
                     <button class="send-drop">▾</button>
                   </div>
 
-                  <button class="note-send-btn" *ngIf="activeTab === 'note'" (click)="sendNote()"
-                    [disabled]="!noteText?.trim() || updating">
+                  <button class="note-send-btn" *ngIf="activeTab === 'note'"
+                    (click)="sendNote()"
+                    [disabled]="!noteText.trim() || updating">
                     📋 Add note
                   </button>
 
                   <div class="send-wrap" *ngIf="activeTab === 'forward'">
-                    <button class="send-main" (click)="doForward()" [disabled]="!forwardEmail?.trim()">
+                    <button class="send-main" (click)="doForward()"
+                      [disabled]="!forwardEmail.trim()">
                       → Forward
                     </button>
                   </div>
@@ -261,7 +342,8 @@
                   <span class="att-name">{{ a.fileName }}</span>
                   <span class="att-size">{{ a.sizeFormatted }}</span>
                 </div>
-                <a [href]="'https://localhost:7071' + a.fileUrl" target="_blank" class="att-download">↓</a>
+                <a [href]="'https://localhost:7071' + a.fileUrl"
+                  target="_blank" class="att-download">↓</a>
               </div>
             </div>
           </div>
@@ -276,7 +358,8 @@
             <span class="status-indicator" [class]="'si-' + ticket.status?.toLowerCase()">
             </span>
             <span class="status-text">{{ ticket.status }}</span>
-            <span class="sla-badge" *ngIf="ticket.slaDeadline" [class]="'sla-' + (ticket.slaStatus || 'notrack')">
+            <span class="sla-badge" *ngIf="ticket.slaDeadline"
+              [class]="'sla-' + (ticket.slaStatus || 'notrack')">
               {{ ticket.slaStatus }}
             </span>
           </div>
@@ -304,14 +387,16 @@
               </span>
             </div>
             <div class="tag-add-row">
-              <input class="tag-input-sm" [(ngModel)]="newTag" placeholder="Add tag..." (keyup.enter)="addTag()" />
+              <input class="tag-input-sm" [(ngModel)]="newTag"
+                placeholder="Add tag..." (keyup.enter)="addTag()" />
               <button class="tag-add-btn" (click)="addTag()">+</button>
             </div>
           </div>
 
           <div class="prop-group">
             <label class="prop-label">Type <span class="required">*</span></label>
-            <select class="prop-select" [(ngModel)]="ticket.ticketType" (change)="updateTicketType()">
+            <select class="prop-select" [(ngModel)]="ticket.ticketType"
+              (change)="updateTicketType()">
               <option value="">--</option>
               <option value="Support">Support</option>
               <option value="Bug">Bug</option>
@@ -323,16 +408,16 @@
 
           <div class="prop-group">
             <label class="prop-label">Status <span class="required">*</span></label>
-            <select class="prop-select" [(ngModel)]="ticket.status" (change)="updateStatus(ticket.status)">
-              <option *ngFor="let s of statuses" [value]="s">
-                {{ s }}
-              </option>
+            <select class="prop-select" [(ngModel)]="ticket.status"
+              (change)="updateStatus(ticket.status)">
+              <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
             </select>
           </div>
 
           <div class="prop-group">
             <label class="prop-label">Priority</label>
-            <select class="prop-select" [(ngModel)]="ticket.priority" (change)="updatePriority(ticket.priority)">
+            <select class="prop-select" [(ngModel)]="ticket.priority"
+              (change)="updatePriority(ticket.priority)">
               <option value="Low">Low</option>
               <option value="Medium">Medium</option>
               <option value="High">High</option>
@@ -355,11 +440,10 @@
 
           <div class="prop-group" *ngIf="isAgent">
             <label class="prop-label">Group</label>
-            <select class="prop-select" [(ngModel)]="selectedGroupId" (change)="assignGroup()">
+            <select class="prop-select" [(ngModel)]="selectedGroupId"
+              (change)="assignGroup()">
               <option value="">No Group</option>
-              <option *ngFor="let g of groups" [value]="g.id">
-                {{ g.name }}
-              </option>
+              <option *ngFor="let g of groups" [value]="g.id">{{ g.name }}</option>
             </select>
           </div>
 
@@ -375,8 +459,10 @@
             ({{ (ticket.timeSpentMinutes / 60).toFixed(1) }} hrs)
           </div>
           <div class="time-log-row">
-            <input class="time-input" type="number" [(ngModel)]="timeToLog" min="1" placeholder="Minutes" />
-            <button class="assign-btn" (click)="logTime()" [disabled]="!timeToLog || updating">
+            <input class="time-input" type="number" [(ngModel)]="timeToLog"
+              min="1" placeholder="Minutes" />
+            <button class="assign-btn" (click)="logTime()"
+              [disabled]="!timeToLog || updating">
               Log
             </button>
           </div>

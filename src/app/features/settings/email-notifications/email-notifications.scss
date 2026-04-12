@@ -1,0 +1,116 @@
+.notif-page {
+  padding: 0;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 20px;
+  }
+}
+
+.notif-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
+  margin-bottom: 0;
+}
+
+.notif-tab {
+  padding: 12px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary, #666);
+  margin-bottom: -1px;
+
+  &:hover { color: var(--text-primary, #333); }
+
+  &.active {
+    color: var(--accent, #2563eb);
+    border-bottom-color: var(--accent, #2563eb);
+    font-weight: 500;
+  }
+}
+
+.notif-list {
+  border: 1px solid var(--border-color, #e8e8e8);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.notif-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  background: var(--bg-card, white);
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--hover-bg, #fafafa); }
+}
+
+.notif-toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--border-color, #d0d0d0);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+
+  &.on {
+    background: var(--accent, #2563eb);
+  }
+}
+
+.toggle-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+
+  .on & { transform: translateX(18px); }
+}
+
+.notif-label {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-secondary, #666);
+
+  &.active-label {
+    color: var(--accent, #2563eb);
+    font-weight: 500;
+  }
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted, #999);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 8px;
+
+  &:hover { color: var(--accent, #2563eb); }
+}
+
+.save-btn {
+  padding: 10px 24px;
+  background: var(--accent, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}

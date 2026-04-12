@@ -1,118 +1,134 @@
 <app-layout>
-  <div class="page-content">
-<div class="page-container">
-  <div class="settings-container">
+  <div class="settings-layout">
 
-    <!-- Theme Selection -->
-    <mat-card class="settings-card">
-      <mat-card-content>
-        <h3>Themes</h3>
-        <mat-divider></mat-divider>
-        <div class="themes-grid">
-          <div class="theme-option"
-            *ngFor="let theme of themes"
-            [class.active]="currentTheme === theme.id"
-            (click)="applyTheme(theme.id)">
-            <div class="theme-preview"
-              [style.background]="theme.color">
-              <span class="theme-check" *ngIf="currentTheme === theme.id">
-                ✓
-              </span>
+    <!-- Left: Tab Menu -->
+    <div class="settings-menu">
+      <div class="menu-title">Settings</div>
+      <button class="menu-item"
+        *ngFor="let tab of tabs"
+        [class.active]="activeTab === tab.id"
+        (click)="activeTab = tab.id">
+        <span class="menu-icon">{{ tab.icon }}</span>
+        <span>{{ tab.label }}</span>
+      </button>
+    </div>
+
+    <!-- Right: Content -->
+    <div class="settings-content">
+
+      <!-- Ticket Templates Tab -->
+      <div *ngIf="activeTab === 'templates'">
+        <app-ticket-templates [embedded]="true"></app-ticket-templates>
+      </div>
+
+      <!-- Reports Tab -->
+      <div *ngIf="activeTab === 'reports'">
+        <app-reports-page [embedded]="true"></app-reports-page>
+      </div>
+
+      <!-- Settings Tab -->
+      <div *ngIf="activeTab === 'settings'" class="settings-pane">
+        <h2>Appearance & Preferences</h2>
+
+        <div class="setting-section">
+          <h3>Themes</h3>
+          <div class="themes-grid">
+            <div class="theme-option"
+              *ngFor="let t of themes"
+              [class.active]="currentTheme === t.id"
+              (click)="applyTheme(t.id)">
+              <div class="theme-swatch"
+                [style.background]="t.color">
+                <span *ngIf="currentTheme === t.id"
+                  class="check">✓</span>
+              </div>
+              <span class="theme-label">{{ t.name }}</span>
             </div>
-            <span class="theme-name">{{ theme.name }}</span>
           </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Notifications -->
-    <mat-card class="settings-card">
-      <mat-card-content>
-        <h3>Notifications</h3>
-        <mat-divider></mat-divider>
-
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-title">Email Notifications</span>
-            <span class="setting-desc">
-              Receive email alerts for updates
-            </span>
-          </div>
-          <mat-slide-toggle [(ngModel)]="emailNotifications"
-            color="primary">
-          </mat-slide-toggle>
         </div>
 
         <mat-divider></mat-divider>
 
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-title">Browser Notifications</span>
-            <span class="setting-desc">Show push notifications</span>
+        <div class="setting-section">
+          <h3>Notifications</h3>
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-title">Email Notifications</div>
+              <div class="toggle-desc">
+                Receive email for ticket updates
+              </div>
+            </div>
+            <mat-slide-toggle
+              [(ngModel)]="emailNotifications"
+              color="primary">
+            </mat-slide-toggle>
           </div>
-          <mat-slide-toggle [(ngModel)]="browserNotifications"
-            color="primary">
-          </mat-slide-toggle>
-        </div>
-
-        <div class="save-row">
-          <button mat-raised-button color="primary"
-            (click)="saveNotificationSettings()">
-            Save
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-title">Browser Notifications</div>
+              <div class="toggle-desc">
+                Show desktop push notifications
+              </div>
+            </div>
+            <mat-slide-toggle
+              [(ngModel)]="browserNotifications"
+              color="primary">
+            </mat-slide-toggle>
+          </div>
+          <button class="save-btn"
+            (click)="saveNotifications()">
+            Save Notifications
           </button>
         </div>
-      </mat-card-content>
-    </mat-card>
 
-    <!-- Language -->
-    <mat-card class="settings-card">
-      <mat-card-content>
-        <h3>Language</h3>
         <mat-divider></mat-divider>
 
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-title">Display Language</span>
-          </div>
-          <mat-form-field appearance="outline" class="lang-select">
-            <mat-select [(ngModel)]="language">
-              <mat-option *ngFor="let l of languages" [value]="l.code">
+        <div class="setting-section">
+          <h3>Language</h3>
+          <div class="toggle-row">
+            <div class="toggle-title">Display Language</div>
+            <select [(ngModel)]="language" class="lang-sel">
+              <option *ngFor="let l of languages"
+                [value]="l.code">
                 {{ l.name }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-        <div class="save-row">
-          <button mat-raised-button color="primary"
+              </option>
+            </select>
+          </div>
+          <button class="save-btn"
             (click)="saveLanguage()">
             Save Language
           </button>
         </div>
-      </mat-card-content>
-    </mat-card>
 
-    <!-- Danger Zone -->
-    <mat-card class="settings-card danger-card">
-      <mat-card-content>
-        <h3>Danger Zone</h3>
         <mat-divider></mat-divider>
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-title">Clear Local Data</span>
-            <span class="setting-desc">
-              Clear cached data and logout
-            </span>
-          </div>
-          <button mat-raised-button color="warn"
-            (click)="clearAllData()">
-            Clear & Logout
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
 
+        <div class="setting-section danger">
+          <h3>Danger Zone</h3>
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-title">Clear Local Data</div>
+              <div class="toggle-desc">
+                Clear cache and logout
+              </div>
+            </div>
+            <button class="danger-btn"
+              (click)="clearData()">
+              Clear & Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications Tab -->
+      <div *ngIf="activeTab === 'notifications'">
+        <app-email-notifications></app-email-notifications>
+      </div>
+
+      <!-- Audit Log Tab -->
+      <div *ngIf="activeTab === 'audit'">
+        <app-audit-log [embedded]="true"></app-audit-log>
+      </div>
+
+    </div>
   </div>
-</div>
- </div>
 </app-layout>

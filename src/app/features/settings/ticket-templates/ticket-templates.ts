@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
 import { TicketTemplateService } from '../../../services/ticket-template';
 import { AuthService } from '../../../services/auth.service';
+
 
 @Component({
   selector: 'app-ticket-templates',
@@ -34,11 +35,11 @@ export class TicketTemplatesComponent implements OnInit {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
+  @Input() embedded = false;
   templates: any[] = [];
   loading = true;
   saving = false;
   showForm = false;
-
   displayedColumns = ['name', 'title', 'category', 'priority', 'actions'];
 
   categories = ['General', 'Technical', 'Billing', 'Sales', 'Network'];

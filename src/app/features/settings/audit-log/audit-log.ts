@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,6 +31,8 @@ export class AuditLogComponent implements OnInit {
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
+
+  @Input() embedded = false;
 
   logs: any[] = [];
   loading = true;

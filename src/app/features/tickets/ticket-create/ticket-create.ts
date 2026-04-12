@@ -175,48 +175,55 @@ export class TicketCreateComponent implements OnInit {
   }
 
   async onSubmit() {
-    if (this.form.invalid) return;
-    this.loading = true;
-    this.cdr.detectChanges();
+  if (this.form.invalid) return;
+  this.loading = true;
+  this.cdr.detectChanges();
 
-    try {
-      const payload = {
-        ...this.form.value,
-        tags: this.tags.join(','),
-        assignedToUserId: this.form.value.assignedToUserId || null,
-        agentGroupId: this.form.value.agentGroupId || null
-      };
+  try {
+    const formVal = this.form.value;
+    const payload = {
+      title: formVal.title,
+      description: formVal.description,
+      category: formVal.category,
+      priority: formVal.priority,
+      ticketType: formVal.ticketType,
+      tags: this.tags.length > 0 ? this.tags.join(',') : '',
+      assignedToUserId: formVal.assignedToUserId
+        ? formVal.assignedToUserId : null,
+      agentGroupId: formVal.agentGroupId
+        ? formVal.agentGroupId : null
+    };
 
-      const res: any = await this.ticketService.create(payload).toPromise();
-      const ticketId = res?.id;
+    const res: any = await this.ticketService
+      .create(payload).toPromise();
+    const ticketId = res?.id;
 
-      // Upload attachments
-      if (ticketId && this.pendingFiles.length > 0) {
-        for (const file of this.pendingFiles) {
-          const formData = new FormData();
-          formData.append('file', file);
-          const headers = new HttpHeaders({
-            'Authorization': `Bearer ${this.authService.getToken()}`
-          });
-          await this.http.post(
-            `https://localhost:7071/api/Attachments/upload/${ticketId}`,
-            formData, { headers }
-          ).toPromise();
-        }
+    if (ticketId && this.pendingFiles.length > 0) {
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${this.authService.getToken()}`
+      });
+      for (const file of this.pendingFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await this.http.post(
+          `https://localhost:7071/api/Attachments/upload/${ticketId}`,
+          formData, { headers }
+        ).toPromise();
       }
-
-      this.loading = false;
-      this.cdr.detectChanges();
-      Promise.resolve().then(() =>
-        this.toastr.success('Ticket created successfully!')
-      );
-      this.router.navigate(['/tickets', ticketId]);
-    } catch (err: any) {
-      this.loading = false;
-      this.cdr.detectChanges();
-      Promise.resolve().then(() =>
-        this.toastr.error(err?.error?.message || 'Failed to create ticket')
-      );
     }
+
+    this.loading = false;
+    this.cdr.detectChanges();
+    Promise.resolve().then(() =>
+      this.toastr.success('Ticket created!')
+    );
+    this.router.navigate(['/tickets', ticketId]);
+  } catch (err: any) {
+    this.loading = false;
+    this.cdr.detectChanges();
+    Promise.resolve().then(() =>
+      this.toastr.error(err?.error?.message || 'Failed')
+    );
   }
+}
 }

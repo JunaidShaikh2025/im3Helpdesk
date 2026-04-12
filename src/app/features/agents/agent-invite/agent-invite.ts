@@ -31,6 +31,8 @@ export class AgentInviteComponent {
   groups: any[] = [];
   selectedGroups: string[] = [];
   photoPreview = '';
+  inviteSuccess = false;
+  invitedTempPassword = '';
 
   roles = [
     { value: 'Account Administrator', label: 'Account Administrator' },
@@ -83,32 +85,37 @@ export class AgentInviteComponent {
     reader.readAsDataURL(file);
   }
 
+    copyPassword() {
+      navigator.clipboard.writeText(this.invitedTempPassword);
+      Promise.resolve().then(() =>
+        this.toastr.success('Password copied!')
+      );
+    }
+
   onSubmit() {
-    if (this.form.invalid) return;
-    this.loading = true;
-    this.cdr.detectChanges();
+  if (this.form.invalid) return;
+  this.loading = true;
+  this.cdr.detectChanges();
 
-    const payload = {
-      ...this.form.value,
-      groupIds: this.selectedGroups
-    };
+  const payload = {
+    ...this.form.value,
+    groupIds: this.selectedGroups
+  };
 
-    this.agentService.invite(payload).subscribe({
-      next: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.success('Agent invited successfully!')
-        );
-        this.router.navigate(['/agents']);
-      },
-      error: (err: any) => {
-        this.loading = false;
-        this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.error(err.error?.message || 'Failed to invite agent')
-        );
-      }
-    });
-  }
+  this.agentService.invite(payload).subscribe({
+    next: (res: any) => {
+      this.loading = false;
+      this.invitedTempPassword = res.tempPassword;
+      this.inviteSuccess = true;
+      this.cdr.detectChanges();
+    },
+    error: (err: any) => {
+      this.loading = false;
+      this.cdr.detectChanges();
+      Promise.resolve().then(() =>
+        this.toastr.error(err.error?.message || 'Failed')
+      );
+    }
+  });
+}
 }

@@ -61,7 +61,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
 
   statuses = ['Open', 'InProgress', 'Resolved', 'Closed'];
 
-  // Properties for Editor and Attachments
   activeTab = 'reply';
   expandReply = false;
   showPrevThread = false;
@@ -75,7 +74,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   pendingFiles: File[] = [];
   attachments: any[] = [];
 
-  // Newly Added Properties
   notifyTo = '';
   notifyAgents: any[] = [];
   mentionResults: any[] = [];
@@ -100,17 +98,16 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       const role = payload[
         'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
       ] || payload.role || '';
-      this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin']
-        .includes(role);
+      this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin'].includes(role);
     }
 
     Promise.resolve().then(() => {
       this.loadTicket();
-      this.loadAttachments(); 
+      this.loadAttachments();
       this.loadAgents();
       this.loadGroups();
-      this.loadOrgInfo();          // Added from new methods
-      this.loadAgentSignature();   // Added from new methods
+      this.loadOrgInfo();
+      this.loadAgentSignature();
       this.startPolling();
     });
   }
@@ -183,15 +180,12 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   }
 
   updateStatus(status: string) {
-    this.ticketService.updateStatus(this.ticketId, status)
-      .subscribe({
-        next: () => {
-          Promise.resolve().then(() =>
-            this.toastr.success('Status updated!')
-          );
-          this.loadTicket();
-        }
-      });
+    this.ticketService.updateStatus(this.ticketId, status).subscribe({
+      next: () => {
+        Promise.resolve().then(() => this.toastr.success('Status updated!'));
+        this.loadTicket();
+      }
+    });
   }
 
   updatePriority(priority: string) {
@@ -203,9 +197,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       { priority }, { headers }
     ).subscribe({
       next: () => {
-        Promise.resolve().then(() =>
-          this.toastr.success('Priority updated!')
-        );
+        Promise.resolve().then(() => this.toastr.success('Priority updated!'));
       }
     });
   }
@@ -219,9 +211,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       { ticketType: this.ticket.ticketType }, { headers }
     ).subscribe({
       next: () => {
-        Promise.resolve().then(() =>
-          this.toastr.success('Type updated!')
-        );
+        Promise.resolve().then(() => this.toastr.success('Type updated!'));
       }
     });
   }
@@ -229,9 +219,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   updateAllProps() {
     if (this.selectedAgentId) this.assignTicket();
     if (this.selectedGroupId) this.assignGroup();
-    Promise.resolve().then(() =>
-      this.toastr.success('Updated!')
-    );
+    Promise.resolve().then(() => this.toastr.success('Updated!'));
   }
 
   assignTicket() {
@@ -240,9 +228,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: () => {
         this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.success('Assigned!')
-        );
+        Promise.resolve().then(() => this.toastr.success('Assigned!'));
         this.loadTicket();
       }
     });
@@ -257,9 +243,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       { agentGroupId: this.selectedGroupId || null }, { headers }
     ).subscribe({
       next: () => {
-        Promise.resolve().then(() =>
-          this.toastr.success('Group assigned!')
-        );
+        Promise.resolve().then(() => this.toastr.success('Group assigned!'));
       }
     });
   }
@@ -280,9 +264,21 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
 
   getTagsArray(): string[] {
     if (!this.ticket?.tags) return [];
-    return this.ticket.tags
-      .split(',')
-      .filter((t: string) => t.trim());
+    return this.ticket.tags.split(',').filter((t: string) => t.trim());
+  }
+
+  getCommentAttachments(commentId: string): any[] {
+    if (!this.attachments) return [];
+    return this.attachments.filter(a => a.commentId === commentId);
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = [
+      '#ef4444', '#f97316', '#eab308', '#22c55e',
+      '#3b82f6', '#8b5cf6', '#ec4899'
+    ];
+    const idx = (name?.charCodeAt(0) || 0) % colors.length;
+    return colors[idx];
   }
 
   logTime() {
@@ -290,25 +286,22 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     this.updating = true;
     this.cdr.detectChanges();
 
-    this.ticketService.logTime(this.ticketId, this.timeToLog)
-      .subscribe({
-        next: (res: any) => {
-          this.timeToLog = null;
-          this.updating = false;
-          this.cdr.detectChanges();
-          Promise.resolve().then(() =>
-            this.toastr.success(`${res.totalMinutes} min logged`)
-          );
-          this.loadTicket();
-        },
-        error: () => {
-          this.updating = false;
-          this.cdr.detectChanges();
-        }
-      });
+    this.ticketService.logTime(this.ticketId, this.timeToLog).subscribe({
+      next: (res: any) => {
+        this.timeToLog = null;
+        this.updating = false;
+        this.cdr.detectChanges();
+        Promise.resolve().then(() =>
+          this.toastr.success(`${res.totalMinutes} min logged`)
+        );
+        this.loadTicket();
+      },
+      error: () => {
+        this.updating = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
-
-  // --- Editor & Attachment Logic ---
 
   onReplyInput(event: any) {
     this.quickReplyText = event.target.innerText || '';
@@ -353,8 +346,8 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
 
   formatFileSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes/1024).toFixed(1)} KB`;
-    return `${(bytes/(1024*1024)).toFixed(1)} MB`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   clearReply() {
@@ -374,7 +367,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       for (const file of this.pendingFiles) {
         await this.uploadFile(file);
       }
-
       await this.ticketService.addComment(
         this.ticketId, this.quickReplyText, false
       ).toPromise();
@@ -400,7 +392,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       for (const file of this.pendingFiles) {
         await this.uploadFile(file);
       }
-
       await this.ticketService.addComment(
         this.ticketId, this.noteText, true
       ).toPromise();
@@ -445,8 +436,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   logout() {
     this.authService.logout();
   }
-
-  // --- Newly Added Methods ---
 
   loadOrgInfo() {
     const headers = new HttpHeaders({
@@ -507,8 +496,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   }
 
   removeNotify(agent: any) {
-    this.notifyAgents = this.notifyAgents
-      .filter(a => a.id !== agent.id);
+    this.notifyAgents = this.notifyAgents.filter(a => a.id !== agent.id);
     this.cdr.detectChanges();
   }
 

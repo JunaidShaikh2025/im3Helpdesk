@@ -1,0 +1,41 @@
+<div class="notif-page">
+  <h2>Email Notifications</h2>
+
+  <div class="notif-tabs">
+    <button class="notif-tab"
+      [class.active]="activeTab === 'agent'"
+      (click)="activeTab = 'agent'">
+      Agent Notifications
+    </button>
+    <button class="notif-tab"
+      [class.active]="activeTab === 'requester'"
+      (click)="activeTab = 'requester'">
+      Requester Notifications
+    </button>
+    <button class="notif-tab"
+      [class.active]="activeTab === 'cc'"
+      (click)="activeTab = 'cc'">
+      CC Notifications
+    </button>
+  </div>
+
+  <div class="notif-list">
+    <div class="notif-row"
+      *ngFor="let n of activeNotifications">
+      <div class="notif-toggle"
+        [class.on]="n.enabled"
+        (click)="n.enabled = !n.enabled">
+        <div class="toggle-circle"></div>
+      </div>
+      <span class="notif-label"
+        [class.active-label]="n.enabled">
+        {{ n.label }}
+      </span>
+      <button class="edit-btn">Edit</button>
+    </div>
+  </div>
+
+  <button class="save-btn" (click)="saveSettings()">
+    Save Settings
+  </button>
+</div>

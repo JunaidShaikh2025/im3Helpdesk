@@ -138,6 +138,37 @@
           </button>
         </div>
 
+        <!-- Success State -->
+        <div class="success-state" *ngIf="inviteSuccess">
+          <div class="success-icon">✓</div>
+          <h3>Agent Invited Successfully!</h3>
+          <p>An invitation email has been sent to the agent.</p>
+
+          <div class="temp-password-box">
+            <label>Temporary Password:</label>
+            <div class="temp-pass">
+              <code>{{ invitedTempPassword }}</code>
+              <button (click)="copyPassword()" class="copy-btn">
+                Copy
+              </button>
+            </div>
+            <p class="temp-hint">
+              Share this with the agent. They should change it after first login.
+            </p>
+          </div>
+
+          <div class="success-actions">
+            <button class="submit-btn"
+              (click)="router.navigate(['/agents'])">
+              Go to Agents
+            </button>
+            <button class="cancel-btn"
+              (click)="inviteSuccess = false; form.reset({ role: 'Agent' })">
+              Invite Another
+            </button>
+          </div>
+        </div>
+
       </form>
     </div>
   </div>

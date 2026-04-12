@@ -261,3 +261,83 @@
 
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
+.success-state {
+  text-align: center;
+  padding: 32px;
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    background: #22c55e;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 28px;
+    margin: 0 auto 16px;
+  }
+
+  h3 { font-size: 20px; margin-bottom: 8px;
+    color: var(--text-primary, #333); }
+  p { color: var(--text-muted, #999); }
+}
+
+.temp-password-box {
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 20px 0;
+  text-align: left;
+
+  label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted, #999);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+}
+
+.temp-pass {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  code {
+    flex: 1;
+    background: var(--bg-card, white);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--accent, #2563eb);
+  }
+}
+
+.copy-btn {
+  background: var(--accent, #2563eb);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.temp-hint {
+  font-size: 12px !important;
+  color: var(--text-muted, #bbb) !important;
+  margin-top: 8px !important;
+}
+
+.success-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
