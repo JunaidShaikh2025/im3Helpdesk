@@ -24,6 +24,11 @@ public class EmailService : IEmailService
     _config = config;
   }
 
+  public bool IsNotificationEnabled(string orgId, string notifKey)
+  {
+    return true; // Default all enabled
+  }
+
   public async Task SendVerificationEmailAsync(string toEmail,
       string fullName, string token)
   {

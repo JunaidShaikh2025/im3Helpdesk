@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.AspNetCore.RateLimiting; 
+using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +38,8 @@ builder.Services.AddSingleton<IEmailQueueService, EmailQueueService>();
 builder.Services.AddHostedService<EmailWorker>();
 builder.Services.AddSingleton<IEscalationService, EscalationService>();
 builder.Services.AddHostedService<EscalationWorker>();
+builder.Services.AddSignalR();
+builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
@@ -73,19 +75,23 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-      options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-      options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+      options.JsonSerializerOptions.ReferenceHandler =
+          System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+      options.JsonSerializerOptions.PropertyNamingPolicy =
+          System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
 if (app.Environment.IsDevelopment())
 {
   app.UseSwagger();
   app.UseSwaggerUI();
 }
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseCors("AllowAllLocal");
 app.UseRateLimiter();
@@ -93,5 +99,5 @@ app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.UseStaticFiles();
+app.MapHub<iM3Helpdesk.API.Hubs.ChatHub>("/hubs/chat");
 app.Run();

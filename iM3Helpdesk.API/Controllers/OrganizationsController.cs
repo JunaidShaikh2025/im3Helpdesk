@@ -57,17 +57,20 @@ public class OrganizationsController : ControllerBase
 
     if (org == null) return NotFound();
 
-    if (!string.IsNullOrEmpty(dto.Name))
-      org.Name = dto.Name;
-
-    if (dto.SupportEmail != null)
-      org.SupportEmail = dto.SupportEmail;
-
-    if (dto.BrandColor != null)
-      org.BrandColor = dto.BrandColor;
-
-    if (dto.LogoUrl != null)
-      org.LogoUrl = dto.LogoUrl;
+    if (dto.Name != null) org.Name = dto.Name;
+    if (dto.SupportEmail != null) org.SupportEmail = dto.SupportEmail;
+    if (dto.BrandColor != null) org.BrandColor = dto.BrandColor;
+    if (dto.LogoUrl != null) org.LogoUrl = dto.LogoUrl;
+    if (dto.SlackWebhookUrl != null)
+      org.SlackWebhookUrl = dto.SlackWebhookUrl;
+    if (dto.TeamsWebhookUrl != null)
+      org.TeamsWebhookUrl = dto.TeamsWebhookUrl;
+    if (dto.WhatsAppNumber != null)
+      org.WhatsAppNumber = dto.WhatsAppNumber;
+    if (dto.TwilioAccountSid != null)
+      org.TwilioAccountSid = dto.TwilioAccountSid;
+    if (dto.TwilioAuthToken != null)
+      org.TwilioAuthToken = dto.TwilioAuthToken;
 
     await _context.SaveChangesAsync();
     return Ok(new { message = "Organization updated" });
@@ -113,4 +116,9 @@ public class UpdateOrgDto
   public string? SupportEmail { get; set; }
   public string? BrandColor { get; set; }
   public string? LogoUrl { get; set; }
+  public string? SlackWebhookUrl { get; set; }
+  public string? TeamsWebhookUrl { get; set; }
+  public string? WhatsAppNumber { get; set; }
+  public string? TwilioAccountSid { get; set; }
+  public string? TwilioAuthToken { get; set; }
 }

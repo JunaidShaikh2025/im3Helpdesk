@@ -31,6 +31,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
     public DbSet<CustomField> CustomFields => Set<CustomField>();
     public DbSet<TicketCustomFieldValue> TicketCustomFieldValues => Set<TicketCustomFieldValue>();
+    public DbSet<TicketViewer> TicketViewers => Set<TicketViewer>();
+    public DbSet<EmailNotificationSetting> EmailNotificationSettings => Set<EmailNotificationSetting>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -225,6 +227,17 @@ public class ApplicationDbContext : DbContext
         e.HasQueryFilter(v =>
             _isSuperAdmin ||
             v.OrganizationId == _currentTenantId);
+      });
+      modelBuilder.Entity<TicketViewer>(e => {
+        e.HasKey(x => x.Id);
+        e.HasIndex(x => new { x.TicketId, x.UserId });
+      });
+      modelBuilder.Entity<EmailNotificationSetting>(e => {
+        e.HasKey(x => x.Id);
+        e.HasIndex(x => new { x.OrganizationId, x.NotifKey });
+        e.HasQueryFilter(s =>
+            _isSuperAdmin ||
+            s.OrganizationId == _currentTenantId);
       });
 
   }

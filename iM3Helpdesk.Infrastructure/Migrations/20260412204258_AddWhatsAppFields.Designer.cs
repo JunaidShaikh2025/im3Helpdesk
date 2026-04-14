@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260412204258_AddWhatsAppFields")]
+    partial class AddWhatsAppFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -148,29 +151,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("CustomFields");
-                });
-
-            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.EmailNotificationSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NotifKey")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId", "NotifKey");
-
-                    b.ToTable("EmailNotificationSettings");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.EmailQueue", b =>
@@ -332,18 +312,12 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("SlackWebhookUrl")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("SupportEmail")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TeamsWebhookUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("TrialEndsAt")
@@ -594,35 +568,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("TicketTemplates");
-                });
-
-            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketViewer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TicketId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ViewedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TicketId", "UserId");
-
-                    b.ToTable("TicketViewers");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.User", b =>

@@ -325,18 +325,16 @@ public class TicketsController : ControllerBase
   }
 
   [HttpPost("{id}/comments")]
-  public async Task<IActionResult> AddComment(Guid id, [FromBody] AddCommentDto dto)
+  public async Task<IActionResult> AddComment(Guid id,
+      [FromBody] AddCommentDto dto)
   {
     var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
-
-    if (string.IsNullOrEmpty(userIdClaim) ||
-        !Guid.TryParse(userIdClaim, out var userId))
-      return Unauthorized(new { message = "Invalid user" });
+    if (!Guid.TryParse(userIdClaim, out var userId))
+      return Unauthorized();
 
     var ticket = await _context.Tickets.FindAsync(id);
-    if (ticket == null)
-      return NotFound(new { message = "Ticket not found" });
+    if (ticket == null) return NotFound();
 
     var comment = new TicketComment
     {
@@ -346,8 +344,13 @@ public class TicketsController : ControllerBase
       OrganizationId = _tenantService.OrganizationId!.Value,
       IsInternal = dto.IsInternal
     };
-
     _context.TicketComments.Add(comment);
+    if (!dto.IsInternal && ticket.Status == TicketStatus.Open)
+    {
+      ticket.Status = TicketStatus.InProgress;
+      ticket.UpdatedAt = DateTime.UtcNow;
+    }
+
     await _context.SaveChangesAsync();
 
     await _notificationService.CreateActivityAsync(
@@ -356,7 +359,11 @@ public class TicketsController : ControllerBase
         $"Comment added on ticket: {ticket.Title}",
         "Ticket", ticket.Id);
 
-    return Ok(new { message = "Comment added" });
+    return Ok(new
+    {
+      message = "Comment added",
+      commentId = comment.Id
+    });
   }
 
   [HttpPut("{id}/assign")]
@@ -646,8 +653,6 @@ public class TicketsController : ControllerBase
     return Ok(new { message = "Tags updated", tags = ticket.Tags });
   }
 
-  // --- UPDATED ENDPOINTS END HERE ---
-
   [HttpPut("{id}/group")]
   public async Task<IActionResult> UpdateGroup(Guid id,
       [FromBody] UpdateGroupDto dto)
@@ -655,10 +660,78 @@ public class TicketsController : ControllerBase
     var ticket = await _context.Tickets.FindAsync(id);
     if (ticket == null) return NotFound();
 
-    ticket.AgentGroupId = dto.AgentGroupId;
+    ticket.AgentGroupId = dto.AgentGroupId == Guid.Empty
+        ? null : dto.AgentGroupId;
     ticket.UpdatedAt = DateTime.UtcNow;
+
     await _context.SaveChangesAsync();
+
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+    if (Guid.TryParse(userIdClaim, out var uid))
+    {
+      await _notificationService.CreateActivityAsync(
+          uid, _tenantService.OrganizationId!.Value,
+          "Updated",
+          $"Group updated on ticket: {ticket.Title}",
+          "Ticket", ticket.Id);
+    }
+
     return Ok(new { message = "Group updated" });
+  }
+
+  [HttpPost("{id}/view")]
+  public async Task<IActionResult> RecordView(Guid id)
+  {
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+    if (!Guid.TryParse(userIdClaim, out var userId))
+      return Ok();
+
+    var user = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Id == userId);
+
+    var existing = await _context.TicketViewers
+        .FirstOrDefaultAsync(v =>
+            v.TicketId == id && v.UserId == userId);
+
+    if (existing != null)
+    {
+      existing.ViewedAt = DateTime.UtcNow;
+    }
+    else
+    {
+      _context.TicketViewers.Add(new TicketViewer
+      {
+        TicketId = id,
+        UserId = userId,
+        UserName = user?.FullName ?? "Unknown",
+        OrganizationId = _tenantService.OrganizationId!.Value,
+        ViewedAt = DateTime.UtcNow
+      });
+    }
+
+    await _context.SaveChangesAsync();
+    return Ok();
+  }
+
+  [HttpGet("{id}/viewers")]
+  public async Task<IActionResult> GetViewers(Guid id)
+  {
+    var viewers = await _context.TicketViewers
+        .Where(v => v.TicketId == id
+            && v.ViewedAt >= DateTime.UtcNow.AddHours(-24))
+        .OrderByDescending(v => v.ViewedAt)
+        .Select(v => new
+        {
+          v.UserId,
+          v.UserName,
+          v.ViewedAt
+        })
+        .ToListAsync();
+
+    return Ok(viewers);
   }
 }
 
