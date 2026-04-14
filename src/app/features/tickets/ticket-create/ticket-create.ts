@@ -43,6 +43,8 @@ export class TicketCreateComponent implements OnInit {
   pendingFiles: File[] = [];
   tagInput = '';
   tags: string[] = [];
+  customFields: any[] = [];
+  customFieldValues: { [key: string]: string } = {};
 
   ticketTypes = [
     'Question', 'Incident', 'Problem', 'Feature Request',
@@ -77,6 +79,7 @@ export class TicketCreateComponent implements OnInit {
     this.loadAgents();
     this.loadGroups();
     this.loadTemplates();
+    this.loadCustomFields();
   }
 
   loadAgents() {
@@ -106,6 +109,21 @@ export class TicketCreateComponent implements OnInit {
     ).subscribe({
       next: (data) => {
         this.templates = data;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadCustomFields() {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+    this.http.get<any[]>(
+      'https://localhost:7071/api/CustomFields', { headers }
+    ).subscribe({
+      next: (data) => {
+        this.customFields = data;
+        data.forEach(f => this.customFieldValues[f.id] = '');
         this.cdr.detectChanges();
       }
     });
@@ -175,55 +193,68 @@ export class TicketCreateComponent implements OnInit {
   }
 
   async onSubmit() {
-  if (this.form.invalid) return;
-  this.loading = true;
-  this.cdr.detectChanges();
+    if (this.form.invalid) return;
+    this.loading = true;
+    this.cdr.detectChanges();
 
-  try {
-    const formVal = this.form.value;
-    const payload = {
-      title: formVal.title,
-      description: formVal.description,
-      category: formVal.category,
-      priority: formVal.priority,
-      ticketType: formVal.ticketType,
-      tags: this.tags.length > 0 ? this.tags.join(',') : '',
-      assignedToUserId: formVal.assignedToUserId
-        ? formVal.assignedToUserId : null,
-      agentGroupId: formVal.agentGroupId
-        ? formVal.agentGroupId : null
-    };
+    try {
+      const formVal = this.form.value;
+      const payload = {
+        title: formVal.title,
+        description: this.descEditorRef?.nativeElement?.innerHTML
+          || formVal.description,
+        category: formVal.category,
+        priority: formVal.priority,
+        ticketType: formVal.ticketType,
+        tags: this.tags.length > 0 ? this.tags.join(',') : '',
+        assignedToUserId: formVal.assignedToUserId || null,
+        agentGroupId: formVal.agentGroupId || null
+      };
 
-    const res: any = await this.ticketService
-      .create(payload).toPromise();
-    const ticketId = res?.id;
+      const res: any = await this.ticketService
+        .create(payload).toPromise();
+      const ticketId = res?.id;
 
-    if (ticketId && this.pendingFiles.length > 0) {
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${this.authService.getToken()}`
-      });
-      for (const file of this.pendingFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        await this.http.post(
-          `https://localhost:7071/api/Attachments/upload/${ticketId}`,
-          formData, { headers }
-        ).toPromise();
+      if (ticketId) {
+        const headers = new HttpHeaders({
+          'Authorization': `Bearer ${this.authService.getToken()}`
+        });
+
+        // Save custom field values
+        const cfValues = Object.entries(this.customFieldValues)
+          .filter(([, v]) => v)
+          .map(([k, v]) => ({
+            customFieldId: k,
+            value: v
+          }));
+        if (cfValues.length > 0) {
+          await this.http.post(
+            `https://localhost:7071/api/CustomFields/ticket/${ticketId}/values`,
+            cfValues, { headers }
+          ).toPromise();
+        }
+
+        // Upload attachments
+        for (const file of this.pendingFiles) {
+          const formData = new FormData();
+          formData.append('file', file);
+          await this.http.post(
+            `https://localhost:7071/api/Attachments/upload/${ticketId}`,
+            formData, { headers }
+          ).toPromise();
+        }
       }
-    }
 
-    this.loading = false;
-    this.cdr.detectChanges();
-    Promise.resolve().then(() =>
-      this.toastr.success('Ticket created!')
-    );
-    this.router.navigate(['/tickets', ticketId]);
-  } catch (err: any) {
-    this.loading = false;
-    this.cdr.detectChanges();
-    Promise.resolve().then(() =>
-      this.toastr.error(err?.error?.message || 'Failed')
-    );
+      this.loading = false;
+      this.cdr.detectChanges();
+      Promise.resolve().then(() => this.toastr.success('Ticket created!'));
+      this.router.navigate(['/tickets', ticketId]);
+    } catch (err: any) {
+      this.loading = false;
+      this.cdr.detectChanges();
+      Promise.resolve().then(() =>
+        this.toastr.error(err?.error?.message || 'Failed')
+      );
+    }
   }
-}
 }

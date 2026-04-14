@@ -1,88 +1,84 @@
-.notif-page {
-  padding: 0;
+.en-page { padding: 0; }
 
-  h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-primary, #333);
-    margin-bottom: 20px;
-  }
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin-bottom: 4px;
 }
 
-.notif-tabs {
+p {
+  font-size: 13px;
+  color: var(--text-muted, #999);
+  margin-bottom: 20px;
+}
+
+.en-tabs {
   display: flex;
-  border-bottom: 1px solid var(--border-color, #e8e8e8);
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 8px;
+  padding: 4px;
   margin-bottom: 0;
+  width: fit-content;
 }
 
-.notif-tab {
-  padding: 12px 18px;
+.en-tab {
+  padding: 8px 16px;
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary, #666);
-  margin-bottom: -1px;
-
-  &:hover { color: var(--text-primary, #333); }
+  border-radius: 6px;
+  transition: all 0.15s;
 
   &.active {
-    color: var(--accent, #2563eb);
-    border-bottom-color: var(--accent, #2563eb);
+    background: var(--bg-card, white);
+    color: var(--text-primary, #333);
     font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 }
 
-.notif-list {
+.en-list {
   border: 1px solid var(--border-color, #e8e8e8);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 10px 10px 10px;
   overflow: hidden;
-  margin-bottom: 16px;
+  background: var(--bg-card, white);
+  margin-top: -1px;
 }
 
-.notif-row {
+.en-row {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-color, #f0f0f0);
-  background: var(--bg-card, white);
+  transition: background 0.1s;
 
   &:last-child { border-bottom: none; }
   &:hover { background: var(--hover-bg, #fafafa); }
 }
 
-.notif-toggle {
-  width: 40px;
-  height: 22px;
-  border-radius: 11px;
-  background: var(--border-color, #d0d0d0);
-  cursor: pointer;
-  position: relative;
-  transition: background 0.2s;
+.en-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color, #e0e0e0);
+  background: var(--bg-secondary, #f5f5f5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  transition: all 0.2s;
 
-  &.on {
-    background: var(--accent, #2563eb);
+  &.checked {
+    background: var(--accent-light, #dbeafe);
+    border-color: var(--accent, #2563eb);
   }
 }
 
-.toggle-circle {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-
-  .on & { transform: translateX(18px); }
-}
-
-.notif-label {
+.en-label {
   flex: 1;
   font-size: 14px;
   color: var(--text-secondary, #666);
@@ -93,24 +89,52 @@
   }
 }
 
-.edit-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted, #999);
-  cursor: pointer;
-  font-size: 13px;
-  padding: 4px 8px;
-
-  &:hover { color: var(--accent, #2563eb); }
+.en-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.save-btn {
-  padding: 10px 24px;
-  background: var(--accent, #2563eb);
-  color: white;
-  border: none;
-  border-radius: 8px;
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+
+  input { opacity: 0; width: 0; height: 0; }
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-color, #d0d0d0);
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  transition: background 0.2s;
+
+  &::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  input:checked + & { background: var(--accent, #2563eb); }
+  input:checked + &::before { transform: translateX(20px); }
+}
+
+.en-edit {
+  background: none;
+  border: none;
+  color: var(--text-muted, #bbb);
+  cursor: pointer;
+  font-size: 13px;
+
+  &:hover { color: var(--accent, #2563eb); }
 }

@@ -32,7 +32,7 @@
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
             <!-- Subject -->
-      <div class="form-group">
+            <div class="form-group">
               <label>Subject <span class="req">*</span></label>
               <input type="text" formControlName="title"
                 placeholder="Brief description of the issue..."
@@ -194,6 +194,56 @@
                   <button type="button"
                     (click)="addTag()">Add</button>
                 </div>
+              </div>
+            </div>
+
+            <!-- Custom Fields -->
+            <div *ngIf="customFields.length > 0">
+              <div class="cf-divider"></div>
+              <div class="prop-field" *ngFor="let f of customFields">
+                <label>
+                  {{ f.label }}
+                  <span class="req" *ngIf="f.isRequired">*</span>
+                </label>
+                <input *ngIf="f.fieldType === 'text'"
+                  type="text"
+                  [(ngModel)]="customFieldValues[f.id]"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-select"
+                  [placeholder]="f.label"/>
+                <input *ngIf="f.fieldType === 'number'"
+                  type="number"
+                  [(ngModel)]="customFieldValues[f.id]"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-select"/>
+                <input *ngIf="f.fieldType === 'date'"
+                  type="date"
+                  [(ngModel)]="customFieldValues[f.id]"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-select"/>
+                <textarea *ngIf="f.fieldType === 'textarea'"
+                  [(ngModel)]="customFieldValues[f.id]"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-select"
+                  rows="3">
+                </textarea>
+                <select *ngIf="f.fieldType === 'dropdown'"
+                  [(ngModel)]="customFieldValues[f.id]"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-select">
+                  <option value="">Select...</option>
+                  <option *ngFor="let opt of f.options?.split(',')"
+                    [value]="opt.trim()">
+                    {{ opt.trim() }}
+                  </option>
+                </select>
+                <label *ngIf="f.fieldType === 'checkbox'"
+                  class="check-label">
+                  <input type="checkbox"
+                    [(ngModel)]="customFieldValues[f.id]"
+                    [ngModelOptions]="{standalone: true}"/>
+                  {{ f.label }}
+                </label>
               </div>
             </div>
 

@@ -1,103 +1,137 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatCardModule } from '@angular/material/card';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { ProfileService } from '../../../services/profile';
 import { AuthService } from '../../../services/auth.service';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, RouterModule,
-    MatButtonModule, MatFormFieldModule, MatInputModule,
-    MatToolbarModule, MatCardModule, MatTabsModule,
-    MatProgressSpinnerModule, MatDividerModule
+    CommonModule, ReactiveFormsModule,
+    FormsModule, RouterModule, LayoutComponent
   ],
   templateUrl: './profile-page.html',
   styleUrls: ['./profile-page.scss']
 })
 export class ProfilePageComponent implements OnInit {
-  private profileService = inject(ProfileService);
+  private http = inject(HttpClient);
   private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
-  profile: any = null;
-  loading = true;
+  loading = false;
   savingProfile = false;
   savingPassword = false;
   savingOrg = false;
 
+  photoUrl = '';
+  photoPreview = '';
+
   profileForm: FormGroup = this.fb.group({
-    fullName: ['', [Validators.required, Validators.minLength(3)]],
+    fullName: ['', Validators.required],
+    email: ['', [Validators.required, Validators.email]],
     phoneNumber: ['']
   });
 
   passwordForm: FormGroup = this.fb.group({
     currentPassword: ['', Validators.required],
     newPassword: ['', [Validators.required, Validators.minLength(6)]],
-    confirmNewPassword: ['', Validators.required]
-  }, { validators: this.passwordMatchValidator });
-
-  orgForm: FormGroup = this.fb.group({
-    name: ['', Validators.required],
-    supportEmail: ['', Validators.email],
-    logoUrl: [''],
-    brandColor: ['#1976d2']
+    confirmPassword: ['', Validators.required]
   });
 
-  passwordMatchValidator(control: AbstractControl) {
-    const np = control.get('newPassword')?.value;
-    const cp = control.get('confirmNewPassword')?.value;
-    if (np !== cp) {
-      control.get('confirmNewPassword')?.setErrors({ mismatch: true });
-      return { mismatch: true };
-    }
-    return null;
-  }
+  orgForm: FormGroup = this.fb.group({
+    name: [''],
+    supportEmail: [''],
+    brandColor: ['#2563eb'],
+    logoUrl: ['']
+  });
 
   ngOnInit() {
     this.loadProfile();
+    this.loadOrg();
+  }
+
+  private getHeaders() {
+    return new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
   }
 
   loadProfile() {
-    this.loading = true;
-    this.profileService.getProfile().subscribe({
-      next: (data: any) => {
-        this.profile = data;
-        this.profileForm.patchValue({
-          fullName: data.fullName,
-          phoneNumber: data.phoneNumber || ''
-        });
-        if (data.organization) {
-          this.orgForm.patchValue({
-            name: data.organization.name || '',
-            supportEmail: data.organization.supportEmail || '',
-            logoUrl: data.organization.logoUrl || '',
-            brandColor: data.organization.brandColor || '#1976d2'
-          });
+    this.http.get<any>(
+      'https://localhost:7071/api/Profile',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.profileForm.patchValue(data);
+        if (data.photoUrl) {
+          this.photoUrl = 'https://localhost:7071' + data.photoUrl;
+          localStorage.setItem('im3_photo', data.photoUrl);
         }
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loading = false;
-        this.toastr.error('Failed to load profile');
         this.cdr.detectChanges();
       }
     });
+  }
+
+  loadOrg() {
+    this.http.get<any>(
+      'https://localhost:7071/api/Organizations/current',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.orgForm.patchValue(data);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onPhotoSelect(event: any) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.photoPreview = e.target.result;
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    this.http.post<any>(
+      'https://localhost:7071/api/Profile/upload-photo',
+      formData, { headers: this.getHeaders() }
+    ).subscribe({
+      next: (res) => {
+        this.photoUrl = 'https://localhost:7071' + res.photoUrl;
+        this.photoPreview = '';
+        localStorage.setItem('im3_photo', res.photoUrl);
+        this.cdr.detectChanges();
+        Promise.resolve().then(() =>
+          this.toastr.success('Photo updated!')
+        );
+      },
+      error: () =>
+        Promise.resolve().then(() =>
+          this.toastr.error('Photo upload failed')
+        )
+    });
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = [
+      '#ef4444','#f97316','#eab308',
+      '#22c55e','#3b82f6','#8b5cf6','#ec4899'
+    ];
+    const idx = (name?.charCodeAt(0) || 0) % colors.length;
+    return colors[idx];
   }
 
   saveProfile() {
@@ -105,55 +139,85 @@ export class ProfilePageComponent implements OnInit {
     this.savingProfile = true;
     this.cdr.detectChanges();
 
-    this.profileService.updateProfile(this.profileForm.value).subscribe({
+    this.http.put(
+      'https://localhost:7071/api/Profile',
+      this.profileForm.value,
+      { headers: this.getHeaders() }
+    ).subscribe({
       next: () => {
         this.savingProfile = false;
         this.cdr.detectChanges();
-        this.toastr.success('Profile updated!');
+        Promise.resolve().then(() =>
+          this.toastr.success('Profile updated!')
+        );
       },
-      error: (err: any) => {
+      error: () => {
         this.savingProfile = false;
         this.cdr.detectChanges();
-        this.toastr.error(err.error?.message || 'Failed to update profile');
+        Promise.resolve().then(() =>
+          this.toastr.error('Failed to update profile')
+        );
       }
     });
   }
 
-  changePassword() {
+  savePassword() {
+    const { newPassword, confirmPassword } = this.passwordForm.value;
+    if (newPassword !== confirmPassword) {
+      Promise.resolve().then(() =>
+        this.toastr.error('Passwords do not match')
+      );
+      return;
+    }
     if (this.passwordForm.invalid) return;
     this.savingPassword = true;
     this.cdr.detectChanges();
 
-    this.profileService.changePassword(this.passwordForm.value).subscribe({
+    this.http.put(
+      'https://localhost:7071/api/Profile/change-password',
+      this.passwordForm.value,
+      { headers: this.getHeaders() }
+    ).subscribe({
       next: () => {
         this.savingPassword = false;
         this.passwordForm.reset();
         this.cdr.detectChanges();
-        this.toastr.success('Password changed successfully!');
+        Promise.resolve().then(() =>
+          this.toastr.success('Password changed!')
+        );
       },
-      error: (err: any) => {
+      error: (err) => {
         this.savingPassword = false;
         this.cdr.detectChanges();
-        this.toastr.error(err.error?.message || 'Failed to change password');
+        Promise.resolve().then(() =>
+          this.toastr.error(err.error?.message || 'Failed')
+        );
       }
     });
   }
 
-  saveOrganization() {
-    if (this.orgForm.invalid) return;
+  saveOrg() {
     this.savingOrg = true;
     this.cdr.detectChanges();
 
-    this.profileService.updateOrganization(this.orgForm.value).subscribe({
+    this.http.put(
+      'https://localhost:7071/api/Organizations/current',
+      this.orgForm.value,
+      { headers: this.getHeaders() }
+    ).subscribe({
       next: () => {
         this.savingOrg = false;
         this.cdr.detectChanges();
-        this.toastr.success('Organization updated!');
+        Promise.resolve().then(() =>
+          this.toastr.success('Organization updated!')
+        );
       },
-      error: (err: any) => {
+      error: () => {
         this.savingOrg = false;
         this.cdr.detectChanges();
-        this.toastr.error(err.error?.message || 'Failed to update organization');
+        Promise.resolve().then(() =>
+          this.toastr.error('Failed')
+        );
       }
     });
   }

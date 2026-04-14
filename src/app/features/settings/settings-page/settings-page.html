@@ -1,138 +1,143 @@
 <app-layout>
-  <div class="settings-layout">
-
-    <!-- Left: Tab Menu -->
-    <div class="settings-menu">
-      <div class="menu-title">Settings</div>
-      <button class="menu-item"
-        *ngFor="let tab of tabs"
-        [class.active]="activeTab === tab.id"
-        (click)="activeTab = tab.id">
-        <span class="menu-icon">{{ tab.icon }}</span>
-        <span>{{ tab.label }}</span>
-      </button>
+  <div class="settings-wrapper">
+    <div class="settings-header">
+      <h1>Settings</h1>
+      <p>Manage your helpdesk configuration</p>
     </div>
 
-    <!-- Right: Content -->
-    <div class="settings-content">
-
-      <!-- Ticket Templates Tab -->
-      <div *ngIf="activeTab === 'templates'">
-        <app-ticket-templates [embedded]="true"></app-ticket-templates>
+    <div class="settings-body">
+      <!-- Tab Bar -->
+      <div class="settings-tabs">
+        <button class="s-tab"
+          *ngFor="let tab of tabs"
+          [class.active]="activeTab === tab.id"
+          (click)="activeTab = tab.id">
+          {{ tab.icon }} {{ tab.label }}
+        </button>
       </div>
 
-      <!-- Reports Tab -->
-      <div *ngIf="activeTab === 'reports'">
-        <app-reports-page [embedded]="true"></app-reports-page>
-      </div>
+      <!-- Tab Content -->
+      <div class="settings-content">
 
-      <!-- Settings Tab -->
-      <div *ngIf="activeTab === 'settings'" class="settings-pane">
-        <h2>Appearance & Preferences</h2>
-
-        <div class="setting-section">
-          <h3>Themes</h3>
-          <div class="themes-grid">
-            <div class="theme-option"
-              *ngFor="let t of themes"
-              [class.active]="currentTheme === t.id"
-              (click)="applyTheme(t.id)">
-              <div class="theme-swatch"
-                [style.background]="t.color">
-                <span *ngIf="currentTheme === t.id"
-                  class="check">✓</span>
-              </div>
-              <span class="theme-label">{{ t.name }}</span>
-            </div>
-          </div>
+        <div *ngIf="activeTab === 'reports'">
+          <app-reports-page [embedded]="true"></app-reports-page>
         </div>
 
-        <mat-divider></mat-divider>
-
-        <div class="setting-section">
-          <h3>Notifications</h3>
-          <div class="toggle-row">
-            <div>
-              <div class="toggle-title">Email Notifications</div>
-              <div class="toggle-desc">
-                Receive email for ticket updates
-              </div>
-            </div>
-            <mat-slide-toggle
-              [(ngModel)]="emailNotifications"
-              color="primary">
-            </mat-slide-toggle>
-          </div>
-          <div class="toggle-row">
-            <div>
-              <div class="toggle-title">Browser Notifications</div>
-              <div class="toggle-desc">
-                Show desktop push notifications
-              </div>
-            </div>
-            <mat-slide-toggle
-              [(ngModel)]="browserNotifications"
-              color="primary">
-            </mat-slide-toggle>
-          </div>
-          <button class="save-btn"
-            (click)="saveNotifications()">
-            Save Notifications
-          </button>
+        <div *ngIf="activeTab === 'templates'">
+          <app-ticket-templates [embedded]="true"></app-ticket-templates>
         </div>
 
-        <mat-divider></mat-divider>
+        <div *ngIf="activeTab === 'settings'" class="settings-pane">
+          <h2>Appearance & Preferences</h2>
+          <p class="pane-desc">Customize your helpdesk experience</p>
 
-        <div class="setting-section">
-          <h3>Language</h3>
-          <div class="toggle-row">
-            <div class="toggle-title">Display Language</div>
-            <select [(ngModel)]="language" class="lang-sel">
-              <option *ngFor="let l of languages"
-                [value]="l.code">
-                {{ l.name }}
-              </option>
-            </select>
-          </div>
-          <button class="save-btn"
-            (click)="saveLanguage()">
-            Save Language
-          </button>
-        </div>
-
-        <mat-divider></mat-divider>
-
-        <div class="setting-section danger">
-          <h3>Danger Zone</h3>
-          <div class="toggle-row">
-            <div>
-              <div class="toggle-title">Clear Local Data</div>
-              <div class="toggle-desc">
-                Clear cache and logout
+          <div class="pane-section">
+            <h3>Themes</h3>
+            <div class="themes-grid">
+              <div class="theme-card"
+                *ngFor="let t of themes"
+                [class.active]="currentTheme === t.id"
+                (click)="applyTheme(t.id)">
+                <div class="theme-preview"
+                  [style.background]="t.color">
+                  <span class="theme-check" *ngIf="currentTheme === t.id">
+                    ✓
+                  </span>
+                </div>
+                <span class="theme-name">{{ t.name }}</span>
               </div>
             </div>
-            <button class="danger-btn"
-              (click)="clearData()">
-              Clear & Logout
+          </div>
+
+          <div class="pane-divider"></div>
+
+          <div class="pane-section">
+            <h3>Notifications</h3>
+            <div class="toggle-item">
+              <div class="toggle-left">
+                <div class="toggle-title">Email Notifications</div>
+                <div class="toggle-desc">
+                  Receive email for ticket updates
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox"
+                  [(ngModel)]="emailNotifications"/>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-item">
+              <div class="toggle-left">
+                <div class="toggle-title">Browser Notifications</div>
+                <div class="toggle-desc">
+                  Show desktop push notifications
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox"
+                  [(ngModel)]="browserNotifications"/>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <button class="pane-save-btn"
+              (click)="saveNotifications()">
+              Save Notifications
             </button>
           </div>
+
+          <div class="pane-divider"></div>
+
+          <div class="pane-section">
+            <h3>Language</h3>
+            <div class="toggle-item">
+              <div class="toggle-title">Display Language</div>
+              <select [(ngModel)]="language" class="lang-select">
+                <option *ngFor="let l of languages"
+                  [value]="l.code">{{ l.name }}</option>
+              </select>
+            </div>
+            <button class="pane-save-btn" (click)="saveLanguage()">
+              Save Language
+            </button>
+          </div>
+
+          <div class="pane-divider"></div>
+
+          <div class="pane-section danger-section">
+            <h3>Danger Zone</h3>
+            <div class="toggle-item">
+              <div>
+                <div class="toggle-title">Clear Local Data</div>
+                <div class="toggle-desc">Clear cache and logout</div>
+              </div>
+              <button class="danger-btn" (click)="clearData()">
+                Clear & Logout
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Notifications Tab -->
-      <div *ngIf="activeTab === 'notifications'">
-        <app-email-notifications></app-email-notifications>
-      </div>
+        <div *ngIf="activeTab === 'notifications'">
+          <app-email-notifications></app-email-notifications>
+        </div>
 
-      <!-- Audit Log Tab -->
-      <div *ngIf="activeTab === 'audit'">
-        <app-audit-log [embedded]="true"></app-audit-log>
-      </div>
-      
-      <div *ngIf="activeTab === 'custom-fields'">
-        <app-custom-fields></app-custom-fields>
-      </div>
+        <div *ngIf="activeTab === 'audit'">
+          <app-audit-log [embedded]="true"></app-audit-log>
+        </div>
 
+        <div *ngIf="activeTab === 'custom-fields'">
+          <app-custom-fields></app-custom-fields>
+        </div>
+
+        <div *ngIf="activeTab === 'integrations'">
+          <app-integrations></app-integrations>
+        </div>
+
+        <div *ngIf="activeTab === 'whatsapp'">
+          <app-whatsapp-settings></app-whatsapp-settings>
+        </div>
+
+      </div>
     </div>
   </div>
 </app-layout>

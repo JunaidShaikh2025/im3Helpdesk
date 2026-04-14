@@ -26,6 +26,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   userEmail = '';
   userRole = '';
   userInitials = '';
+  userPhotoUrl = ''; // Added photo URL variable
   unreadCount = 0;
   showNotifDropdown = false;
   notifications: any[] = [];
@@ -41,9 +42,19 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.userRole = payload[
         'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
       ] || payload.role || 'User';
+      
       this.userInitials = this.userName.split(' ')
         .map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
     }
+
+    // 1. Check localStorage for cached photo
+    const savedPhoto = localStorage.getItem('im3_photo');
+    if (savedPhoto) {
+      this.userPhotoUrl = 'https://localhost:7071' + savedPhoto;
+    }
+
+    // 2. Load latest photo and unread counts
+    this.loadUserPhoto();
     this.loadUnreadCount();
 
     interval(30000)
@@ -59,6 +70,21 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private getHeaders() {
     return new HttpHeaders({
       'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+  }
+
+  loadUserPhoto() {
+    this.http.get<any>(
+      'https://localhost:7071/api/Profile',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        if (data.photoUrl) {
+          this.userPhotoUrl = 'https://localhost:7071' + data.photoUrl;
+          localStorage.setItem('im3_photo', data.photoUrl);
+          this.cdr.detectChanges();
+        }
+      }
     });
   }
 
@@ -93,7 +119,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   goToNotification(n: any) {
     this.showNotifDropdown = false;
-    // Mark read
     this.http.put(
       `https://localhost:7071/api/Notifications/${n.id}/read`,
       {}, { headers: this.getHeaders() }
@@ -120,11 +145,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   isAdmin(): boolean {
-    return this.userRole === 'CompanyAdmin'
-      || this.userRole === 'SuperAdmin';
+    return this.userRole === 'CompanyAdmin' || this.userRole === 'SuperAdmin';
   }
 
   logout() {
+    localStorage.removeItem('im3_photo'); // Cleanup photo on logout
     this.authService.logout();
   }
 }

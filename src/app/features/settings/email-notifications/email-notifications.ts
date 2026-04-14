@@ -98,12 +98,30 @@ export class EmailNotificationsComponent implements OnInit {
       ...this.requesterNotifications,
       ...this.ccNotifications
     ];
+
+    // Save to localStorage
     const settings: any = {};
     all.forEach(n => settings[n.key] = n.enabled);
     localStorage.setItem('im3_notif_settings', JSON.stringify(settings));
-    Promise.resolve().then(() =>
-      this.toastr.success('Notification settings saved!')
-    );
+
+    // Save to backend
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+    const payload = all.map(n => ({
+      notifKey: n.key,
+      isEnabled: n.enabled
+    }));
+
+    this.http.post(
+      'https://localhost:7071/api/EmailNotificationSettings',
+      payload, { headers }
+    ).subscribe({
+      next: () =>
+        Promise.resolve().then(() =>
+          this.toastr.success('Notification settings saved!')
+        )
+    });
   }
 
   get activeNotifications(): NotifSetting[] {

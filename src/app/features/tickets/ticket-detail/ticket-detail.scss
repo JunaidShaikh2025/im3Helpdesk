@@ -1424,3 +1424,45 @@
   text-decoration: none;
   padding: 4px;
 }
+.viewers-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f7ff;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+}
+
+.viewer-icon { font-size: 14px; }
+
+.viewer-label { color: var(--text-muted, #999); }
+
+.viewer-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.viewer-av {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  margin-left: -6px;
+
+  &:first-child { margin-left: 0; }
+}
+
+.viewer-more {
+  font-size: 11px;
+  color: var(--text-muted, #999);
+  margin-left: 4px;
+}

@@ -13,12 +13,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-
 import { TicketService } from '../../../services/ticket';
 import { AgentService } from '../../../services/agent';
 import { AgentGroupService } from '../../../services/agent-group';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { LiveChatComponent } from '../../chat/live-chat/live-chat';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -26,7 +26,7 @@ import { LayoutComponent } from '../../../shared/layout/layout';
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     MatButtonModule, MatToolbarModule,
-    MatProgressSpinnerModule, MatDividerModule, LayoutComponent
+    MatProgressSpinnerModule, MatDividerModule, LayoutComponent,LiveChatComponent
   ],
   templateUrl: './ticket-detail.html',
   styleUrls: ['./ticket-detail.scss']
@@ -88,6 +88,51 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   commentForm: FormGroup = this.fb.group({
     comment: ['', [Validators.required, Validators.minLength(3)]]
   });
+  viewers: any[] = [];
+
+    loadTicket() {
+      this.ticketService.getById(this.ticketId).subscribe({
+        next: (data: any) => {
+          this.ticket = data;
+          this.loading = false;
+          // Record view
+          this.recordView();
+          this.loadViewers();
+          if (data.assignedTo) {
+            const found = this.agents.find(
+              a => a.fullName === data.assignedTo?.fullName
+            );
+            if (found) this.selectedAgentId = found.id;
+          }
+          this.cdr.detectChanges();
+        }
+      });
+    }
+
+    recordView() {
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${this.authService.getToken()}`
+      });
+      this.http.post(
+        `https://localhost:7071/api/Tickets/${this.ticketId}/view`,
+        {}, { headers }
+      ).subscribe();
+    }
+
+    loadViewers() {
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${this.authService.getToken()}`
+      });
+      this.http.get<any[]>(
+        `https://localhost:7071/api/Tickets/${this.ticketId}/viewers`,
+        { headers }
+      ).subscribe({
+        next: (data) => {
+          this.viewers = data;
+          this.cdr.detectChanges();
+        }
+      });
+    }
 
   ngOnInit() {
     this.ticketId = this.route.snapshot.paramMap.get('id') || '';
@@ -115,26 +160,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  loadTicket() {
-    this.ticketService.getById(this.ticketId).subscribe({
-      next: (data: any) => {
-        this.ticket = data;
-        this.loading = false;
-        if (data.assignedTo) {
-          const found = this.agents.find(
-            a => a.fullName === data.assignedTo?.fullName
-          );
-          if (found) this.selectedAgentId = found.id;
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
-    });
   }
 
   loadAttachments() {
@@ -217,9 +242,47 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   }
 
   updateAllProps() {
-    if (this.selectedAgentId) this.assignTicket();
-    if (this.selectedGroupId) this.assignGroup();
-    Promise.resolve().then(() => this.toastr.success('Updated!'));
+    this.updating = true;
+    this.cdr.detectChanges();
+
+    const updates: Promise<any>[] = [];
+
+    if (this.selectedAgentId !== undefined) {
+      updates.push(this.ticketService.assign(
+        this.ticketId,
+        this.selectedAgentId || null
+      ).toPromise());
+    }
+
+    if (this.selectedGroupId !== undefined) {
+      updates.push(this.assignGroup());
+    }
+
+    Promise.all(updates).then(() => {
+      this.updating = false;
+      this.cdr.detectChanges();
+      Promise.resolve().then(() =>
+        this.toastr.success('Ticket updated successfully!')
+      );
+      this.loadTicket();
+    }).catch(() => {
+      this.updating = false;
+      this.cdr.detectChanges();
+      Promise.resolve().then(() =>
+        this.toastr.error('Update failed')
+      );
+    });
+  }
+
+  assignGroup(): Promise<any> {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+    return this.http.put(
+      `https://localhost:7071/api/Tickets/${this.ticketId}/group`,
+      { agentGroupId: this.selectedGroupId || null },
+      { headers }
+    ).toPromise();
   }
 
   assignTicket() {
@@ -230,20 +293,6 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
         Promise.resolve().then(() => this.toastr.success('Assigned!'));
         this.loadTicket();
-      }
-    });
-  }
-
-  assignGroup() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    this.http.put(
-      `https://localhost:7071/api/Tickets/${this.ticketId}/group`,
-      { agentGroupId: this.selectedGroupId || null }, { headers }
-    ).subscribe({
-      next: () => {
-        Promise.resolve().then(() => this.toastr.success('Group assigned!'));
       }
     });
   }
@@ -358,59 +407,85 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     this.pendingFiles = [];
   }
 
-  async sendReply() {
-    if (!this.quickReplyText.trim()) return;
-    this.updating = true;
-    this.cdr.detectChanges();
+async sendReply() {
+  if (!this.quickReplyText.trim()) return;
+  this.updating = true;
+  this.cdr.detectChanges();
 
-    try {
+  try {
+    const res: any = await this.ticketService.addComment(
+      this.ticketId, this.quickReplyText, false
+    ).toPromise();
+
+    const commentId = res?.commentId;
+
+    // Upload files with commentId
+    if (commentId && this.pendingFiles.length > 0) {
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${this.authService.getToken()}`
+      });
       for (const file of this.pendingFiles) {
-        await this.uploadFile(file);
+        const formData = new FormData();
+        formData.append('file', file);
+        await this.http.post(
+          `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
+          formData, { headers }
+        ).toPromise();
       }
-      await this.ticketService.addComment(
-        this.ticketId, this.quickReplyText, false
-      ).toPromise();
-
-      this.clearReply();
-      this.updating = false;
-      this.cdr.detectChanges();
-      Promise.resolve().then(() => this.toastr.success('Reply sent!'));
-      this.loadTicket();
-      this.loadAttachments();
-    } catch {
-      this.updating = false;
-      this.cdr.detectChanges();
     }
-  }
 
-  async sendNote() {
-    if (!this.noteText.trim()) return;
-    this.updating = true;
+    this.clearComposer();
+    this.updating = false;
     this.cdr.detectChanges();
-
-    try {
-      for (const file of this.pendingFiles) {
-        await this.uploadFile(file);
-      }
-      await this.ticketService.addComment(
-        this.ticketId, this.noteText, true
-      ).toPromise();
-
-      this.noteText = '';
-      if (this.noteEditorRef?.nativeElement) {
-        this.noteEditorRef.nativeElement.innerText = '';
-      }
-      this.pendingFiles = [];
-      this.updating = false;
-      this.cdr.detectChanges();
-      Promise.resolve().then(() => this.toastr.success('Note added!'));
-      this.loadTicket();
-      this.loadAttachments();
-    } catch {
-      this.updating = false;
-      this.cdr.detectChanges();
-    }
+    Promise.resolve().then(() => this.toastr.success('Reply sent!'));
+    this.loadTicket();
+    this.loadAttachments();
+  } catch {
+    this.updating = false;
+    this.cdr.detectChanges();
   }
+}
+
+async sendNote() {
+  if (!this.noteText.trim()) return;
+  this.updating = true;
+  this.cdr.detectChanges();
+
+  try {
+    const res: any = await this.ticketService.addComment(
+      this.ticketId, this.noteText, true
+    ).toPromise();
+
+    const commentId = res?.commentId;
+
+    if (commentId && this.pendingFiles.length > 0) {
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${this.authService.getToken()}`
+      });
+      for (const file of this.pendingFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await this.http.post(
+          `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
+          formData, { headers }
+        ).toPromise();
+      }
+    }
+
+    this.noteText = '';
+    if (this.noteEditorRef?.nativeElement)
+      this.noteEditorRef.nativeElement.innerHTML = '';
+    this.pendingFiles = [];
+    this.updating = false;
+    this.cdr.detectChanges();
+    Promise.resolve().then(() => this.toastr.success('Note added!'));
+    this.loadTicket();
+    this.loadAttachments();
+  } catch {
+    this.updating = false;
+    this.cdr.detectChanges();
+  }
+}
 
   doForward() {
     if (!this.forwardEmail.trim()) return;

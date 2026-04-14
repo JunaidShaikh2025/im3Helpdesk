@@ -1,41 +1,45 @@
-<div class="notif-page">
+<div class="en-page">
   <h2>Email Notifications</h2>
+  <p>Configure when you want to receive email notifications</p>
 
-  <div class="notif-tabs">
-    <button class="notif-tab"
+  <div class="en-tabs">
+    <button class="en-tab"
       [class.active]="activeTab === 'agent'"
       (click)="activeTab = 'agent'">
       Agent Notifications
     </button>
-    <button class="notif-tab"
+    <button class="en-tab"
       [class.active]="activeTab === 'requester'"
       (click)="activeTab = 'requester'">
       Requester Notifications
     </button>
-    <button class="notif-tab"
+    <button class="en-tab"
       [class.active]="activeTab === 'cc'"
       (click)="activeTab = 'cc'">
       CC Notifications
     </button>
   </div>
 
-  <div class="notif-list">
-    <div class="notif-row"
-      *ngFor="let n of activeNotifications">
-      <div class="notif-toggle"
-        [class.on]="n.enabled"
-        (click)="n.enabled = !n.enabled">
-        <div class="toggle-circle"></div>
+  <div class="en-list">
+    <div class="en-row" *ngFor="let n of activeNotifications">
+      <div class="en-check" [class.checked]="n.enabled">
+        <svg *ngIf="n.enabled" viewBox="0 0 16 16" width="12" height="12">
+          <path d="M3 8l4 4 6-6" stroke="white"
+            stroke-width="2" fill="none"
+            stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
-      <span class="notif-label"
-        [class.active-label]="n.enabled">
+      <span class="en-label" [class.active-label]="n.enabled">
         {{ n.label }}
       </span>
-      <button class="edit-btn">Edit</button>
+      <div class="en-right">
+        <label class="toggle-switch">
+          <input type="checkbox" [(ngModel)]="n.enabled"
+            (change)="saveSettings()"/>
+          <span class="toggle-slider"></span>
+        </label>
+        <button class="en-edit">Edit</button>
+      </div>
     </div>
   </div>
-
-  <button class="save-btn" (click)="saveSettings()">
-    Save Settings
-  </button>
 </div>

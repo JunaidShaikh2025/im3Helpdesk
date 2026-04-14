@@ -1,0 +1,71 @@
+<div class="wa-page">
+  <div class="wa-header">
+    <div class="wa-icon">💬</div>
+    <div>
+      <h2>WhatsApp Integration</h2>
+      <p>Create tickets from WhatsApp messages automatically</p>
+    </div>
+  </div>
+
+  <div class="wa-steps">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        Create a Twilio account and get a WhatsApp number from
+        <a href="https://www.twilio.com" target="_blank">twilio.com</a>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        Set this webhook URL in your Twilio WhatsApp sandbox:
+        <div class="webhook-row">
+          <code>{{ webhookUrl }}</code>
+          <button (click)="copyWebhook()" class="copy-btn">Copy</button>
+        </div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        Fill your credentials below and save
+      </div>
+    </div>
+  </div>
+
+  <div class="wa-form">
+    <div class="form-group">
+      <label>Your WhatsApp Number</label>
+      <input type="text" [(ngModel)]="config.whatsAppNumber"
+        placeholder="whatsapp:+14155238886"/>
+      <span class="hint">
+        Include 'whatsapp:' prefix as shown in Twilio
+      </span>
+    </div>
+
+    <div class="form-group">
+      <label>Twilio Account SID</label>
+      <input type="text" [(ngModel)]="config.twilioAccountSid"
+        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
+    </div>
+
+    <div class="form-group">
+      <label>Twilio Auth Token</label>
+      <input type="password" [(ngModel)]="config.twilioAuthToken"
+        placeholder="Your auth token"/>
+    </div>
+
+    <button class="save-btn" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Saving...' : 'Save Settings' }}
+    </button>
+  </div>
+
+  <div class="wa-info">
+    <h4>How it works</h4>
+    <div class="info-item">📱 Customer sends WhatsApp message to your number</div>
+    <div class="info-item">🎫 Ticket auto-created in iM3 Helpdesk</div>
+    <div class="info-item">👤 Customer auto-registered if new</div>
+    <div class="info-item">🏷 Tagged as "whatsapp" automatically</div>
+    <div class="info-item">↩ Agent reply goes back as WhatsApp message</div>
+  </div>
+</div>

@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
   private apiUrl = 'https://localhost:7071/api/Profile';
+  private baseUrl = 'https://localhost:7071';
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
@@ -28,6 +29,21 @@ export class ProfileService {
   }
 
   updateOrganization(data: any): Observable<any> {
-    return this.http.put('https://localhost:7071/api/Organizations/current', data, { headers: this.getHeaders() });
+    return this.http.put(`${this.baseUrl}/api/Organizations/current`, data, { headers: this.getHeaders() });
+  }
+
+  // Naya method photo upload ke liye
+  uploadPhoto(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${this.apiUrl}/upload-photo`, formData, { 
+      headers: this.getHeaders() 
+    });
+  }
+
+  // Helper method full URL banane ke liye
+  getFullPhotoUrl(path: string | null): string {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${this.baseUrl}${path}`;
   }
 }

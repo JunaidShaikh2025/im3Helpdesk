@@ -6,6 +6,23 @@
 
         <div class="ticket-body-card">
           <div class="email-header">
+            <!-- Viewers -->
+              <div class="viewers-row" *ngIf="viewers.length > 0">
+                <span class="viewer-icon">👁</span>
+                <span class="viewer-label">Currently viewing:</span>
+                <div class="viewer-avatars">
+                  <div class="viewer-av"
+                    *ngFor="let v of viewers.slice(0,5)"
+                    [title]="v.userName"
+                    [style.background]="getAvatarColor(v.userName)">
+                    {{ v.userName?.charAt(0)?.toUpperCase() }}
+                  </div>
+                  <span class="viewer-more"
+                    *ngIf="viewers.length > 5">
+                    +{{ viewers.length - 5 }}
+                  </span>
+                </div>
+              </div>
             <div class="sender-avatar"
               [style.background]="getAvatarColor(ticket.createdBy?.fullName)">
               <img *ngIf="ticket.createdBy?.photoUrl"
@@ -466,6 +483,15 @@
               Log
             </button>
           </div>
+        </div>
+
+        <!-- Live Chat -->
+        <div class="live-chat-section" *ngIf="ticketId">
+          <h4>Live Chat</h4>
+          <app-live-chat
+            [ticketId]="ticketId"
+            [isAgent]="isAgent">
+          </app-live-chat>
         </div>
 
       </div>

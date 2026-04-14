@@ -1,38 +1,33 @@
-import { Component, OnInit, ChangeDetectorRef, inject, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { AuthService } from '../../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-audit-log',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, FormsModule,
-    MatButtonModule, MatToolbarModule, MatCardModule,
-    MatProgressSpinnerModule, MatSelectModule, 
-    MatFormFieldModule,LayoutComponent
+    CommonModule, FormsModule, RouterModule,
+    MatProgressSpinnerModule, MatSelectModule,
+    MatFormFieldModule
   ],
   templateUrl: './audit-log.html',
   styleUrls: ['./audit-log.scss']
 })
 export class AuditLogComponent implements OnInit {
+  @Input() embedded = false;
+
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
-
-  @Input() embedded = false;
 
   logs: any[] = [];
   loading = true;
@@ -41,7 +36,6 @@ export class AuditLogComponent implements OnInit {
   total = 0;
   totalPages = 0;
   selectedType = '';
-
   entityTypes = ['', 'Ticket', 'Agent', 'Profile'];
 
   private getHeaders() {
@@ -80,30 +74,21 @@ export class AuditLogComponent implements OnInit {
   }
 
   prevPage() {
-    if (this.page > 1) {
-      this.page--;
-      this.loadLogs();
-    }
+    if (this.page > 1) { this.page--; this.loadLogs(); }
   }
 
   nextPage() {
-    if (this.page < this.totalPages) {
-      this.page++;
-      this.loadLogs();
-    }
+    if (this.page < this.totalPages) { this.page++; this.loadLogs(); }
   }
 
   getActionColor(action: string): string {
     const colors: any = {
-      'Created': '#4caf50', 'StatusChanged': '#ff9800',
-      'Commented': '#2196f3', 'Invited': '#9c27b0',
-      'Updated': '#009688', 'BulkUpdate': '#ff5722',
-      'Assigned': '#3f51b5', 'Deleted': '#f44336'
+      'Created': '#22c55e', 'StatusChanged': '#f59e0b',
+      'Commented': '#8b5cf6', 'Invited': '#3b82f6',
+      'Updated': '#06b6d4', 'BulkUpdate': '#f97316',
+      'Assigned': '#6366f1', 'Deleted': '#ef4444',
+      'TimeLogged': '#14b8a6'
     };
-    return colors[action] || '#666';
-  }
-
-  logout() {
-    this.authService.logout();
+    return colors[action] || '#6b7280';
   }
 }

@@ -11,9 +11,9 @@ import { TicketTemplatesComponent } from '../ticket-templates/ticket-templates';
 import { EmailNotificationsComponent } from '../email-notifications/email-notifications';
 import { AuditLogComponent } from '../audit-log/audit-log';
 import { ReportsPageComponent } from '../../reports/reports-page/reports-page';
+import { WhatsappSettingsComponent } from '../whatsapp-settings/whatsapp-settings';
+import { IntegrationsComponent } from '../integrations/integrations';
 import { CustomFieldsComponent } from '../custom-fields/custom-fields';
-
-// imports array:
 
 
 @Component({
@@ -26,7 +26,8 @@ import { CustomFieldsComponent } from '../custom-fields/custom-fields';
     TicketTemplatesComponent,
     EmailNotificationsComponent,
     AuditLogComponent,
-    ReportsPageComponent,CustomFieldsComponent
+    ReportsPageComponent,CustomFieldsComponent,
+    WhatsappSettingsComponent, IntegrationsComponent
   ],
   templateUrl: './settings-page.html',
   styleUrls: ['./settings-page.scss']
@@ -43,14 +44,17 @@ export class SettingsPageComponent implements OnInit {
   browserNotifications = false;
   language = 'en';
 
-  tabs = [
-    { id: 'templates', label: 'Ticket Templates', icon: '📋' },
-    { id: 'custom-fields', label: 'Custom Fields', icon: '⚙' },
-    { id: 'reports', label: 'Reports', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '🎨' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
-    { id: 'audit', label: 'Audit Log', icon: '🔍' },
-  ];
+tabs = [
+  { id: 'templates', label: 'Ticket Templates', icon: '📋' },
+  { id: 'custom-fields', label: 'Custom Fields', icon: '⚙' },
+  { id: 'integrations', label: 'Integrations', icon: '🔗' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  { id: 'reports', label: 'Reports', icon: '📊' },
+  { id: 'settings', label: 'Settings', icon: '🎨' },
+  { id: 'notifications', label: 'Notifications', icon: '🔔' },
+  { id: 'audit', label: 'Audit Log', icon: '🔍' },
+];
+
 
   themes = [
     { id: 'theme-blue', name: 'Ocean Blue', color: '#2563eb' },

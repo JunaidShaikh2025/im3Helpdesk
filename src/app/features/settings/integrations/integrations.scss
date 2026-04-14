@@ -1,0 +1,154 @@
+.int-page { padding: 0; }
+
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin-bottom: 4px;
+}
+
+.page-desc {
+  font-size: 13px;
+  color: var(--text-muted, #999);
+  margin-bottom: 24px;
+}
+
+.int-card {
+  background: var(--bg-card, white);
+  border: 1px solid var(--border-color, #e8e8e8);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.int-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.int-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+
+  &.slack { background: #4a154b; }
+  &.teams { background: #5b5ea6; }
+  &.wa { background: #25d366; }
+}
+
+.int-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin-bottom: 3px;
+}
+
+.int-header p {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+}
+
+.int-status {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f3f4f6;
+  color: #6b7280;
+
+  &.active {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+}
+
+.int-settings-link {
+  margin-left: auto;
+  color: var(--accent, #2563eb);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.int-steps {
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+
+  p {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+    padding: 3px 0;
+  }
+}
+
+.int-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary, #555);
+  }
+
+  input {
+    padding: 9px 12px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-primary, #333);
+    background: var(--bg-card, white);
+    outline: none;
+
+    &:focus { border-color: var(--accent, #2563eb); }
+  }
+}
+
+.int-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.test-btn {
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.save-btn {
+  padding: 8px 20px;
+  background: #4a154b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+
+  &.teams-save { background: #5b5ea6; }
+}

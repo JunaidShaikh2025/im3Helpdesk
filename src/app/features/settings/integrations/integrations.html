@@ -1,0 +1,99 @@
+<div class="int-page">
+  <h2>Integrations</h2>
+  <p class="page-desc">Connect iM3 Helpdesk with your team tools</p>
+
+  <!-- Slack -->
+  <div class="int-card">
+    <div class="int-header">
+      <div class="int-icon slack">S</div>
+      <div>
+        <h3>Slack</h3>
+        <p>Get ticket notifications in your Slack channels</p>
+      </div>
+      <div class="int-status"
+        [class.active]="slackWebhookUrl">
+        {{ slackWebhookUrl ? 'Connected' : 'Not Connected' }}
+      </div>
+    </div>
+
+    <div class="int-steps">
+      <p>1. Go to Slack → Apps → Incoming Webhooks → Add</p>
+      <p>2. Select channel and copy the webhook URL</p>
+      <p>3. Paste below and save</p>
+    </div>
+
+    <div class="int-form">
+      <div class="form-group">
+        <label>Webhook URL</label>
+        <input type="text" [(ngModel)]="slackWebhookUrl"
+          placeholder="https://hooks.slack.com/services/..."/>
+      </div>
+      <div class="int-actions">
+        <button class="test-btn"
+          (click)="testSlack()"
+          [disabled]="!slackWebhookUrl">
+          Test
+        </button>
+        <button class="save-btn" (click)="saveSlack()">
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Microsoft Teams -->
+  <div class="int-card">
+    <div class="int-header">
+      <div class="int-icon teams">T</div>
+      <div>
+        <h3>Microsoft Teams</h3>
+        <p>Get ticket notifications in your Teams channels</p>
+      </div>
+      <div class="int-status"
+        [class.active]="teamsWebhookUrl">
+        {{ teamsWebhookUrl ? 'Connected' : 'Not Connected' }}
+      </div>
+    </div>
+
+    <div class="int-steps">
+      <p>1. Open Teams → Channel → ⋯ → Connectors</p>
+      <p>2. Add Incoming Webhook → Configure → Copy URL</p>
+      <p>3. Paste below and save</p>
+    </div>
+
+    <div class="int-form">
+      <div class="form-group">
+        <label>Webhook URL</label>
+        <input type="text" [(ngModel)]="teamsWebhookUrl"
+          placeholder="https://outlook.office.com/webhook/..."/>
+      </div>
+      <div class="int-actions">
+        <button class="test-btn"
+          (click)="testTeams()"
+          [disabled]="!teamsWebhookUrl">
+          Test
+        </button>
+        <button class="save-btn teams-save"
+          (click)="saveTeams()">
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WhatsApp Card -->
+  <div class="int-card">
+    <div class="int-header">
+      <div class="int-icon wa">W</div>
+      <div>
+        <h3>WhatsApp</h3>
+        <p>Create tickets from WhatsApp messages via Twilio</p>
+      </div>
+      <a class="int-settings-link"
+        routerLink="/settings"
+        [queryParams]="{tab: 'whatsapp'}">
+        Configure →
+      </a>
+    </div>
+  </div>
+</div>
