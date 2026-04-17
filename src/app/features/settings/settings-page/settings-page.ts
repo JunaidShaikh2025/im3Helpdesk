@@ -11,23 +11,27 @@ import { TicketTemplatesComponent } from '../ticket-templates/ticket-templates';
 import { EmailNotificationsComponent } from '../email-notifications/email-notifications';
 import { AuditLogComponent } from '../audit-log/audit-log';
 import { ReportsPageComponent } from '../../reports/reports-page/reports-page';
+import { CustomFieldsComponent } from '../custom-fields/custom-fields';
 import { WhatsappSettingsComponent } from '../whatsapp-settings/whatsapp-settings';
 import { IntegrationsComponent } from '../integrations/integrations';
-import { CustomFieldsComponent } from '../custom-fields/custom-fields';
-
 
 @Component({
   selector: 'app-settings-page',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterModule,
-    MatDividerModule, MatSlideToggleModule,
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    MatDividerModule,
+    MatSlideToggleModule,
     LayoutComponent,
     TicketTemplatesComponent,
     EmailNotificationsComponent,
     AuditLogComponent,
-    ReportsPageComponent,CustomFieldsComponent,
-    WhatsappSettingsComponent, IntegrationsComponent
+    ReportsPageComponent,
+    CustomFieldsComponent,
+    WhatsappSettingsComponent,
+    IntegrationsComponent
   ],
   templateUrl: './settings-page.html',
   styleUrls: ['./settings-page.scss']
@@ -38,29 +42,32 @@ export class SettingsPageComponent implements OnInit {
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
 
-  activeTab = 'settings';
+  activeTab = 'reports';
+
+  tabs = [
+    { id: 'reports', label: 'Reports', icon: '📊' },
+    { id: 'templates', label: 'Ticket Templates', icon: '📋' },
+    { id: 'settings', label: 'General Settings', icon: '⚙' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔' },
+    { id: 'audit', label: 'Audit Log', icon: '🔍' },
+    { id: 'custom-fields', label: 'Custom Fields', icon: '🔧' },
+    { id: 'integrations', label: 'Integrations', icon: '🔗' },
+    { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  ];
+
   currentTheme = 'theme-blue';
   emailNotifications = true;
   browserNotifications = false;
   language = 'en';
 
-tabs = [
-  { id: 'templates', label: 'Ticket Templates', icon: '📋' },
-  { id: 'custom-fields', label: 'Custom Fields', icon: '⚙' },
-  { id: 'integrations', label: 'Integrations', icon: '🔗' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },
-  { id: 'reports', label: 'Reports', icon: '📊' },
-  { id: 'settings', label: 'Settings', icon: '🎨' },
-  { id: 'notifications', label: 'Notifications', icon: '🔔' },
-  { id: 'audit', label: 'Audit Log', icon: '🔍' },
-];
-
-
   themes = [
     { id: 'theme-blue', name: 'Ocean Blue', color: '#2563eb' },
     { id: 'theme-dark', name: 'Dark Mode', color: '#1a1a2e' },
     { id: 'theme-green', name: 'Forest Green', color: '#2e7d32' },
-    { id: 'theme-purple', name: 'Royal Purple', color: '#6a1b9a' }
+    { id: 'theme-purple', name: 'Royal Purple', color: '#6a1b9a' },
+    { id: 'theme-orange', name: 'Cosmic Orange', color: '#e85d04' },
+    { id: 'theme-navy', name: 'Midnight Navy', color: '#1e3a8a' },
+    { id: 'theme-rose', name: 'Rose Pink', color: '#e11d48' }
   ];
 
   languages = [
@@ -87,7 +94,9 @@ tabs = [
     localStorage.setItem('im3_theme', themeId);
     this.currentTheme = themeId;
     this.cdr.detectChanges();
-    Promise.resolve().then(() => this.toastr.success('Theme applied!'));
+    Promise.resolve().then(() =>
+      this.toastr.success('Theme applied!')
+    );
   }
 
   saveNotifications() {
@@ -96,7 +105,7 @@ tabs = [
     localStorage.setItem('im3_browser_notif',
       this.browserNotifications.toString());
     Promise.resolve().then(() =>
-      this.toastr.success('Saved!')
+      this.toastr.success('Notification settings saved!')
     );
   }
 
@@ -113,6 +122,5 @@ tabs = [
       return;
     this.authService.logout();
   }
-
   logout() { this.authService.logout(); }
 }

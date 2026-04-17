@@ -1,55 +1,112 @@
-.spacer { flex: 1 1 auto; }
+.reports-wrap { padding: 0; }
 
-.page-container {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+.reports-header {
+  margin-bottom: 20px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 4px;
+  }
+
+  p { font-size: 13px; color: var(--text-muted, #999); }
 }
 
-.filter-card {
-  margin-bottom: 24px;
-  border-radius: 10px !important;
-}
-
-.filter-row {
+.reports-filter {
   display: flex;
-  gap: 16px;
   align-items: flex-start;
+  gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--bg-card, white);
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e8e8e8);
+}
 
-  mat-form-field { min-width: 160px; }
+.date-field { width: 180px; }
+
+.gen-btn {
+  padding: 13px 20px;
+  background: var(--accent, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  align-self: flex-start;
+  margin-top: 4px;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.export-btn-r {
+  padding: 13px 20px;
+  background: none;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+  white-space: nowrap;
+  align-self: flex-start;
+  margin-top: 4px;
+
+  &:hover { background: var(--hover-bg, #f5f5f5); }
 }
 
 .loading-center {
   display: flex;
   justify-content: center;
-  padding: 60px;
+  padding: 48px;
 }
 
-.summary-grid {
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #e0e0e0);
+  border-top-color: var(--accent, #2563eb);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.reports-content { display: flex; flex-direction: column; gap: 20px; }
+
+/* Summary */
+.report-summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
 }
 
-.summary-card {
-  border-radius: 10px !important;
-  text-align: center;
+.sum-card {
+  background: var(--bg-card, white);
+  border-radius: 10px;
+  padding: 20px 24px;
+  border: 1px solid var(--border-color, #e8e8e8);
 
-  .summary-num {
-    font-size: 32px;
-    font-weight: 500;
+  .sum-num {
+    font-size: 28px;
+    font-weight: 700;
     margin-bottom: 6px;
   }
 
-  .summary-label { font-size: 13px; color: #666; }
+  .sum-label {
+    font-size: 13px;
+    color: var(--text-muted, #999);
+  }
 
-  &.total .summary-num { color: #1976d2; }
-  &.avg .summary-num { color: #4caf50; }
-  &.period .summary-num { font-size: 18px; color: #333; }
+  &.blue .sum-num { color: #2563eb; }
+  &.green .sum-num { color: #22c55e; }
+  &.gray .sum-num { font-size: 18px; color: var(--text-primary, #333); }
 }
 
+/* Charts */
 .charts-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -57,49 +114,71 @@
 }
 
 .chart-card {
-  border-radius: 10px !important;
+  background: var(--bg-card, white);
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid var(--border-color, #e8e8e8);
 
-  h3 { color: #333; margin-bottom: 16px; font-size: 15px; }
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 16px;
+  }
 }
 
-.bar-chart {
+.bar-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.bar-item {
-  display: flex;
-  align-items: center;
   gap: 10px;
 }
 
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .bar-label {
-  width: 90px;
   font-size: 12px;
-  color: #555;
-  flex-shrink: 0;
+  color: var(--text-secondary, #555);
+  min-width: 70px;
+  white-space: nowrap;
 }
 
 .bar-track {
   flex: 1;
-  height: 20px;
-  background: #f5f5f5;
-  border-radius: 10px;
+  height: 18px;
+  background: var(--bg-secondary, #f3f4f6);
+  border-radius: 9px;
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  border-radius: 10px;
-  transition: width 0.4s ease;
+  border-radius: 9px;
   min-width: 4px;
+  transition: width 0.3s ease;
 }
 
 .bar-count {
-  width: 28px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary, #333);
+  min-width: 20px;
   text-align: right;
+}
+
+.no-data {
+  text-align: center;
+  color: var(--text-muted, #bbb);
+  font-size: 13px;
+  padding: 16px;
+}
+
+.empty-report {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted, #bbb);
+  font-size: 14px;
 }

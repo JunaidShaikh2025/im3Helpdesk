@@ -84,11 +84,11 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
   markRead(id: string) {
     this.notifService.markRead(id).subscribe({
       next: () => {
-        const n = this.notifications.find(n => n.id === id);
-        if (n) {
+        const n = this.notifications.find(x => x.id === id);
+        if (n && !n.isRead) {
           n.isRead = true;
-          this.unreadCount = this.notifications.filter(n => !n.isRead).length;
-          this.cdr.detectChanges();
+          this.unreadCount = Math.max(0, this.unreadCount - 1);
+          this.cdr.markForCheck();
         }
       }
     });
@@ -99,20 +99,32 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
       next: () => {
         this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;
-        this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.success('All marked as read')
-        );
+        this.toastr.success('All marked as read');
+        this.cdr.markForCheck();
       }
     });
   }
 
-  navigateToTicket(notification: any) {
-    this.markRead(notification.id);
+navigateToTicket(notification: any) {
+  this.markRead(notification.id);
+
+  Promise.resolve().then(() => {
     if (notification.ticketId) {
-      this.router.navigate(['/tickets', notification.ticketId]);
+      this.router.navigate(
+        ['/tickets', notification.ticketId]);
+      return;
     }
-  }
+
+    const title = (notification.title || '').toLowerCase();
+    if (title.includes('ticket')) {
+      this.router.navigate(['/tickets']);
+    } else if (title.includes('agent')) {
+      this.router.navigate(['/agents']);
+    } else {
+      this.router.navigate(['/notifications']);
+    }
+  });
+}
 
   getTypeIcon(type: string): string {
     const icons: any = {

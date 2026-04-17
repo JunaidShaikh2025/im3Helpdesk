@@ -22,6 +22,49 @@ export class IntegrationsComponent implements OnInit {
   slackWebhookUrl = '';
   teamsWebhookUrl = '';
   saving = false;
+  testFromEmail = '';
+  testFromName = '';
+  testToEmail = '';
+  testSubject = '';
+  testBody = '';
+  emailTestResult = '';
+
+simulateEmail() {
+  if (!this.testFromEmail || !this.testToEmail) {
+    Promise.resolve().then(() =>
+      this.toastr.error('From email and To email required')
+    );
+    return;
+  }
+
+  this.http.post<any>(
+    'https://localhost:7071/api/InboundEmail/simulate',
+    {
+      fromEmail: this.testFromEmail,
+      fromName: this.testFromName,
+      toEmail: this.testToEmail,
+      subject: this.testSubject,
+      body: this.testBody
+    },
+    { headers: this.getHeaders() }
+  ).subscribe({
+    next: (res) => {
+      this.emailTestResult =
+        `Ticket created: "${res.ticketTitle}" for ${res.customer}`;
+      Promise.resolve().then(() =>
+        this.toastr.success('Email converted to ticket!')
+      );
+    },
+    error: (err) => {
+      this.emailTestResult =
+        err.error?.message || 'Failed';
+      Promise.resolve().then(() =>
+        this.toastr.error('Failed: ' + this.emailTestResult)
+      );
+    }
+  });
+}
+
 
   private getHeaders() {
     return new HttpHeaders({

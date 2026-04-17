@@ -31,46 +31,73 @@ export class LayoutComponent implements OnInit, OnDestroy {
   showNotifDropdown = false;
   notifications: any[] = [];
 
-  ngOnInit() {
-    const token = this.authService.getToken();
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userName = payload[
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
-      ] || payload.email?.split('@')[0] || 'User';
-      this.userEmail = payload.email || '';
-      this.userRole = payload[
-        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
-      ] || payload.role || 'User';
-      
-      this.userInitials = this.userName.split(' ')
-        .map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+    ngOnInit() {
+      this.loadUserInfo();
+      this.loadNotifications();
+      // this.startNotifPolling();
     }
 
-    // 1. Check localStorage for cached photo
-    const savedPhoto = localStorage.getItem('im3_photo');
-    if (savedPhoto) {
-      this.userPhotoUrl = 'https://localhost:7071' + savedPhoto;
+    loadUserInfo() {
+      const token = this.authService.getToken();
+      if (!token) return;
+
+      try {
+        const payload = JSON.parse(
+          atob(token.split('.')[1]));
+        this.userName = payload[
+          'http://schemas.xmlsoap.org/ws/2005/' +
+          '05/identity/claims/name'
+        ] || payload.email?.split('@')[0] || 'User';
+        this.userEmail = payload.email || '';
+        this.userRole = payload[
+          'http://schemas.microsoft.com/ws/2008/' +
+          '06/identity/claims/role'
+        ] || payload.role || '';
+        this.userInitials = this.userName
+          .split(' ')
+          .map((n: string) => n[0] || '')
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+      } catch {}
+
+      // Load photo from localStorage first (instant)
+      const saved = localStorage.getItem('im3_photo');
+      if (saved) {
+        this.userPhotoUrl = saved.startsWith('http')
+          ? saved
+          : 'https://localhost:7071' + saved;
+        this.cdr.detectChanges();
+      }
+
+      // Then load fresh from API
+      this.http.get<any>(
+        'https://localhost:7071/api/Profile',
+        { headers: this.getHeaders() }
+      ).subscribe({
+        next: (data) => {
+          if (data.photoUrl) {
+            this.userPhotoUrl =
+              'https://localhost:7071' + data.photoUrl;
+            localStorage.setItem(
+              'im3_photo', data.photoUrl);
+            this.cdr.detectChanges();
+          }
+        }
+      });
     }
 
-    // 2. Load latest photo and unread counts
-    this.loadUserPhoto();
-    this.loadUnreadCount();
+    private getHeaders() {
+      return new HttpHeaders({
+        'Authorization':
+          `Bearer ${this.authService.getToken()}`
+      });
+    }
 
-    interval(30000)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadUnreadCount());
-  }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
   }
 
   loadUserPhoto() {
@@ -117,19 +144,52 @@ export class LayoutComponent implements OnInit, OnDestroy {
     });
   }
 
-  goToNotification(n: any) {
-    this.showNotifDropdown = false;
-    this.http.put(
-      `https://localhost:7071/api/Notifications/${n.id}/read`,
-      {}, { headers: this.getHeaders() }
-    ).subscribe();
+    goToNotification(n: any) {
+      this.showNotifDropdown = false;
 
-    if (n.ticketId) {
-      this.router.navigate(['/tickets', n.ticketId]);
-    } else {
-      this.router.navigate(['/notifications']);
+      // Mark as read
+      this.http.put(
+        `https://localhost:7071/api/Notifications/${n.id}/read`,
+        {}, { headers: this.getHeaders() }
+      ).subscribe({
+        next: () => {
+          const notif = this.notifications
+            .find(x => x.id === n.id);
+          if (notif) notif.isRead = true;
+          this.unreadCount = Math.max(0,
+            this.unreadCount - 1);
+          this.cdr.detectChanges();
+        }
+      });
+
+      // Smart redirect
+      Promise.resolve().then(() => {
+        if (n.ticketId) {
+          this.router.navigate(['/tickets', n.ticketId]);
+          return;
+        }
+
+        const title = (n.title || '').toLowerCase();
+        const msg = (n.message || '').toLowerCase();
+
+        if (title.includes('ticket') ||
+            msg.includes('ticket')) {
+          this.router.navigate(['/tickets']);
+        } else if (title.includes('agent') ||
+            title.includes('invited')) {
+          this.router.navigate(['/agents']);
+        } else if (title.includes('sla') ||
+            title.includes('escalat') ||
+            title.includes('breach')) {
+          this.router.navigate(['/tickets']);
+        } else if (title.includes('kb') ||
+            title.includes('article')) {
+          this.router.navigate(['/kb']);
+        } else {
+          this.router.navigate(['/notifications']);
+        }
+      });
     }
-  }
 
   viewAllNotifications() {
     this.showNotifDropdown = false;

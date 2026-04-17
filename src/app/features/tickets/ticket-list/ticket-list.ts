@@ -16,11 +16,8 @@ import { ToastrService } from 'ngx-toastr';
 import { TicketService } from '../../../services/ticket';
 import { AuthService } from '../../../services/auth.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { LayoutComponent } from '../../../shared/layout/layout';
 import { AgentService } from '../../../services/agent';
-
-// Class ke andar inject karo
-
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-ticket-list',
@@ -30,8 +27,7 @@ import { AgentService } from '../../../services/agent';
     MatTableModule, MatButtonModule, MatIconModule,
     MatToolbarModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatCardModule, MatCheckboxModule,
-    LayoutComponent // StatusFilterPipe removed because it's not used in HTML
+    MatSelectModule, MatCardModule,LayoutComponent,MatCheckboxModule 
   ],
   templateUrl: './ticket-list.html',
   styleUrls: ['./ticket-list.scss']
@@ -48,14 +44,33 @@ export class TicketListComponent implements OnInit {
   tickets: any[] = [];
   allTickets: any[] = [];
   loading = true;
-  
-  // --- New Properties ---
   showFilters = false;
+  showColumnPicker = false;
   agents: any[] = [];
 
   displayedColumns = [
     'select', 'title', 'category', 'status', 'priority',
     'createdBy', 'assignedTo', 'sla', 'createdAt', 'actions'
+  ];
+
+
+  currentLayout: 'card' | 'table' | 'grid' = 'card';
+  visibleColumns = [
+    'title', 'status', 'priority',
+    'assignedTo', 'createdAt', 'sla'
+  ];
+
+  allColumns = [
+    { id: 'title', label: 'Title' },
+    { id: 'category', label: 'Category' },
+    { id: 'status', label: 'Status' },
+    { id: 'priority', label: 'Priority' },
+    { id: 'assignedTo', label: 'Assigned To' },
+    { id: 'createdBy', label: 'Created By' },
+    { id: 'createdAt', label: 'Date' },
+    { id: 'sla', label: 'SLA' },
+    { id: 'tags', label: 'Tags' },
+    { id: 'ticketType', label: 'Type' }
   ];
 
   filterForm: FormGroup = this.fb.group({
@@ -98,19 +113,45 @@ ngOnInit() {
     });
   }
 
+    toggleColumn(colId: string) {
+    const idx = this.visibleColumns.indexOf(colId);
+    if (idx > -1) {
+      if (this.visibleColumns.length > 2)
+        this.visibleColumns.splice(idx, 1);
+    } else {
+      this.visibleColumns.push(colId);
+    }
+    this.cdr.detectChanges();
+  }
+
+  isColumnVisible(colId: string): boolean {
+    return this.visibleColumns.includes(colId);
+  }
+
   loadTickets() {
     this.loading = true;
+    this.cdr.detectChanges();
+
     this.ticketService.getAll().subscribe({
       next: (data: any[]) => {
         this.allTickets = data;
-        this.tickets = data;
+        this.applyFilters();
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.toastr.error('Failed to load tickets');
         this.cdr.detectChanges();
+
+        // 401 = token expired, logout
+        if (err.status === 401) {
+          this.authService.logout();
+          return;
+        }
+
+        Promise.resolve().then(() =>
+          this.toastr.error('Failed to load tickets')
+        );
       }
     });
   }

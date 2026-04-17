@@ -91,39 +91,51 @@ export class ProfilePageComponent implements OnInit {
     });
   }
 
-  onPhotoSelect(event: any) {
-    const file = event.target.files[0];
-    if (!file) return;
+onPhotoSelect(event: any) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      this.photoPreview = e.target.result;
+  // Show preview instantly
+  const reader = new FileReader();
+  reader.onload = (e: any) => {
+    this.photoPreview = e.target.result;
+    this.cdr.detectChanges();
+  };
+  reader.readAsDataURL(file);
+
+  // Upload to server
+  const formData = new FormData();
+  formData.append('file', file);
+
+  this.http.post<any>(
+    'https://localhost:7071/api/Profile/upload-photo',
+    formData,
+    { headers: this.getHeaders() }
+  ).subscribe({
+    next: (res) => {
+      const fullUrl =
+        'https://localhost:7071' + res.photoUrl;
+      this.photoUrl = fullUrl;
+      this.photoPreview = '';
+
+      // ✅ Save to localStorage
+      localStorage.setItem('im3_photo', res.photoUrl);
+
       this.cdr.detectChanges();
-    };
-    reader.readAsDataURL(file);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    this.http.post<any>(
-      'https://localhost:7071/api/Profile/upload-photo',
-      formData, { headers: this.getHeaders() }
-    ).subscribe({
-      next: (res) => {
-        this.photoUrl = 'https://localhost:7071' + res.photoUrl;
-        this.photoPreview = '';
-        localStorage.setItem('im3_photo', res.photoUrl);
-        this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.success('Photo updated!')
-        );
-      },
-      error: () =>
-        Promise.resolve().then(() =>
-          this.toastr.error('Photo upload failed')
-        )
-    });
-  }
+      Promise.resolve().then(() =>
+        this.toastr.success('Photo updated!')
+      );
+    },
+    error: (err) => {
+      this.photoPreview = '';
+      this.cdr.detectChanges();
+      Promise.resolve().then(() =>
+        this.toastr.error(
+          err.error?.message || 'Photo upload failed')
+      );
+    }
+  });
+}
 
   getAvatarColor(name: string): string {
     const colors = [

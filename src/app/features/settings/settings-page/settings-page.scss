@@ -73,7 +73,6 @@
   background: var(--bg-card, white);
   border-radius: 12px;
   padding: 28px;
-  max-width: 700px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 
   h2 {
@@ -256,4 +255,10 @@
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
+}
+.themes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 8px;
 }

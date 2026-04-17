@@ -19,6 +19,7 @@ import { AgentGroupService } from '../../../services/agent-group';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
 import { LiveChatComponent } from '../../chat/live-chat/live-chat';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -43,6 +44,16 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private fb = inject(FormBuilder);
   private destroy$ = new Subject<void>();
+  private sanitizer = inject(DomSanitizer);
+
+  private showToast(type: 'success'|'error'|'info',
+    msg: string) {
+    Promise.resolve().then(() => {
+      if (type === 'success') this.toastr.success(msg);
+      else if (type === 'error') this.toastr.error(msg);
+      else this.toastr.info(msg);
+    });
+  }
 
   ticket: any = null;
   loading = true;
@@ -80,6 +91,9 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   agentSignature = '';
   expandComposer = false;
   orgSupportEmail = '';
+  customFields: any[] = [];
+  customFieldValues: { [key: string]: string } = {};
+
 
   @ViewChild('replyEditor') replyEditorRef: any;
   @ViewChild('noteEditor') noteEditorRef: any;
@@ -98,6 +112,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
           // Record view
           this.recordView();
           this.loadViewers();
+          this.loadCustomFieldValues();
           if (data.assignedTo) {
             const found = this.agents.find(
               a => a.fullName === data.assignedTo?.fullName
@@ -154,8 +169,63 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       this.loadOrgInfo();
       this.loadAgentSignature();
       this.startPolling();
+      this.loadCustomFieldValues()
     });
   }
+
+loadCustomFieldValues() {
+  const headers = new HttpHeaders({
+    'Authorization': `Bearer ${this.authService.getToken()}`
+  });
+
+  this.http.get<any[]>(
+    'https://localhost:7071/api/CustomFields',
+    { headers }
+  ).subscribe({
+    next: (fields) => {
+      this.customFields = fields;
+      if (fields.length > 0) {
+        this.http.get<any[]>(
+          `https://localhost:7071/api/CustomFields/ticket/${this.ticketId}/values`,
+          { headers }
+        ).subscribe({
+          next: (values) => {
+            // Initialize all fields
+            fields.forEach(f => {
+              this.customFieldValues[f.id] = '';
+            });
+            // Fill existing values
+            values.forEach(v => {
+              this.customFieldValues[v.customFieldId] = v.value;
+            });
+            this.cdr.detectChanges();
+          }
+        });
+      }
+    }
+  });
+}
+
+  saveCustomFields() {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    const values = Object.entries(this.customFieldValues)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([k, v]) => ({
+        customFieldId: k,
+        value: String(v)
+      }));
+
+    this.http.post(
+      `https://localhost:7071/api/CustomFields/ticket/${this.ticketId}/values`,
+      values, { headers }
+    ).subscribe({
+      next: () => this.showToast('success', 'Custom fields saved!')
+    });
+  }
+
 
   ngOnDestroy() {
     this.destroy$.next();
@@ -186,6 +256,15 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  sanitizeHtml(html: string): SafeHtml {
+  if (!html) return '';
+  // Convert plain text line breaks to HTML
+  const withBreaks = html
+    .replace(/\n/g, '<br>')
+    .replace(/\r\n/g, '<br>');
+  return this.sanitizer.bypassSecurityTrustHtml(withBreaks);
+}
+
   loadGroups() {
     this.agentGroupService.getAll().subscribe({
       next: (data: any[]) => {
@@ -207,7 +286,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   updateStatus(status: string) {
     this.ticketService.updateStatus(this.ticketId, status).subscribe({
       next: () => {
-        Promise.resolve().then(() => this.toastr.success('Status updated!'));
+        this.showToast('success', 'Status updated!');
         this.loadTicket();
       }
     });
@@ -222,7 +301,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       { priority }, { headers }
     ).subscribe({
       next: () => {
-        Promise.resolve().then(() => this.toastr.success('Priority updated!'));
+        this.showToast('success', 'Priority updated!');
       }
     });
   }
@@ -236,7 +315,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       { ticketType: this.ticket.ticketType }, { headers }
     ).subscribe({
       next: () => {
-        Promise.resolve().then(() => this.toastr.success('Type updated!'));
+        this.showToast('success', 'Type updated!');
       }
     });
   }
@@ -261,16 +340,12 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     Promise.all(updates).then(() => {
       this.updating = false;
       this.cdr.detectChanges();
-      Promise.resolve().then(() =>
-        this.toastr.success('Ticket updated successfully!')
-      );
+      this.showToast('success', 'Ticket updated successfully!');
       this.loadTicket();
     }).catch(() => {
       this.updating = false;
       this.cdr.detectChanges();
-      Promise.resolve().then(() =>
-        this.toastr.error('Update failed')
-      );
+      this.showToast('error', 'Update failed');
     });
   }
 
@@ -291,7 +366,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: () => {
         this.cdr.detectChanges();
-        Promise.resolve().then(() => this.toastr.success('Assigned!'));
+        this.showToast('success', 'Assigned!');
         this.loadTicket();
       }
     });
@@ -340,9 +415,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
         this.timeToLog = null;
         this.updating = false;
         this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.success(`${res.totalMinutes} min logged`)
-        );
+        this.showToast('success', `${res.totalMinutes} min logged`);
         this.loadTicket();
       },
       error: () => {
@@ -352,13 +425,14 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  onReplyInput(event: any) {
-    this.quickReplyText = event.target.innerText || '';
-  }
 
-  onNoteInput(event: any) {
-    this.noteText = event.target.innerText || '';
-  }
+    onReplyInput(event: any) {
+      this.quickReplyText = event.target.innerHTML || '';
+    }
+
+    onNoteInput(event: any) {
+      this.noteText = event.target.innerHTML || '';
+    }
 
   onForwardInput(event: any) {
     this.forwardText = event.target.innerText || '';
@@ -407,106 +481,98 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     this.pendingFiles = [];
   }
 
-async sendReply() {
-  if (!this.quickReplyText.trim()) return;
-  this.updating = true;
-  this.cdr.detectChanges();
+    async sendReply() {
+    // Get HTML content from contenteditable editor
+    const editorContent = this.replyEditorRef?.nativeElement?.innerHTML?.trim()
+      || this.quickReplyText?.trim();
 
-  try {
-    const res: any = await this.ticketService.addComment(
-      this.ticketId, this.quickReplyText, false
-    ).toPromise();
+    if (!editorContent || editorContent === '<br>') return;
 
-    const commentId = res?.commentId;
+    this.updating = true;
+    this.cdr.detectChanges();
 
-    // Upload files with commentId
-    if (commentId && this.pendingFiles.length > 0) {
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${this.authService.getToken()}`
-      });
-      for (const file of this.pendingFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        await this.http.post(
-          `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
-          formData, { headers }
-        ).toPromise();
+    try {
+      const res: any = await this.ticketService.addComment(
+        this.ticketId,
+        editorContent, // HTML content
+        false
+      ).toPromise();
+
+      const commentId = res?.commentId;
+
+      // Upload files with commentId
+      if (commentId && this.pendingFiles.length > 0) {
+        const headers = new HttpHeaders({
+          'Authorization': `Bearer ${this.authService.getToken()}`
+        });
+        for (const file of this.pendingFiles) {
+          const formData = new FormData();
+          formData.append('file', file);
+          await this.http.post(
+            `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
+            formData, { headers }
+          ).toPromise();
+        }
       }
+
+      this.clearComposer();
+      this.updating = false;
+      this.cdr.detectChanges();
+      this.showToast('success', 'Reply sent!');
+      this.loadTicket();
+      this.loadAttachments();
+    } catch {
+      this.updating = false;
+      this.cdr.detectChanges();
     }
-
-    this.clearComposer();
-    this.updating = false;
-    this.cdr.detectChanges();
-    Promise.resolve().then(() => this.toastr.success('Reply sent!'));
-    this.loadTicket();
-    this.loadAttachments();
-  } catch {
-    this.updating = false;
-    this.cdr.detectChanges();
   }
-}
+    async sendNote() {
+      // Get HTML content from contenteditable editor
+      const noteContent = this.noteEditorRef?.nativeElement?.innerHTML?.trim()
+        || this.noteText?.trim();
 
-async sendNote() {
-  if (!this.noteText.trim()) return;
-  this.updating = true;
-  this.cdr.detectChanges();
+      if (!noteContent || noteContent === '<br>') return;
 
-  try {
-    const res: any = await this.ticketService.addComment(
-      this.ticketId, this.noteText, true
-    ).toPromise();
+      this.updating = true;
+      this.cdr.detectChanges();
 
-    const commentId = res?.commentId;
-
-    if (commentId && this.pendingFiles.length > 0) {
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${this.authService.getToken()}`
-      });
-      for (const file of this.pendingFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        await this.http.post(
-          `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
-          formData, { headers }
+      try {
+        const res: any = await this.ticketService.addComment(
+          this.ticketId,
+          noteContent, // HTML content
+          true
         ).toPromise();
+
+        const commentId = res?.commentId;
+
+        if (commentId && this.pendingFiles.length > 0) {
+          const headers = new HttpHeaders({
+            'Authorization': `Bearer ${this.authService.getToken()}`
+          });
+          for (const file of this.pendingFiles) {
+            const formData = new FormData();
+            formData.append('file', file);
+            await this.http.post(
+              `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
+              formData, { headers }
+            ).toPromise();
+          }
+        }
+
+        this.noteText = '';
+        if (this.noteEditorRef?.nativeElement)
+          this.noteEditorRef.nativeElement.innerHTML = '';
+        this.pendingFiles = [];
+        this.updating = false;
+        this.cdr.detectChanges();
+        this.showToast('success', 'Note added!');
+        this.loadTicket();
+        this.loadAttachments();
+      } catch {
+        this.updating = false;
+        this.cdr.detectChanges();
       }
-    }
-
-    this.noteText = '';
-    if (this.noteEditorRef?.nativeElement)
-      this.noteEditorRef.nativeElement.innerHTML = '';
-    this.pendingFiles = [];
-    this.updating = false;
-    this.cdr.detectChanges();
-    Promise.resolve().then(() => this.toastr.success('Note added!'));
-    this.loadTicket();
-    this.loadAttachments();
-  } catch {
-    this.updating = false;
-    this.cdr.detectChanges();
-  }
-}
-
-  doForward() {
-    if (!this.forwardEmail.trim()) return;
-    Promise.resolve().then(() =>
-      this.toastr.info(`Forwarded to ${this.forwardEmail}`)
-    );
-    this.forwardEmail = '';
-    this.activeTab = 'reply';
-  }
-
-  private uploadFile(file: File): Promise<any> {
-    const formData = new FormData();
-    formData.append('file', file);
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    return this.http.post(
-      `https://localhost:7071/api/Attachments/upload/${this.ticketId}`,
-      formData, { headers }
-    ).toPromise();
-  }
+    } 
 
   logout() {
     this.authService.logout();
@@ -574,6 +640,46 @@ async sendNote() {
     this.notifyAgents = this.notifyAgents.filter(a => a.id !== agent.id);
     this.cdr.detectChanges();
   }
+
+  doForward() {
+  if (!this.forwardEmail?.trim()) return;
+
+  // Save forward as internal note
+  const forwardContent = `
+    <div style="border:1px solid #e0e0e0;padding:12px;border-radius:8px;background:#f9fafb">
+      <p style="color:#666;font-size:12px;margin-bottom:8px">
+        ↗ Forwarded to: <strong>${this.forwardEmail}</strong>
+      </p>
+      ${this.forwardText || '(No additional message)'}
+    </div>
+  `;
+
+  this.ticketService.addComment(
+    this.ticketId,
+    forwardContent,
+    true // internal note
+  ).subscribe({
+    next: () => {
+      this.forwardEmail = '';
+      this.forwardText = '';
+      this.activeTab = 'reply';
+      if (this.forwardEditorRef?.nativeElement)
+        this.forwardEditorRef.nativeElement.innerHTML = '';
+      this.cdr.detectChanges();
+      Promise.resolve().then(() =>
+        this.toastr.success(
+          `Ticket forwarded to ${this.forwardEmail}!`
+        )
+      );
+      this.loadTicket();
+    },
+    error: () => {
+      Promise.resolve().then(() =>
+        this.toastr.error('Forward failed')
+      );
+    }
+  });
+}
 
   execCmd(command: string, value?: string) {
     document.execCommand(command, false, value);

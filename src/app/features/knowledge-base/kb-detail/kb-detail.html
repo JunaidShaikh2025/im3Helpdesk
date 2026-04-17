@@ -1,19 +1,16 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate([getBackRoute()])">← Back</button>
-  <span>Knowledge Base</span>
-  <span class="spacer"></span>
-  <button mat-button *ngIf="canManage() && article"
-    (click)="router.navigate(['/kb/edit', article.id])">
-    Edit
-  </button>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
-
-<div class="page-container" *ngIf="loading">
-  <div class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
-</div>
+<app-layout>
+  <div class="kb-page">
+    <div class="page-top">
+      <div>
+        <h1>Knowledge Base</h1>
+        <p>Help articles for your team and customers</p>
+      </div>
+      <button class="add-btn"
+        *ngIf="canManage()"
+        (click)="router.navigate(['/kb/create'])">
+        + New Article
+      </button>
+    </div>
 
 <div class="page-container" *ngIf="!loading && article">
   <mat-card class="article-card">
@@ -47,3 +44,6 @@
     </mat-card-content>
   </mat-card>
 </div>
+
+</div>
+</app-layout>

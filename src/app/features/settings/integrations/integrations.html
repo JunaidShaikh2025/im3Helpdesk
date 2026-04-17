@@ -96,4 +96,60 @@
       </a>
     </div>
   </div>
+
+  <!-- Email to Ticket Test -->
+<div class="int-card">
+  <div class="int-header">
+    <div class="int-icon" style="background:#ea4335;">📧</div>
+    <div>
+      <h3>Email to Ticket</h3>
+      <p>Simulate an inbound email creating a ticket</p>
+    </div>
+  </div>
+
+  <div class="int-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label>From Email</label>
+        <input type="email" [(ngModel)]="testFromEmail"
+          placeholder="customer@example.com"/>
+      </div>
+      <div class="form-group">
+        <label>From Name</label>
+        <input type="text" [(ngModel)]="testFromName"
+          placeholder="John Customer"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>To (Support Email)</label>
+      <input type="text" [(ngModel)]="testToEmail"
+        placeholder="support@yourcompany.com"/>
+    </div>
+
+    <div class="form-group">
+      <label>Subject</label>
+      <input type="text" [(ngModel)]="testSubject"
+        placeholder="I need help with my order"/>
+    </div>
+
+    <div class="form-group">
+      <label>Body</label>
+      <textarea [(ngModel)]="testBody" rows="4"
+        placeholder="Email body...">
+      </textarea>
+    </div>
+
+    <button class="save-btn"
+      style="background:#ea4335"
+      (click)="simulateEmail()">
+      Simulate Email → Create Ticket
+    </button>
+
+    <div class="test-result" *ngIf="emailTestResult">
+      <strong>Result:</strong> {{ emailTestResult }}
+    </div>
+  </div>
+</div>
+
 </div>

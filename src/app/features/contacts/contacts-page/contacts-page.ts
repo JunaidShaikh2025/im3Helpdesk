@@ -1,0 +1,100 @@
+import {
+  Component, OnInit,
+  ChangeDetectorRef, inject
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ToastrService } from 'ngx-toastr';
+import { AuthService } from '../../../services/auth.service';
+import { LayoutComponent } from '../../../shared/layout/layout';
+
+@Component({
+  selector: 'app-contacts-page',
+  standalone: true,
+  imports: [
+    CommonModule, FormsModule,
+    RouterModule, LayoutComponent
+  ],
+  templateUrl: './contacts-page.html',
+  styleUrls: ['./contacts-page.scss']
+})
+export class ContactsPageComponent implements OnInit {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  public router = inject(Router);
+  private toastr = inject(ToastrService);
+  private cdr = inject(ChangeDetectorRef);
+
+  contacts: any[] = [];
+  filteredContacts: any[] = [];
+  loading = true;
+  searchQuery = '';
+  selectedContact: any = null;
+
+  private getHeaders() {
+    return new HttpHeaders({
+      'Authorization':
+        `Bearer ${this.authService.getToken()}`
+    });
+  }
+
+  ngOnInit() {
+    this.loadContacts();
+  }
+
+  loadContacts() {
+    this.loading = true;
+    this.http.get<any[]>(
+      'https://localhost:7071/api/Contacts',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.contacts = data;
+        this.filteredContacts = data;
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  search() {
+    const q = this.searchQuery.toLowerCase();
+    this.filteredContacts = q
+      ? this.contacts.filter(c =>
+          c.fullName?.toLowerCase().includes(q) ||
+          c.email?.toLowerCase().includes(q) ||
+          c.company?.toLowerCase().includes(q))
+      : [...this.contacts];
+    this.cdr.detectChanges();
+  }
+
+  selectContact(c: any) {
+    this.selectedContact =
+      this.selectedContact?.id === c.id ? null : c;
+    this.cdr.detectChanges();
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = [
+      '#ef4444','#f97316','#eab308',
+      '#22c55e','#3b82f6','#8b5cf6','#ec4899'
+    ];
+    const idx = (name?.charCodeAt(0) || 0)
+      % colors.length;
+    return colors[idx];
+  }
+
+  getInitials(name: string): string {
+    return name?.split(' ')
+      .map(n => n[0] || '')
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || '?';
+  }
+}

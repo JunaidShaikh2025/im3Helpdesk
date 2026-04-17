@@ -1,66 +1,273 @@
-.spacer { flex: 1 1 auto; }
+.templates-wrap { padding: 0; }
 
-.page-container {
-  padding: 24px;
-  max-width: 1100px;
-  margin: 0 auto;
+.templates-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 4px;
+  }
+
+  p { font-size: 13px; color: var(--text-muted, #999); }
+}
+
+.add-btn {
+  padding: 9px 18px;
+  background: var(--accent, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .form-card {
-  border-radius: 12px !important;
-  margin-bottom: 24px;
+  background: var(--bg-card, white);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e8e8e8);
+  padding: 24px;
+  margin-bottom: 20px;
 
-  mat-card-content { padding: 28px !important; }
-
-  h3 { color: #333; margin-bottom: 20px; }
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+  }
 }
 
-.two-col {
+.form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-.full-width { width: 100%; margin-bottom: 12px; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary, #555);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  input, textarea {
+    padding: 9px 12px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-primary, #333);
+    background: var(--bg-card, white);
+    outline: none;
+    font-family: inherit;
+
+    &:focus { border-color: var(--accent, #2563eb); }
+  }
+
+  textarea { resize: vertical; }
+}
+
+.form-sel {
+  padding: 9px 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary, #333);
+  background: var(--bg-card, white);
+  outline: none;
+  cursor: pointer;
+
+  &:focus { border-color: var(--accent, #2563eb); }
+}
+
+.req { color: #ef4444; }
+
+.error {
+  font-size: 11px;
+  color: #ef4444;
+}
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
   margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, #f0f0f0);
 }
 
-.loading-center {
+.cancel-btn {
+  padding: 9px 16px;
+  background: none;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+}
+
+.save-btn {
+  padding: 9px 20px;
+  background: var(--accent, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+/* Loading */
+.loading-state {
   display: flex;
   justify-content: center;
-  padding: 60px;
+  padding: 48px;
 }
 
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #e0e0e0);
+  border-top-color: var(--accent, #2563eb);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty */
 .empty-state {
   text-align: center;
-  padding: 60px;
-  color: #999;
+  padding: 48px;
+  background: var(--bg-card, white);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e8e8e8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  .empty-icon { font-size: 36px; }
+  p { font-size: 14px; color: var(--text-muted, #999); }
 }
 
-.templates-table {
+/* Table */
+.templates-table-wrap {
+  background: var(--bg-card, white);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e8e8e8);
+  overflow: hidden;
+}
+
+.t-table {
   width: 100%;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-collapse: collapse;
+
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #9ca3af);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: var(--bg-secondary, #fafafa);
+    border-bottom: 1px solid var(--border-color, #e8e8e8);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--text-primary, #333);
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--hover-bg, #fafafa); }
 }
 
-.category-badge {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 3px 10px;
-  border-radius: 8px;
-  font-size: 12px;
+.title-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.priority-dot {
-  display: inline-block;
+.type-badge {
+  background: #ede9fe;
+  color: #6d28d9;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cat-badge {
+  background: var(--accent-light, #dbeafe);
+  color: var(--accent, #1d4ed8);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.status-badge {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.priority-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.p-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.del-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+
+  &:hover { text-decoration: underline; }
 }

@@ -1,0 +1,171 @@
+<app-layout>
+  <div class="contacts-page">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Contacts</h1>
+        <span class="count-badge">
+          {{ filteredContacts.length }}
+        </span>
+      </div>
+      <div class="header-right">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            [(ngModel)]="searchQuery"
+            (input)="search()"
+            placeholder="Search contacts..."
+            class="search-input"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-center">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && filteredContacts.length === 0"
+      class="empty-state">
+      <div class="empty-icon">👤</div>
+      <h3>No contacts yet</h3>
+      <p>Contacts are created automatically when emails
+        arrive at your support inbox</p>
+    </div>
+
+    <!-- Content Grid -->
+    <div *ngIf="!loading && filteredContacts.length > 0"
+      class="contacts-layout">
+
+      <!-- LEFT: Contacts List -->
+      <div class="contacts-list">
+        <div class="list-item"
+          *ngFor="let c of filteredContacts"
+          [class.selected]="
+            selectedContact?.id === c.id"
+          (click)="selectContact(c)">
+
+          <div class="contact-av"
+            [style.background]="
+              getAvatarColor(c.fullName)">
+            {{ getInitials(c.fullName) }}
+          </div>
+
+          <div class="contact-info">
+            <div class="contact-name">
+              {{ c.fullName }}
+            </div>
+            <div class="contact-email">
+              {{ c.email }}
+            </div>
+          </div>
+
+          <div class="contact-meta">
+            <span class="source-badge"
+              [class.email-src]="
+                c.source === 'email'"
+              [class.web-src]="
+                c.source === 'web'">
+              {{ c.source || 'email' }}
+            </span>
+            <div class="contact-date">
+              {{ c.createdAt
+                | date:'dd MMM yyyy' }}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RIGHT: Contact Detail -->
+      <div class="contact-detail"
+        *ngIf="selectedContact">
+
+        <!-- Profile -->
+        <div class="detail-card">
+          <div class="detail-avatar"
+            [style.background]="
+              getAvatarColor(selectedContact.fullName)">
+            {{ getInitials(selectedContact.fullName) }}
+          </div>
+          <div class="detail-name">
+            {{ selectedContact.fullName }}
+          </div>
+          <div class="detail-email">
+            {{ selectedContact.email }}
+          </div>
+          <div class="detail-company"
+            *ngIf="selectedContact.company">
+            🏢 {{ selectedContact.company }}
+          </div>
+          <span class="source-badge email-src">
+            via {{ selectedContact.source || 'email' }}
+          </span>
+        </div>
+
+        <!-- Info -->
+        <div class="detail-card">
+          <h4>Contact Info</h4>
+
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-val">
+              {{ selectedContact.email }}
+            </span>
+          </div>
+
+          <div class="info-row"
+            *ngIf="selectedContact.phoneNumber">
+            <span class="info-label">Phone</span>
+            <span class="info-val">
+              {{ selectedContact.phoneNumber }}
+            </span>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label">Source</span>
+            <span class="info-val">
+              {{ selectedContact.source || 'email' }}
+            </span>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label">Added</span>
+            <span class="info-val">
+              {{ selectedContact.createdAt
+                | date:'dd MMM yyyy, hh:mm a' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="detail-card actions-card">
+          <button class="action-btn primary"
+            (click)="router.navigate(['/tickets'],
+              {queryParams: {contact:
+                selectedContact.email}})">
+            View Tickets
+          </button>
+          <a class="action-btn secondary"
+            [href]="'mailto:' + selectedContact.email">
+            Send Email
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Empty Detail -->
+      <div class="contact-detail empty-detail"
+        *ngIf="!selectedContact">
+        <div class="select-hint">
+          <div>👈</div>
+          <p>Select a contact to view details</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</app-layout>

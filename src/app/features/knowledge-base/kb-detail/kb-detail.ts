@@ -7,6 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { KnowledgeBaseService } from '../../../services/knowledge-base';
 import { AuthService } from '../../../services/auth.service';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-kb-detail',
@@ -14,7 +15,7 @@ import { AuthService } from '../../../services/auth.service';
   imports: [
     CommonModule, RouterModule,
     MatButtonModule, MatToolbarModule,
-    MatCardModule, MatProgressSpinnerModule
+    MatCardModule, MatProgressSpinnerModule,LayoutComponent
   ],
   templateUrl: './kb-detail.html',
   styleUrls: ['./kb-detail.scss']

@@ -44,8 +44,8 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('im3_token');
-  }
+  return localStorage.getItem('im3_token');
+}
 
   getRefreshToken(): string | null {
     return localStorage.getItem('im3_refresh');
@@ -71,6 +71,21 @@ export class AuthService {
   getUserName(): string {
     return localStorage.getItem('im3_name') || '';
   }
+
+  isTokenValid(): boolean {
+  const token = this.getToken();
+  if (!token) return false;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp;
+    if (!exp) return false;
+    // Check if token expires in next 60 seconds
+    return (exp * 1000) > (Date.now() - 60000);
+  } catch {
+    return false;
+  }
+}
 
   logout(): void {
     localStorage.removeItem('im3_token');

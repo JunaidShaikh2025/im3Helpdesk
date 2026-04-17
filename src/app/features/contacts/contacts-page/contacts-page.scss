@@ -1,0 +1,332 @@
+.contacts-page {
+  padding: 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+  }
+}
+
+.count-badge {
+  background: var(--accent-light, #eff6ff);
+  color: var(--accent, #2563eb);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card, white);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 280px;
+
+  .search-icon { font-size: 14px; }
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary, #333);
+  background: transparent;
+  width: 100%;
+}
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 60px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-color, #e0e0e0);
+  border-top-color: var(--accent, #2563eb);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  text-align: center;
+  padding: 80px 32px;
+  background: var(--bg-card, white);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e8e8e8);
+
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 8px;
+  }
+
+  p { font-size: 14px; color: var(--text-muted, #999); }
+}
+
+.contacts-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* LEFT LIST */
+.contacts-list {
+  background: var(--bg-card, white);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e8e8e8);
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid
+    var(--border-color, #f0f0f0);
+  transition: background 0.1s;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover {
+    background: var(--hover-bg, #f8faff);
+  }
+
+  &.selected {
+    background: var(--accent-light, #eff6ff);
+    border-left: 3px solid
+      var(--accent, #2563eb);
+  }
+}
+
+.contact-av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-email {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.source-badge {
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+
+  &.email-src {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  &.web-src {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
+.contact-date {
+  font-size: 11px;
+  color: var(--text-muted, #bbb);
+}
+
+/* RIGHT DETAIL */
+.contact-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
+}
+
+.detail-card {
+  background: var(--bg-card, white);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e8e8e8);
+  padding: 20px;
+
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid
+      var(--border-color, #f0f0f0);
+  }
+
+  // Profile card
+  text-align: center;
+
+  .detail-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+  }
+
+  .detail-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 4px;
+  }
+
+  .detail-email {
+    font-size: 13px;
+    color: var(--accent, #2563eb);
+    margin-bottom: 6px;
+  }
+
+  .detail-company {
+    font-size: 13px;
+    color: var(--text-secondary, #666);
+    margin-bottom: 10px;
+  }
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid
+    var(--border-color, #f5f5f5);
+
+  &:last-child { border-bottom: none; }
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  min-width: 80px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.info-val {
+  font-size: 13px;
+  color: var(--text-primary, #333);
+  flex: 1;
+}
+
+.actions-card {
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+  text-align: center;
+}
+
+.action-btn {
+  display: block;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 0.9; }
+
+  &.primary {
+    background: var(--accent, #2563eb);
+    color: white;
+  }
+
+  &.secondary {
+    background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-primary, #333);
+    border: 1px solid var(--border-color, #e0e0e0);
+  }
+}
+
+.empty-detail {
+  background: var(--bg-card, white);
+  border-radius: 12px;
+  border: 1px dashed var(--border-color, #e0e0e0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.select-hint {
+  div { font-size: 32px; margin-bottom: 12px; }
+  p { font-size: 14px; color: var(--text-muted, #bbb); }
+}

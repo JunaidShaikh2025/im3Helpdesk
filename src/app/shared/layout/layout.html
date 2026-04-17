@@ -1,9 +1,7 @@
 <div class="app-frame">
 
   <aside class="sidebar">
-    <div class="sidebar-brand"
-      (click)="router.navigate(['/dashboard'])"
-      style="cursor:pointer">
+    <div class="sidebar-brand" (click)="router.navigate(['/dashboard'])" style="cursor:pointer">
       <div class="brand-icon">⚡</div>
       <span>iM3 Helpdesk</span>
     </div>
@@ -11,123 +9,89 @@
     <nav class="sidebar-nav">
       <div class="nav-label">MAIN MENU</div>
 
-      <a class="nav-item"
-        routerLink="/dashboard"
-        routerLinkActive="active">
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
         <span class="nav-icon">⊞</span>
         <span>Dashboard</span>
       </a>
 
-      <a class="nav-item"
-        routerLink="/tickets"
-        routerLinkActive="active">
+      <a class="nav-item" routerLink="/tickets" routerLinkActive="active">
         <span class="nav-icon">🎫</span>
         <span>Tickets</span>
       </a>
 
-      <a class="nav-item"
-        routerLink="/agents"
-        routerLinkActive="active"
-        *ngIf="isAdmin()">
-        <span class="nav-icon">👤</span>
+      <a class="nav-item" routerLink="/agents" routerLinkActive="active">
+       <span class="nav-icon">👤</span>
         <span>Agents</span>
       </a>
 
+      <!-- Main menu mein add karo -->
       <a class="nav-item"
-        routerLink="/kb"
+        routerLink="/contacts"
         routerLinkActive="active">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Contacts</span>
+      </a>
+
+      <a class="nav-item" routerLink="/kb" routerLinkActive="active">
         <span class="nav-icon">📖</span>
         <span>KB</span>
       </a>
 
-      <a class="nav-item"
-        routerLink="/notifications"
-        routerLinkActive="active">
+      <a class="nav-item" routerLink="/notifications">
         <span class="nav-icon">🔔</span>
         <span>Notifications</span>
         <span class="nav-badge" *ngIf="unreadCount > 0">
           {{ unreadCount }}
         </span>
       </a>
-
-      <a class="nav-item"
-        routerLink="/reports"
-        routerLinkActive="active">
-        <span class="nav-icon">📊</span>
-        <span>Reports</span>
-      </a>
+ 
 
       <div class="nav-label">SYSTEM</div>
 
-      <a class="nav-item"
-        routerLink="/settings/templates"
-        routerLinkActive="active">
-        <span class="nav-icon">📋</span>
-        <span>Templates</span>
-      </a>
-
-      <a class="nav-item"
-        routerLink="/settings"
-        routerLinkActive="active">
+      <a class="nav-item" routerLink="/settings" routerLinkActive="active">
         <span class="nav-icon">⚙</span>
         <span>Settings</span>
       </a>
 
-      <a class="nav-item"
-        routerLink="/audit"
-        routerLinkActive="active">
-        <span class="nav-icon">🔍</span>
-        <span>Audit Log</span>
-      </a>
-
-      <a class="nav-item"
-        routerLink="/admin"
-        routerLinkActive="active"
-        *ngIf="userRole === 'SuperAdmin'">
+      <a class="nav-item" routerLink="/admin" routerLinkActive="active" *ngIf="userRole === 'SuperAdmin'">
         <span class="nav-icon">👑</span>
         <span>Super Admin</span>
       </a>
     </nav>
 
     <div class="sidebar-footer">
-      <div class="user-card">
-        <div class="user-av" style="overflow:hidden;">
-          <img *ngIf="userPhotoUrl"
-            [src]="userPhotoUrl"
-            alt="profile"
-            style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+      <div class="sidebar-user" (click)="router.navigate(['/profile'])" style="cursor:pointer">
+        <div class="user-av">
+          <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName" (error)="userPhotoUrl = ''" 
+               style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
           <span *ngIf="!userPhotoUrl">{{ userInitials }}</span>
         </div>
-        <div class="user-det">
-          <div class="user-n">{{ userName }}</div>
-          <div class="user-e">{{ userEmail }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ userName }}</div>
+          <div class="user-email">{{ userEmail }}</div>
         </div>
       </div>
+      
       <div class="footer-links">
         <a class="footer-link" routerLink="/profile">👤 Profile</a>
-        <button class="footer-link logout" (click)="logout()">
-          → Logout
-        </button>
+        <button class="footer-link logout" (click)="logout()">→ Logout</button>
       </div>
     </div>
   </aside>
 
   <div class="main-wrap">
-
     <header class="topbar">
       <div class="topbar-search">
         <app-global-search></app-global-search>
       </div>
 
       <div class="topbar-actions">
-        <button class="action-btn primary"
-          (click)="router.navigate(['/tickets/create'])">
+        <button class="action-btn primary" (click)="router.navigate(['/tickets/create'])">
           + New Ticket
         </button>
 
         <div class="notif-wrap">
-          <button class="notif-bell"
-            (click)="toggleNotifDropdown()">
+          <button class="notif-bell" (click)="toggleNotifDropdown()">
             🔔
             <span class="notif-dot" *ngIf="unreadCount > 0">
               {{ unreadCount > 9 ? '9+' : unreadCount }}
@@ -140,41 +104,28 @@
               <button (click)="viewAllNotifications()">View all</button>
             </div>
             <div class="notif-list">
-              <div *ngIf="notifications.length === 0" class="notif-empty">
-                No notifications
-              </div>
-              <div class="notif-row"
-                *ngFor="let n of notifications"
-                (click)="goToNotification(n)"
-                [class.unread]="!n.isRead">
-                <div class="notif-dot-type"
-                  [style.background]="getTypeColor(n.type)">
-                </div>
+              <div *ngIf="notifications.length === 0" class="notif-empty">No notifications</div>
+              <div class="notif-row" *ngFor="let n of notifications" (click)="goToNotification(n)" [class.unread]="!n.isRead">
+                <div class="notif-dot-type" [style.background]="getTypeColor(n.type)"></div>
                 <div class="notif-text">
                   <div class="notif-t">{{ n.title }}</div>
                   <div class="notif-m">{{ n.message }}</div>
-                  <div class="notif-time">
-                    {{ n.timeAgo || (n.createdAt | date:'hh:mm a') }}
-                  </div>
+                  <div class="notif-time">{{ n.timeAgo || (n.createdAt | date:'hh:mm a') }}</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="topbar-user">
-          <div class="user-info">
+        <div class="topbar-user" (click)="router.navigate(['/profile'])" style="cursor:pointer">
+          <div class="u-av">
+            <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName" (error)="userPhotoUrl = ''"
+                 style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+            <span *ngIf="!userPhotoUrl">{{ userInitials }}</span>
+          </div>
+          <div class="u-info">
             <span class="u-name">{{ userName }}</span>
             <span class="u-role">{{ userRole | uppercase }}</span>
-          </div>
-          <div class="u-av"
-            (click)="router.navigate(['/profile'])"
-            style="cursor:pointer;overflow:hidden;">
-            <img *ngIf="userPhotoUrl"
-              [src]="userPhotoUrl"
-              alt="profile"
-              style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
-            <span *ngIf="!userPhotoUrl">{{ userInitials }}</span>
           </div>
         </div>
       </div>
@@ -185,8 +136,5 @@
     </div>
   </div>
 
-  <div class="overlay"
-    *ngIf="showNotifDropdown"
-    (click)="showNotifDropdown = false">
-  </div>
+  <div class="overlay" *ngIf="showNotifDropdown" (click)="showNotifDropdown = false"></div>
 </div>

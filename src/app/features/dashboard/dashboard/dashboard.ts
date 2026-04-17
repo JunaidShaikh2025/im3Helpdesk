@@ -52,36 +52,62 @@ export class DashboardComponent implements OnInit, OnDestroy {
     recentTickets: []
   };
 
-  ngOnInit() {
-    const token = this.authService.getToken();
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      
-      this.userName = payload[
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
-      ] || payload.email?.split('@')[0] || 'User';
-      
-      this.userEmail = payload.email || '';
-      
-      this.userRole = payload[
-        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
-      ] || payload.role || '';
-      
-      this.userInitials = this.userName.split(' ')
-        .map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    
-    this.loadStats();
-    this.loadUnreadCount();
+    ngOnInit() {
+      // Load user info first (sync)
+      const token = this.authService.getToken();
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          this.userName = payload[
+            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
+          ] || payload.email?.split('@')[0] || 'User';
+          this.userEmail = payload.email || '';
+          this.userRole = payload[
+            'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
+          ] || payload.role || '';
+          this.userInitials = this.userName.split(' ')
+            .map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+        } catch {}
+      }
 
-    // Auto refresh every 60 seconds
-    interval(60000)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.loadStats();
-        this.loadUnreadCount();
+      // Load stats + widgets in parallel
+      this.loadAll();
+
+      interval(60000)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => this.loadAll());
+    }
+
+    loadAll() {
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${this.authService.getToken()}`
       });
-  }
+
+      // Parallel requests
+      Promise.all([
+        this.http.get<any>(
+          'https://localhost:7071/api/Dashboard/stats',
+          { headers }
+        ).toPromise(),
+        this.http.get<any>(
+          'https://localhost:7071/api/Dashboard/widgets',
+          { headers }
+        ).toPromise(),
+        this.http.get<any>(
+          'https://localhost:7071/api/Notifications/unread-count',
+          { headers }
+        ).toPromise()
+      ]).then(([stats, widgets, notif]) => {
+        this.stats = stats || this.stats;
+        this.widgetData = widgets || null;
+        this.unreadCount = notif?.count || 0;
+        this.loading = false;
+        this.cdr.detectChanges();
+      }).catch(() => {
+        this.loading = false;
+        this.cdr.detectChanges();
+      });
+    }
 
   ngOnDestroy() {
     this.destroy$.next();

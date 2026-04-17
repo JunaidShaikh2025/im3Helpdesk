@@ -14,9 +14,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
 import { FormControl, FormGroup } from '@angular/forms';
-import { LayoutComponent } from '../../../shared/layout/layout';
-
-
 
 
 @Component({
@@ -26,7 +23,7 @@ import { LayoutComponent } from '../../../shared/layout/layout';
     CommonModule, ReactiveFormsModule, RouterModule,
     MatButtonModule, MatFormFieldModule, MatInputModule,
     MatToolbarModule, MatCardModule, MatProgressSpinnerModule,
-    MatDatepickerModule, MatNativeDateModule,LayoutComponent
+    MatDatepickerModule, MatNativeDateModule
   ],
   templateUrl: './reports-page.html',
   styleUrls: ['./reports-page.scss']

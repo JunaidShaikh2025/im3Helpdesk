@@ -1,132 +1,129 @@
-<app-layout>
-  <div class="page-content">
-  <!-- Date Filter -->
-  <mat-card class="filter-card">
-    <mat-card-content>
-      <div class="filter-row">
-        <mat-form-field appearance="outline">
-        <mat-label>From Date</mat-label>
-        <input matInput [matDatepicker]="picker1"
-            [formControl]="dateForm.controls.from"/>
-        <mat-datepicker-toggle matSuffix [for]="picker1"></mat-datepicker-toggle>
-        <mat-datepicker #picker1></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-        <mat-label>To Date</mat-label>
-        <input matInput [matDatepicker]="picker2"
-            [formControl]="dateForm.controls.to"/>
-        <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
-        <mat-datepicker #picker2></mat-datepicker>
-        </mat-form-field>
-
-        <button mat-raised-button color="primary"
-          (click)="loadReport()" [disabled]="loading">
-          Generate Report
-        </button>
-
-        <button mat-raised-button color="accent"
-          (click)="exportCsv()">
-          Export CSV
-        </button>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <div *ngIf="loading" class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
+<div class="reports-wrap">
+  <div class="reports-header">
+    <h2>Reports</h2>
+    <p>Generate and view ticket analytics</p>
   </div>
 
-  <div *ngIf="!loading && report">
+  <!-- Date Filter -->
+  <div class="reports-filter">
+    <mat-form-field appearance="outline" class="date-field">
+      <mat-label>From Date</mat-label>
+      <input matInput [matDatepicker]="picker1"
+        [formControl]="dateForm.controls.from"/>
+      <mat-datepicker-toggle matSuffix
+        [for]="picker1">
+      </mat-datepicker-toggle>
+      <mat-datepicker #picker1></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="date-field">
+      <mat-label>To Date</mat-label>
+      <input matInput [matDatepicker]="picker2"
+        [formControl]="dateForm.controls.to"/>
+      <mat-datepicker-toggle matSuffix
+        [for]="picker2">
+      </mat-datepicker-toggle>
+      <mat-datepicker #picker2></mat-datepicker>
+    </mat-form-field>
+
+    <button class="gen-btn"
+      (click)="loadReport()" [disabled]="loading">
+      Generate Report
+    </button>
+    <button class="export-btn-r"
+      (click)="exportCsv()">
+      Export CSV
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading-center">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading && report" class="reports-content">
 
     <!-- Summary Cards -->
-    <div class="summary-grid">
-      <mat-card class="summary-card total">
-        <mat-card-content>
-          <div class="summary-num">{{ report.totalTickets }}</div>
-          <div class="summary-label">Total Tickets</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="summary-card avg">
-        <mat-card-content>
-          <div class="summary-num">{{ report.avgResolutionHours }}h</div>
-          <div class="summary-label">Avg Resolution Time</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="summary-card period">
-        <mat-card-content>
-          <div class="summary-num">
-            {{ report.period.from | date:'dd MMM' }} —
-            {{ report.period.to | date:'dd MMM' }}
-          </div>
-          <div class="summary-label">Report Period</div>
-        </mat-card-content>
-      </mat-card>
+    <div class="report-summary">
+      <div class="sum-card blue">
+        <div class="sum-num">{{ report.totalTickets }}</div>
+        <div class="sum-label">Total Tickets</div>
+      </div>
+      <div class="sum-card green">
+        <div class="sum-num">{{ report.avgResolutionHours }}h</div>
+        <div class="sum-label">Avg Resolution Time</div>
+      </div>
+      <div class="sum-card gray">
+        <div class="sum-num">
+          {{ report.period.from | date:'dd MMM' }}
+          — {{ report.period.to | date:'dd MMM' }}
+        </div>
+        <div class="sum-label">Report Period</div>
+      </div>
     </div>
 
     <!-- Charts Row -->
     <div class="charts-row">
-
-      <!-- By Status -->
-      <mat-card class="chart-card">
-        <mat-card-content>
-          <h3>By Status</h3>
-          <div class="bar-chart">
-            <div class="bar-item" *ngFor="let s of report.byStatus">
-              <div class="bar-label">{{ s.status }}</div>
-              <div class="bar-track">
-                <div class="bar-fill"
-                  [style.width]="getBarWidth(s.count)"
-                  [style.background]="getStatusColor(s.status)">
-                </div>
+      <div class="chart-card">
+        <h4>By Status</h4>
+        <div class="bar-list">
+          <div class="bar-row"
+            *ngFor="let s of report.byStatus">
+            <span class="bar-label">{{ s.status }}</span>
+            <div class="bar-track">
+              <div class="bar-fill"
+                [style.width]="getBarWidth(s.count)"
+                [style.background]="getStatusColor(s.status)">
               </div>
-              <div class="bar-count">{{ s.count }}</div>
             </div>
+            <span class="bar-count">{{ s.count }}</span>
           </div>
-        </mat-card-content>
-      </mat-card>
+          <div *ngIf="!report.byStatus?.length"
+            class="no-data">No data</div>
+        </div>
+      </div>
 
-      <!-- By Priority -->
-      <mat-card class="chart-card">
-        <mat-card-content>
-          <h3>By Priority</h3>
-          <div class="bar-chart">
-            <div class="bar-item" *ngFor="let p of report.byPriority">
-              <div class="bar-label">{{ p.priority }}</div>
-              <div class="bar-track">
-                <div class="bar-fill"
-                  [style.width]="getBarWidth(p.count)"
-                  [style.background]="getPriorityColor(p.priority)">
-                </div>
+      <div class="chart-card">
+        <h4>By Priority</h4>
+        <div class="bar-list">
+          <div class="bar-row"
+            *ngFor="let p of report.byPriority">
+            <span class="bar-label">{{ p.priority }}</span>
+            <div class="bar-track">
+              <div class="bar-fill"
+                [style.width]="getBarWidth(p.count)"
+                [style.background]="getPriorityColor(p.priority)">
               </div>
-              <div class="bar-count">{{ p.count }}</div>
             </div>
+            <span class="bar-count">{{ p.count }}</span>
           </div>
-        </mat-card-content>
-      </mat-card>
+          <div *ngIf="!report.byPriority?.length"
+            class="no-data">No data</div>
+        </div>
+      </div>
 
-      <!-- By Category -->
-      <mat-card class="chart-card">
-        <mat-card-content>
-          <h3>By Category</h3>
-          <div class="bar-chart">
-            <div class="bar-item" *ngFor="let c of report.byCategory">
-              <div class="bar-label">{{ c.category }}</div>
-              <div class="bar-track">
-                <div class="bar-fill"
-                  [style.width]="getBarWidth(c.count)"
-                  [style.background]="'#1976d2'">
-                </div>
+      <div class="chart-card">
+        <h4>By Category</h4>
+        <div class="bar-list">
+          <div class="bar-row"
+            *ngFor="let c of report.byCategory">
+            <span class="bar-label">{{ c.category }}</span>
+            <div class="bar-track">
+              <div class="bar-fill"
+                [style.width]="getBarWidth(c.count)"
+                style="background:#3b82f6">
               </div>
-              <div class="bar-count">{{ c.count }}</div>
             </div>
+            <span class="bar-count">{{ c.count }}</span>
           </div>
-        </mat-card-content>
-      </mat-card>
-
+          <div *ngIf="!report.byCategory?.length"
+            class="no-data">No data</div>
+        </div>
+      </div>
     </div>
+
+  </div>
+
+  <div *ngIf="!loading && !report" class="empty-report">
+    <p>Click "Generate Report" to view analytics</p>
   </div>
 </div>
-</app-layout>

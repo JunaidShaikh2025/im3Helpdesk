@@ -4,23 +4,65 @@
     <div class="page-header">
       <div class="page-header-left">
         <h1>All Tickets</h1>
-        <span class="ticket-count">{{ tickets.length }} tickets</span>
+        <span class="ticket-count">{{ tickets.length }}</span>
       </div>
       <div class="page-header-right">
-        <button class="sort-btn">
-          Sort by: Date created ▼
-        </button>
-        <button class="layout-btn">
-          Layout: Card ▼
-        </button>
+
+        <!-- Layout Toggle -->
+        <div class="layout-btns">
+          <button class="layout-btn"
+            [class.active]="currentLayout === 'card'"
+            (click)="currentLayout = 'card'"
+            title="Card View">
+            ≡
+          </button>
+          <button class="layout-btn"
+            [class.active]="currentLayout === 'table'"
+            (click)="currentLayout = 'table'"
+            title="Table View">
+            ⊞
+          </button>
+          <button class="layout-btn"
+            [class.active]="currentLayout === 'grid'"
+            (click)="currentLayout = 'grid'"
+            title="Grid View">
+            ⊟
+          </button>
+        </div>
+
+        <!-- Column Picker -->
+        <div class="col-picker-wrap">
+          <button class="filter-btn"
+            (click)="showColumnPicker = !showColumnPicker">
+            ⊞ Columns
+          </button>
+          <div class="col-picker-dropdown"
+            *ngIf="showColumnPicker">
+            <div class="col-picker-title">Show/Hide Columns</div>
+            <div class="col-picker-item"
+              *ngFor="let col of allColumns">
+              <label class="col-check">
+                <input type="checkbox"
+                  [checked]="isColumnVisible(col.id)"
+                  (change)="toggleColumn(col.id)"/>
+                {{ col.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+
         <button class="export-btn" (click)="exportCsv()">
           ↓ Export
         </button>
-        <span class="pagination">1 - {{ tickets.length }} of {{ tickets.length }}</span>
+        <span class="pagination">
+          1 - {{ tickets.length }} of {{ tickets.length }}
+        </span>
         <button class="filter-btn"
           (click)="showFilters = !showFilters">
           ⊟ Filters
-          <span *ngIf="hasActiveFilters()" class="filter-count">1</span>
+          <span *ngIf="hasActiveFilters()" class="filter-count">
+            1
+          </span>
         </button>
       </div>
     </div>
@@ -61,7 +103,8 @@
             </button>
           </div>
 
-          <div class="ticket-cards">
+          <!-- CARD VIEW (default) -->
+          <div class="ticket-cards" *ngIf="currentLayout === 'card'">
             <div class="ticket-card"
               *ngFor="let t of tickets"
               (click)="viewTicket(t.id)">
@@ -96,8 +139,10 @@
                   </div>
 
                   <div class="ticket-title-row">
+                    <span class="ticket-num-badge">
+                      #TN{{ t.ticketNumber || '—' }}
+                    </span>
                     <span class="ticket-title">{{ t.title }}</span>
-                    <span class="ticket-num">#{{ getTicketNum(t.id) }}</span>
                   </div>
 
                   <div class="ticket-meta-info">
@@ -141,6 +186,124 @@
               </div>
             </div>
           </div>
+
+          <!-- TABLE VIEW -->
+          <div class="table-view" *ngIf="currentLayout === 'table'">
+            <table class="tickets-table">
+              <thead>
+                <tr>
+                  <th>
+                    <input type="checkbox"
+                      (change)="selectAll()"/>
+                  </th>
+                  <th *ngIf="isColumnVisible('title')">Title</th>
+                  <th *ngIf="isColumnVisible('status')">Status</th>
+                  <th *ngIf="isColumnVisible('priority')">Priority</th>
+                  <th *ngIf="isColumnVisible('category')">Category</th>
+                  <th *ngIf="isColumnVisible('assignedTo')">Assigned</th>
+                  <th *ngIf="isColumnVisible('createdBy')">Created By</th>
+                  <th *ngIf="isColumnVisible('createdAt')">Date</th>
+                  <th *ngIf="isColumnVisible('sla')">SLA</th>
+                  <th *ngIf="isColumnVisible('ticketType')">Type</th>
+                  <th *ngIf="isColumnVisible('tags')">Tags</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let t of tickets"
+                  (click)="viewTicket(t.id)"
+                  class="table-row">
+                  <td>
+                    <input type="checkbox"
+                      [checked]="selectedTicketIds.has(t.id)"
+                      (change)="toggleSelect(t.id)"
+                      (click)="$event.stopPropagation()"/>
+                  </td>
+                  <td *ngIf="isColumnVisible('title')"
+                    class="title-cell">
+                    {{ t.title }}
+                  </td>
+                  <td *ngIf="isColumnVisible('status')">
+                    <span class="status-pill"
+                      [class]="'status-' + t.status?.toLowerCase()">
+                      {{ t.status }}
+                    </span>
+                  </td>
+                  <td *ngIf="isColumnVisible('priority')">
+                    <span class="priority-dot"
+                      [class]="'p-' + t.priority?.toLowerCase()">
+                    </span>
+                    {{ t.priority }}
+                  </td>
+                  <td *ngIf="isColumnVisible('category')">
+                    {{ t.category }}
+                  </td>
+                  <td *ngIf="isColumnVisible('assignedTo')">
+                    {{ t.assignedTo || '—' }}
+                  </td>
+                  <td *ngIf="isColumnVisible('createdBy')">
+                    {{ t.createdBy }}
+                  </td>
+                  <td *ngIf="isColumnVisible('createdAt')">
+                    {{ t.createdAt | date:'dd MMM yyyy' }}
+                  </td>
+                  <td *ngIf="isColumnVisible('sla')">
+                    <span class="sla-badge"
+                      [class]="'sla-' + (t.slaStatus || 'notrack')">
+                      {{ t.slaStatus || 'No SLA' }}
+                    </span>
+                  </td>
+                  <td *ngIf="isColumnVisible('ticketType')">
+                    {{ t.ticketType }}
+                  </td>
+                  <td *ngIf="isColumnVisible('tags')">
+                    <ng-container *ngFor="let tag of getTagsArr(t.tags).slice(0,2)">
+                      <span class="tag-pill">{{ tag }}</span>
+                    </ng-container> </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- GRID VIEW -->
+          <div class="grid-view" *ngIf="currentLayout === 'grid'">
+            <div class="grid-card"
+              *ngFor="let t of tickets"
+              (click)="viewTicket(t.id)">
+              <div class="grid-top">
+                <span class="status-pill"
+                  [class]="'status-' + t.status?.toLowerCase()">
+                  {{ t.status }}
+                </span>
+                <span class="grid-date">
+                  {{ t.createdAt | date:'dd MMM' }}
+                </span>
+              </div>
+              <div class="grid-title">{{ t.title }}</div>
+              <div class="grid-meta">
+                <span class="priority-dot"
+                  [class]="'p-' + t.priority?.toLowerCase()">
+                </span>
+                {{ t.priority }}
+                <span class="grid-sep">·</span>
+                {{ t.category }}
+              </div>
+              <div class="grid-assign">
+                <span *ngIf="t.assignedTo">
+                  👤 {{ t.assignedTo }}
+                </span>
+                <span *ngIf="!t.assignedTo" class="unassigned">
+                  Unassigned
+                </span>
+              </div>
+              <div class="grid-sla" *ngIf="t.slaStatus">
+                <span class="sla-badge"
+                  [class]="'sla-' + t.slaStatus">
+                  {{ t.slaStatus }}
+                </span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 

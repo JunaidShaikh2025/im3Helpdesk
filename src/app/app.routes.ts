@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth-guard';
 import { superAdminGuard } from './guards/super-admin-guard';
 import { customerGuard } from './guards/customer-guard';
+import { ContactsPageComponent } from './features/contacts/contacts-page/contacts-page';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -22,6 +23,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/forgot-password/forgot-password')
         .then(m => m.ForgotPasswordComponent)
+  },
+  {
+    path: 'contacts',
+    component: ContactsPageComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'verify-email',
