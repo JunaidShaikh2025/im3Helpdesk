@@ -162,13 +162,47 @@ public class AgentsController : ControllerBase
     return Ok(new { message = "Agent updated" });
   }
 
+  [HttpPut("{id}/toggle-active")]
+  public async Task<IActionResult> ToggleActive(Guid id)
+  {
+    var agent = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Id == id);
+
+    if (agent == null)
+      return NotFound(new { message = "Agent not found" });
+
+    // Toggle: if currently locked → unlock, else lock indefinitely
+    if (agent.LockedUntil.HasValue &&
+        agent.LockedUntil > DateTime.UtcNow)
+    {
+      // Currently locked — unlock
+      agent.LockedUntil = null;
+      agent.FailedLoginAttempts = 0;
+    }
+    else
+    {
+      // Lock indefinitely = deactivate
+      agent.LockedUntil = DateTime.UtcNow.AddYears(100);
+    }
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+      message = "Agent status updated",
+      isActive = !agent.LockedUntil.HasValue ||
+          agent.LockedUntil < DateTime.UtcNow
+    });
+  }
+
   [HttpDelete("{id}")]
   public async Task<IActionResult> Delete(Guid id)
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Id == id
-            && u.OrganizationId == _tenantService.OrganizationId);
+            && u.Role != UserRole.SuperAdmin);
 
     if (agent == null)
       return NotFound(new { message = "Agent not found" });
@@ -176,7 +210,7 @@ public class AgentsController : ControllerBase
     _context.Users.Remove(agent);
     await _context.SaveChangesAsync();
 
-    return Ok(new { message = "Agent removed successfully" });
+    return Ok(new { message = "Agent deleted" });
   }
 
   private string GenerateTempPassword()

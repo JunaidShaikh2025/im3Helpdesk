@@ -284,6 +284,17 @@ public class EmailPollingService : BackgroundService
       return;
     }
 
+    // ── 2b. Skip spam/notification emails ────────
+    if (fromEmail.Contains("noreply") ||
+        fromEmail.Contains("no-reply") ||
+        fromEmail.Contains("notify") ||
+        fromEmail.Contains("bounce") ||
+        fromEmail.Contains("mailer-daemon"))
+    {
+      _logger.LogDebug("Skipping automated email: {E}", fromEmail);
+      return;
+    }
+
     _logger.LogInformation(
         "Processing email from {E} — Subject: {S}", fromEmail, message.Subject);
 
@@ -301,7 +312,11 @@ public class EmailPollingService : BackgroundService
       return;
     }
 
-    // ── 4. Find or create customer user ──────────
+    // ── 4. Save as Contact FIRST (Contact is separate from User) ──
+    var contact = await UpsertContactAsync(
+        fromEmail, fromName, org.Id, null, context, ct);
+
+    // ── 5. Find or create customer user ──────────
     var customer = await context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u =>
@@ -323,10 +338,14 @@ public class EmailPollingService : BackgroundService
       context.Users.Add(customer);
       await context.SaveChangesAsync(ct);
       _logger.LogInformation("Auto-created customer: {E}", fromEmail);
-    }
 
-    // ── 5. Upsert Contact record ─────────────────
-    await UpsertContactAsync(fromEmail, fromName, org.Id, customer.Id, context, ct);
+      // Link contact to user
+      if (contact != null)
+      {
+        contact.LinkedUserId = customer.Id;
+        await context.SaveChangesAsync(ct);
+      }
+    }
 
     // ── 6. Build description ─────────────────────
     var description = BuildDescription(message);
@@ -550,12 +569,13 @@ public class EmailPollingService : BackgroundService
 
   /// <summary>
   /// Insert or update Contact record without failing ticket creation.
+  /// Returns the Contact entity (new or existing), or null on error.
   /// </summary>
-  private async Task UpsertContactAsync(
+  private async Task<Contact?> UpsertContactAsync(
       string email,
       string name,
       Guid orgId,
-      Guid userId,
+      Guid? userId,
       ApplicationDbContext context,
       CancellationToken ct)
   {
@@ -569,27 +589,65 @@ public class EmailPollingService : BackgroundService
 
       if (existing == null)
       {
-        context.Contacts.Add(new Contact
+        // Extract company from email domain
+        var domain = email.Split('@').LastOrDefault() ?? "";
+        var company = IsGenericDomain(domain)
+            ? null
+            : CapitalizeDomain(domain);
+
+        var contact = new Contact
         {
           FullName = name,
           Email = email,
           Source = "email",
+          Company = company,
           OrganizationId = orgId,
           LinkedUserId = userId
-        });
+        };
+        context.Contacts.Add(contact);
         await context.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Contact saved: {E} (company: {C})",
+            email, company ?? "none");
+
+        return contact;
       }
-      else if (existing.FullName != name)
+      else
       {
-        existing.FullName = name;
+        if (existing.FullName != name)
+          existing.FullName = name;
+        if (userId.HasValue && !existing.LinkedUserId.HasValue)
+          existing.LinkedUserId = userId;
         await context.SaveChangesAsync(ct);
+        return existing;
       }
     }
     catch (Exception ex)
     {
       // Non-fatal — log and continue
       _logger.LogWarning("Contact upsert warning: {M}", ex.Message);
+      return null;
     }
+  }
+
+  // Check if domain is a generic email provider
+  private static bool IsGenericDomain(string domain)
+  {
+    var generic = new[]
+    {
+      "gmail.com", "yahoo.com", "hotmail.com",
+      "outlook.com", "icloud.com", "live.com",
+      "msn.com", "aol.com", "protonmail.com",
+      "notice.alibaba.com", "alibaba.com"
+    };
+    return generic.Contains(domain.ToLower());
+  }
+
+  private static string CapitalizeDomain(string domain)
+  {
+    var name = domain.Split('.')[0];
+    return char.ToUpper(name[0]) + name.Substring(1);
   }
 
   /// <summary>
