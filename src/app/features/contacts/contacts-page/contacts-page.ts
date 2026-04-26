@@ -81,15 +81,31 @@ export class ContactsPageComponent implements OnInit {
   }
 
   search() {
-    const q = this.searchQuery.toLowerCase();
-    this.filteredContacts = q
-      ? this.contacts.filter(c =>
-          c.fullName?.toLowerCase().includes(q) ||
-          c.email?.toLowerCase().includes(q) ||
-          c.company?.toLowerCase().includes(q))
-      : [...this.contacts];
+    const q = this.searchQuery.toLowerCase().trim();
+    if (!q) {
+      this.filteredContacts = [...this.contacts];
+      this.filteredCompanies = [...this.companies];
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Contacts: search by name, email, company
+    this.filteredContacts = this.contacts.filter(c =>
+      c.fullName?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.company?.toLowerCase().includes(q)
+    );
+
+    // Companies: search by company name
+    this.filteredCompanies = this.companies.filter(
+      (c: any) => c.name?.toLowerCase().includes(q)
+    );
+
     this.cdr.detectChanges();
   }
+
+  filterContacts() { this.search(); }
+  searchCompanies() { this.search(); }
 
   get companyGroups(): any[] {
   const groups: { [key: string]: any[] } = {};
@@ -129,30 +145,6 @@ export class ContactsPageComponent implements OnInit {
   selectCompany(co: any) {
     this.selectedCompany = co;
     this.companyContacts = co.contacts;
-    this.cdr.detectChanges();
-  }
-
-  searchCompanies() {
-    const q = this.searchQuery.toLowerCase();
-    this.filteredCompanies = q
-      ? this.companies.filter(
-          (c: any) => c.name.toLowerCase().includes(q))
-      : [...this.companies];
-    this.cdr.detectChanges();
-  }
-
-  filterContacts() {
-    const q = this.searchQuery?.toLowerCase() ?? '';
-    if (!q) {
-      this.filteredContacts = [...this.contacts];
-      this.cdr.detectChanges();
-      return;
-    }
-    this.filteredContacts = this.contacts.filter(c =>
-      c.fullName?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q) ||
-      c.company?.toLowerCase().includes(q)
-    );
     this.cdr.detectChanges();
   }
 

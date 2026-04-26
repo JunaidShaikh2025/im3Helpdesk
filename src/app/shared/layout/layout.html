@@ -47,11 +47,15 @@
           <span>Contacts</span>
         </a>
 
+        <!-- ✅ To Do with badge — same as notifications -->
         <a class="nav-item"
           routerLink="/todo"
           routerLinkActive="active">
           <span class="nav-icon">📋</span>
           <span>To Do</span>
+          <span class="badge" *ngIf="todoCount > 0">
+            {{ todoCount > 99 ? '99+' : todoCount }}
+          </span>
         </a>
 
         <a class="nav-item"
@@ -180,14 +184,14 @@
 
   <!-- MAIN AREA -->
   <div class="main-area">
-   
+
     <!-- TOPBAR -->
     <div class="topbar">
-      <!-- In topbar, before search: -->
       <button class="hamburger"
         (click)="sidebarOpen = !sidebarOpen">
         ☰
       </button>
+
       <!-- Search (agents/admin only) -->
       <div class="topbar-search"
         *ngIf="!isSuperAdmin && !isCustomer">
@@ -211,8 +215,7 @@
       </div>
 
       <!-- Customer header -->
-      <div class="customer-header"
-        *ngIf="isCustomer">
+      <div class="customer-header" *ngIf="isCustomer">
         Support Portal
       </div>
 
@@ -249,25 +252,25 @@
           (click)="router.navigate(['/tickets/create'])">
           + New Ticket
         </button>
-        
-                    <!-- In topbar-right, after bell: -->
-            <div class="todo-trigger"
-              (click)="toggleTodoPanel()">
-              📋
-              <span class="todo-count"
-                *ngIf="todoCount > 0">
-                {{ todoCount }}
-              </span>
 
-              <!-- Panel -->
-              <div class="todo-dropdown"
-                *ngIf="showTodoPanel"
-                (click)="$event.stopPropagation()">
-                <app-todo-panel
-                  (close)="showTodoPanel = false">
-                </app-todo-panel>
-              </div>
-            </div>
+        <!-- ✅ Todo trigger with count -->
+        <div class="todo-trigger"
+          (click)="toggleTodoPanel()">
+          📋
+          <span class="todo-count"
+            *ngIf="todoCount > 0">
+            {{ todoCount > 99 ? '99+' : todoCount }}
+          </span>
+
+          <!-- Panel -->
+          <div class="todo-dropdown"
+            *ngIf="showTodoPanel"
+            (click)="$event.stopPropagation()">
+            <app-todo-panel
+              (close)="showTodoPanel = false; onTodoPanelChange()">
+            </app-todo-panel>
+          </div>
+        </div>
 
         <!-- Bell -->
         <div class="notif-bell"
@@ -276,8 +279,7 @@
           <span class="bell-icon">🔔</span>
           <span class="notif-count"
             *ngIf="unreadCount > 0">
-            {{ unreadCount > 99
-              ? '99+' : unreadCount }}
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
           </span>
 
           <!-- Dropdown -->
@@ -300,14 +302,12 @@
               *ngFor="let n of notifications.slice(0,8)"
               [class.unread]="!n.isRead"
               (click)="goToNotification(n)">
-              <div class="nd-dot" *ngIf="!n.isRead">
-              </div>
+              <div class="nd-dot" *ngIf="!n.isRead"></div>
               <div class="nd-content">
                 <div class="nd-title">{{ n.title }}</div>
                 <div class="nd-msg">{{ n.message }}</div>
                 <div class="nd-time">
-                  {{ n.createdAt
-                    | date:'dd MMM, hh:mm a' }}
+                  {{ n.createdAt | date:'dd MMM, hh:mm a' }}
                 </div>
               </div>
             </div>
@@ -341,11 +341,12 @@
             <span class="u-role">{{ userRole }}</span>
           </div>
         </div>
-          <a class="nav-item logout-item"
-            (click)="logout()">
-            <span class="nav-icon">→</span>
-            <span>Logout</span>
-          </a>
+
+        <a class="nav-item logout-item"
+          (click)="logout()">
+          <span class="nav-icon">→</span>
+          <span>Logout</span>
+        </a>
       </div>
     </div>
     <!-- End Topbar -->

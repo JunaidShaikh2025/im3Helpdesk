@@ -11,10 +11,9 @@ import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DashboardChartsComponent } from '../dashboard-charts/dashboard-charts';
-import { GlobalSearchComponent } from '../../../shared/global-search/global-search';
 import { DashboardTrendComponent } from '../dashboard-trend/dashboard-trend';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
 const API_BASE = 'https://localhost:7071/api';
 const REFRESH_INTERVAL_MS = 60_000;
 
@@ -25,14 +24,15 @@ const REFRESH_INTERVAL_MS = 60_000;
     CommonModule, RouterModule,
     MatButtonModule, MatCardModule,
     MatToolbarModule, MatProgressSpinnerModule,
-    DashboardChartsComponent, GlobalSearchComponent,
-    DashboardTrendComponent
+    DashboardChartsComponent,
+    DashboardTrendComponent,
+    LayoutComponent
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  // ── DI ─────────────────────────────────────────────────────────────────────
+
   private authService = inject(AuthService);
   public  router      = inject(Router);
   private http        = inject(HttpClient);
@@ -40,14 +40,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private cdr         = inject(ChangeDetectorRef);
   private destroy$    = new Subject<void>();
 
-  // ── State ──────────────────────────────────────────────────────────────────
   userName    = '';
   userEmail   = '';
   userRole    = '';
   userInitials = '';
-  unreadCount = 0;
   loading     = true;
-  error       = false;   // ← NEW: show error state in template if needed
+  error       = false;
 
   widgetData: any = null;
 
@@ -63,12 +61,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     recentTickets: []
   };
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.initUserFromToken();
     this.loadAll();
 
-    // FIX 1: Auto-refresh every 60s using RxJS (was working, kept as-is)
     interval(REFRESH_INTERVAL_MS)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.loadAll());
@@ -79,16 +75,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ── Private helpers ────────────────────────────────────────────────────────
-
   private initUserFromToken(): void {
     const token = this.authService.getToken();
     if (!token) return;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
 
-      // FIX 2: JWT claim key corrected — 'fullName' claim used (matches your
-      //         backend JwtSettings where you set fullName, not 'name')
       this.userName =
         payload['fullName'] ||
         payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
@@ -108,9 +100,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         .join('')
         .toUpperCase()
         .slice(0, 2);
-    } catch {
-      // token malformed — leave defaults
-    }
+    } catch {}
   }
 
   private getHeaders(): HttpHeaders {
@@ -119,16 +109,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── FIX 3: Replace Promise.all + .toPromise() (deprecated) with forkJoin ──
-  //           Each inner observable uses catchError(of(null)) so ONE failing
-  //           request does NOT kill the entire dashboard load.
   loadAll(): void {
     const h = { headers: this.getHeaders() };
 
     forkJoin({
       stats: this.http.get<any>(`${API_BASE}/Dashboard/stats`, h).pipe(
         catchError(err => {
-          // FIX 4: Show the actual server error in console so you can debug
           console.error('Stats error:', err.status, err.error);
           this.toastr.error('Could not load dashboard stats', 'Error');
           return of(null);
@@ -139,32 +125,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
           console.warn('Widgets error:', err.status);
           return of(null);
         })
-      ),
-      notif: this.http.get<any>(`${API_BASE}/Notifications/unread-count`, h).pipe(
-        catchError(() => of({ count: 0 }))
       )
     })
     .pipe(takeUntil(this.destroy$))
     .subscribe({
-      next: ({ stats, widgets, notif }) => {
+      next: ({ stats, widgets }) => {
         if (stats)   this.stats      = stats;
         if (widgets) this.widgetData = widgets;
-        this.unreadCount = notif?.count ?? 0;
         this.loading = false;
-        this.error   = !stats;   // flag if stats still failed
+        this.error   = !stats;
         this.cdr.detectChanges();
       },
       error: () => {
-        // forkJoin itself shouldn't error since each inner catches,
-        // but just in case:
         this.loading = false;
         this.error   = true;
         this.cdr.detectChanges();
       }
     });
   }
-
-  // ── Template helpers ───────────────────────────────────────────────────────
 
   getTimeAgo(date: string): string {
     if (!date) return '';

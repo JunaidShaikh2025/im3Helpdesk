@@ -9,12 +9,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { TodoPanelComponent }from '../../features/todo/todo-panel/todo-panel';
+import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule,TodoPanelComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TodoPanelComponent],
   templateUrl: './layout.html',
   styleUrls: ['./layout.scss']
 })
@@ -27,7 +27,6 @@ export class LayoutComponent
   private cdr = inject(ChangeDetectorRef);
   private destroy$ = new Subject<void>();
 
-  // ✅ All properties declared
   userName = '';
   userEmail = '';
   userRole = '';
@@ -48,7 +47,8 @@ export class LayoutComponent
   showTodoPanel = false;
   todos: any[] = [];
 
-  loadTodos() {
+  // ✅ FIX 1: Load todo count on startup (sidebar badge ke liye)
+  loadTodoCount() {
     this.http.get<any[]>(
       'https://localhost:7071/api/Todo',
       { headers: this.getHeaders() }
@@ -58,14 +58,21 @@ export class LayoutComponent
         this.todoCount =
           data.filter(t => !t.isCompleted).length;
         this.cdr.detectChanges();
-      }
+      },
+      error: () => {}
     });
   }
 
   toggleTodoPanel() {
     this.showTodoPanel = !this.showTodoPanel;
-    if (this.showTodoPanel) this.loadTodos();
+    // ✅ FIX 2: Panel open hone pe bhi fresh data lo
+    if (this.showTodoPanel) this.loadTodoCount();
     this.cdr.detectChanges();
+  }
+
+  // ✅ TodoPanel ne koi change kiya (add/delete/toggle) to count update karo
+  onTodoPanelChange() {
+    this.loadTodoCount();
   }
 
   private getHeaders(): HttpHeaders {
@@ -95,14 +102,10 @@ export class LayoutComponent
         'identity/claims/role'
       ] || payload.role || '';
 
-      // ✅ Role flags
-      this.isSuperAdmin =
-        this.userRole === 'SuperAdmin';
-      this.isCustomer =
-        this.userRole === 'Customer';
+      this.isSuperAdmin = this.userRole === 'SuperAdmin';
+      this.isCustomer = this.userRole === 'Customer';
     } catch {}
 
-    // Load photo from localStorage instantly
     const saved = localStorage.getItem('im3_photo');
     if (saved) {
       this.userPhotoUrl = saved.startsWith('http')
@@ -110,14 +113,17 @@ export class LayoutComponent
         : 'https://localhost:7071' + saved;
     }
 
-    // ✅ Load profile from API
     this.loadProfile();
-
-    // ✅ Load notifications
     this.loadNotifications();
-
-    // ✅ Poll every 30 seconds
     this.startNotifPolling();
+
+    // ✅ FIX 3: ngOnInit pe hi todo count load karo — sidebar badge ke liye
+    this.loadTodoCount();
+
+    // ✅ FIX 4: Har 60 second pe todo count refresh karo
+    interval(60000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadTodoCount());
   }
 
   ngOnDestroy() {
@@ -125,7 +131,6 @@ export class LayoutComponent
     this.destroy$.complete();
   }
 
-  // ✅ loadProfile method
   loadProfile() {
     this.http.get<any>(
       'https://localhost:7071/api/Profile',
@@ -135,8 +140,7 @@ export class LayoutComponent
         if (data.photoUrl) {
           this.userPhotoUrl =
             'https://localhost:7071' + data.photoUrl;
-          localStorage.setItem(
-            'im3_photo', data.photoUrl);
+          localStorage.setItem('im3_photo', data.photoUrl);
         }
         if (data.fullName)
           this.userName = data.fullName;
@@ -164,8 +168,7 @@ export class LayoutComponent
 
   loadUnreadCount() {
     this.http.get<any>(
-      'https://localhost:7071/api/Notifications' +
-      '/unread-count',
+      'https://localhost:7071/api/Notifications/unread-count',
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -176,7 +179,6 @@ export class LayoutComponent
     });
   }
 
-  // ✅ startNotifPolling method
   startNotifPolling() {
     interval(30000)
       .pipe(takeUntil(this.destroy$))
@@ -192,14 +194,12 @@ export class LayoutComponent
 
   markAllRead() {
     this.http.put(
-      'https://localhost:7071/api/Notifications' +
-      '/mark-all-read',
+      'https://localhost:7071/api/Notifications/mark-all-read',
       {},
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
-        this.notifications.forEach(
-          n => n.isRead = true);
+        this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;
         this.cdr.detectChanges();
       }
@@ -210,25 +210,21 @@ export class LayoutComponent
     this.showNotifDropdown = false;
 
     this.http.put(
-      `https://localhost:7071/api/Notifications` +
-      `/${n.id}/read`,
+      `https://localhost:7071/api/Notifications/${n.id}/read`,
       {},
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
-        const notif = this.notifications
-          .find(x => x.id === n.id);
+        const notif = this.notifications.find(x => x.id === n.id);
         if (notif) notif.isRead = true;
-        this.unreadCount = Math.max(
-          0, this.unreadCount - 1);
+        this.unreadCount = Math.max(0, this.unreadCount - 1);
         this.cdr.detectChanges();
       }
     });
 
     Promise.resolve().then(() => {
       if (n.ticketId) {
-        this.router.navigate(
-          ['/tickets', n.ticketId]);
+        this.router.navigate(['/tickets', n.ticketId]);
         return;
       }
       const title = (n.title || '').toLowerCase();
@@ -241,7 +237,6 @@ export class LayoutComponent
     });
   }
 
-  // ✅ Search methods
   onSearch() {
     if (!this.searchQuery.trim()) {
       this.searchResults = [];
@@ -250,34 +245,25 @@ export class LayoutComponent
     }
 
     this.http.get<any>(
-      `https://localhost:7071/api/Search` +
-      `?q=${this.searchQuery}`,
+      `https://localhost:7071/api/Search?q=${this.searchQuery}`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
         this.searchResults = [
-          ...(data.tickets || []).map(
-            (t: any) => ({
-              ...t,
-              type: 'ticket',
-              title: `#TN${t.ticketNumber} ${t.title}`
-            })),
-          ...(data.agents || []).map(
-            (a: any) => ({
-              ...a,
-              type: 'agent'
-            })),
-          ...(data.articles || []).map(
-            (k: any) => ({
-              ...k,
-              type: 'kb'
-            }))
+          ...(data.tickets || []).map((t: any) => ({
+            ...t, type: 'ticket',
+            title: `#TN${t.ticketNumber} ${t.title}`
+          })),
+          ...(data.agents || []).map((a: any) => ({
+            ...a, type: 'agent'
+          })),
+          ...(data.articles || []).map((k: any) => ({
+            ...k, type: 'kb'
+          }))
         ].slice(0, 8);
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.searchResults = [];
-      }
+      error: () => { this.searchResults = []; }
     });
   }
 
@@ -295,14 +281,12 @@ export class LayoutComponent
     this.cdr.detectChanges();
   }
 
-  // ✅ Helper methods
   getAvatarColor(name: string): string {
     const colors = [
-      '#ef4444','#f97316','#eab308',
-      '#22c55e','#3b82f6','#8b5cf6','#ec4899'
+      '#ef4444', '#f97316', '#eab308',
+      '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'
     ];
-    const idx = (name?.charCodeAt(0) || 0)
-      % colors.length;
+    const idx = (name?.charCodeAt(0) || 0) % colors.length;
     return colors[idx];
   }
 

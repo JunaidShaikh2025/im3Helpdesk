@@ -11,9 +11,7 @@
           <span>🔍</span>
           <input class="search-input"
             [(ngModel)]="searchQuery"
-            (ngModelChange)="activeView === 'companies'
-              ? searchCompanies()
-              : filterContacts()"
+            (ngModelChange)="search()"
             [placeholder]="activeView === 'companies'
               ? 'Search companies...'
               : 'Search contacts...'"/>
@@ -147,10 +145,10 @@
         </div>
 
         <div class="detail-card">
-          <button class="action-btn primary"
+          <a class="action-btn primary"
             (click)="router.navigate(['/tickets'])">
             View Tickets
-          </button>
+          </a>
           <a class="action-btn secondary"
             [href]="'mailto:' +
               selectedContact.email">

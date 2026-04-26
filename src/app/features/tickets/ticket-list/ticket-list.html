@@ -24,15 +24,15 @@
         <div class="layout-btns">
           <button class="lb"
             [class.active]="currentLayout==='card'"
-            (click)="currentLayout='card'"
+            (click)="setLayout('card'")
             title="Card">☰</button>
           <button class="lb"
             [class.active]="currentLayout==='table'"
-            (click)="currentLayout='table'"
+            (click)="setLayout('table'")
             title="Table">⊞</button>
           <button class="lb"
             [class.active]="currentLayout==='grid'"
-            (click)="currentLayout='grid'"
+            (click)="setLayout('grid'")
             title="Grid">⊟</button>
         </div>
 

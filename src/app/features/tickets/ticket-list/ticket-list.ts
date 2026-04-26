@@ -45,7 +45,8 @@ export class TicketListComponent
   allTickets: any[] = [];
   tickets: any[] = [];
   loading = true;
-  currentLayout: 'card' | 'table' | 'grid' = 'card';
+  currentLayout: 'card' | 'table' | 'grid' =
+    (localStorage.getItem('ticketLayout') as any) || 'card';
   showFilters = false;
   showColumnPicker = false;
   selectedTicketIds = new Set<string>();
@@ -63,10 +64,13 @@ export class TicketListComponent
   sortBy = 'createdAt';
   sortDir = 'desc';
 
-  visibleColumns = [
-    'title', 'status', 'priority',
-    'assignedTo', 'createdAt', 'sla'
-  ];
+  visibleColumns: string[] = (() => {
+    const saved = localStorage.getItem('ticketColumns');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return ['title', 'status', 'priority', 'assignedTo', 'createdAt', 'sla'];
+  })();
 
   allColumns = [
     { id: 'title', label: 'Title' },
@@ -249,19 +253,28 @@ export class TicketListComponent
     this.cdr.markForCheck();
   }
 
+  // ✅ Layout save
+  setLayout(layout: 'card' | 'table' | 'grid') {
+    this.currentLayout = layout;
+    localStorage.setItem('ticketLayout', layout);
+    this.cdr.markForCheck();
+  }
+
   isColumnVisible(colId: string): boolean {
     return this.visibleColumns.includes(colId);
   }
 
   toggleColumn(colId: string) {
-    const idx =
-      this.visibleColumns.indexOf(colId);
+    const idx = this.visibleColumns.indexOf(colId);
     if (idx > -1) {
       if (this.visibleColumns.length > 2)
         this.visibleColumns.splice(idx, 1);
     } else {
       this.visibleColumns.push(colId);
     }
+    // ✅ Save columns to localStorage
+    localStorage.setItem('ticketColumns',
+      JSON.stringify(this.visibleColumns));
     this.cdr.markForCheck();
   }
 
