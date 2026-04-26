@@ -1,58 +1,39 @@
-using iM3Helpdesk.Domain.Entities;
-using iM3Helpdesk.Domain.Enums;
-using iM3Helpdesk.Infrastructure.Persistence;
+// Hubs/ChatHub.cs
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace iM3Helpdesk.API.Hubs;
 
+[Authorize]
 public class ChatHub : Hub
 {
-  private readonly ApplicationDbContext _context;
-
-  public ChatHub(ApplicationDbContext context)
-  {
-    _context = context;
-  }
-
-  public async Task JoinTicketRoom(string ticketId)
+  public async Task JoinTicket(string ticketId)
   {
     await Groups.AddToGroupAsync(
-        Context.ConnectionId, $"ticket-{ticketId}");
+        Context.ConnectionId,
+        $"ticket-{ticketId}");
   }
 
-  public async Task LeaveTicketRoom(string ticketId)
+  public async Task LeaveTicket(string ticketId)
   {
     await Groups.RemoveFromGroupAsync(
-        Context.ConnectionId, $"ticket-{ticketId}");
+        Context.ConnectionId,
+        $"ticket-{ticketId}");
   }
 
   public async Task SendMessage(
-      string ticketId, string message,
-      string senderName, bool isAgent)
+      string ticketId, string message)
   {
-    var msg = new
-    {
-      ticketId,
-      message,
-      senderName,
-      isAgent,
-      timestamp = DateTime.UtcNow
-    };
-
-    await Clients.Group($"ticket-{ticketId}")
-        .SendAsync("ReceiveMessage", msg);
-  }
-
-  public async Task JoinOrgRoom(string orgId)
-  {
-    await Groups.AddToGroupAsync(
-        Context.ConnectionId, $"org-{orgId}");
-  }
-
-  public async Task NotifyNewTicket(string orgId, object ticket)
-  {
-    await Clients.Group($"org-{orgId}")
-        .SendAsync("NewTicket", ticket);
+    var userId = Context.UserIdentifier
+        ?? "Unknown";
+    await Clients
+        .Group($"ticket-{ticketId}")
+        .SendAsync("ReceiveMessage", new
+        {
+          senderId = userId,
+          message,
+          timestamp = DateTime.UtcNow
+                .ToString("o")
+        });
   }
 }

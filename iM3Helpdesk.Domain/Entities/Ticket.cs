@@ -27,8 +27,7 @@ public class Ticket : IMustHaveTenant
     public Guid? AgentGroupId { get; set; }
     public AgentGroup? AgentGroup { get; set; }
     public int TicketNumber { get; set; }
-
-  public User? CreatedBy { get; set; }
+    public User? CreatedBy { get; set; }
     public User? AssignedTo { get; set; }
     public Organization? Organization { get; set; }
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();

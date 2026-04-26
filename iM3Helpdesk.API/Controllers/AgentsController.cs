@@ -123,7 +123,7 @@ public class AgentsController : ControllerBase
             o.Id == _tenantService.OrganizationId);
     try
     {
-      await _emailService.SendAgentInviteEmailAsync(
+      await _emailService.SendAsync(
           agent.Email, agent.FullName,
           org?.Name ?? "Company", tempPassword);
     }

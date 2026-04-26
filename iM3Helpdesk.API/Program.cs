@@ -1,11 +1,12 @@
+using iM3Helpdesk.API.Hubs;
 using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,7 +40,6 @@ builder.Services.AddSingleton<IEscalationService, EscalationService>();
 builder.Services.AddHostedService<EmailWorker>();
 builder.Services.AddHostedService<EscalationWorker>();
 builder.Services.AddHostedService<EmailPollingService>();
-builder.Services.AddSignalR();
 builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -68,9 +68,23 @@ builder.Services.AddAuthentication(options =>
     IssuerSigningKey = new SymmetricSecurityKey(
           Encoding.UTF8.GetBytes(secretKey))
   };
+  // ✅ Required for SignalR: read token from query string
+  options.Events = new JwtBearerEvents
+  {
+    OnMessageReceived = context =>
+    {
+      var accessToken = context.Request.Query["access_token"];
+      var path = context.HttpContext.Request.Path;
+      if (!string.IsNullOrEmpty(accessToken) &&
+          path.StartsWithSegments("/hubs"))
+      {
+        context.Token = accessToken;
+      }
+      return Task.CompletedTask;
+    }
+  };
 });
 
-builder.Services.AddScoped<iM3Helpdesk.API.Services.IEmailService, iM3Helpdesk.API.Services.EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddAuthorization();
 builder.Services.AddControllers()
@@ -81,13 +95,25 @@ builder.Services.AddControllers()
       options.JsonSerializerOptions.PropertyNamingPolicy =
           System.Text.Json.JsonNamingPolicy.CamelCase;
     });
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCaching();
-
-
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddCors(options =>
+{
+  options.AddPolicy("AllowAngular", policy =>
+  {
+    policy
+        .WithOrigins(
+            "http://localhost:4200",
+            "https://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials(); // ✅ Required for SignalR
+  });
+});
+builder.Services.AddSignalR();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -136,9 +162,10 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseHttpsRedirection();
 app.UseCors("AllowAllLocal");
 app.UseRateLimiter();
+app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
 app.MapControllers();
-app.MapHub<iM3Helpdesk.API.Hubs.ChatHub>("/hubs/chat");
+app.MapHub<ChatHub>("/hubs/chat");
 app.Run();

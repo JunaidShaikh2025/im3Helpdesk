@@ -128,14 +128,14 @@ public class EmailPollingService : BackgroundService
 
       _logger.LogInformation("IMAP connected — {N} total messages", inbox.Count);
 
-      // ✅ Only fetch unread emails since service started (not old backlog)
-      var since = _serviceStartTime.Date;
+      var since = _serviceStartTime.AddMinutes(-1);
       var query = SearchQuery.And(
           SearchQuery.NotSeen,
           SearchQuery.DeliveredAfter(since));
 
       var uids = await inbox.SearchAsync(query, ct);
-      _logger.LogInformation("Unread emails today: {N}", uids.Count);
+      _logger.LogInformation(
+          "Unread emails since {Since}: {N}", since, uids.Count);
 
       foreach (var uid in uids)
       {

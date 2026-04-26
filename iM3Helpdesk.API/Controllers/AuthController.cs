@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.RateLimiting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using iM3Helpdesk.Infrastructure.Services;
 using System.Text;
 
 namespace iM3Helpdesk.API.Controllers;
@@ -73,9 +74,9 @@ public class AuthController : ControllerBase
 
     try
     {
-      await _emailService.SendVerificationEmailAsync(
+      await _emailService.SendAsync(
           user.Email, user.FullName, verificationToken);
-      await _emailService.SendWelcomeEmailAsync(
+      await _emailService.SendAsync(
           user.Email, user.FullName, dto.CompanyName);
     }
     catch (Exception ex)
@@ -124,7 +125,7 @@ public class AuthController : ControllerBase
 
     try
     {
-      await _emailService.SendVerificationEmailAsync(
+      await _emailService.SendAsync(
           user.Email, user.FullName, verificationToken);
     }
     catch (Exception ex)
@@ -284,7 +285,7 @@ public class AuthController : ControllerBase
 
       try
       {
-        await _emailService.SendForgotPasswordEmailAsync(
+        await _emailService.SendAsync(
             user.Email, user.FullName, user.EmailVerificationToken);
       }
       catch (Exception ex)

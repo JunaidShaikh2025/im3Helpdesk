@@ -13,107 +13,222 @@ namespace iM3Helpdesk.API.Controllers;
 public class AgentGroupsController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
-  private readonly ICurrentTenantService _tenantService;
+  private readonly ICurrentTenantService _tenant;
 
   public AgentGroupsController(
       ApplicationDbContext context,
-      ICurrentTenantService tenantService)
+      ICurrentTenantService tenant)
   {
     _context = context;
-    _tenantService = tenantService;
+    _tenant = tenant;
   }
 
   [HttpGet]
   public async Task<IActionResult> GetAll()
   {
+    var orgId = _tenant.OrganizationId!.Value;
+
     var groups = await _context.AgentGroups
-        .Include(g => g.Members)
-            .ThenInclude(m => m.User)
+        .AsNoTracking()
+        .Where(g => g.OrganizationId == orgId)
         .Select(g => new
         {
           g.Id,
           g.Name,
           g.Description,
-          g.CreatedAt,
-          memberCount = g.Members.Count,
-          members = g.Members.Select(m => new
-          {
-            m.UserId,
-            m.User!.FullName,
-            m.User.Email,
-            m.AddedAt
-          }).ToList()
+          MemberCount = _context
+                .AgentGroupMembers
+                .Count(m => m.AgentGroupId == g.Id),
+          MemberIds = _context
+                .AgentGroupMembers
+                .Where(m => m.AgentGroupId == g.Id)
+                .Select(m => m.UserId.ToString())
+                .ToList()
         })
+        .OrderBy(g => g.Name)
         .ToListAsync();
 
     return Ok(groups);
   }
 
   [HttpPost]
-  public async Task<IActionResult> Create([FromBody] CreateGroupDto dto)
+  public async Task<IActionResult> Create(
+      [FromBody] AgentGroupDto dto)
   {
+    var orgId = _tenant.OrganizationId!.Value;
+
     var group = new AgentGroup
     {
-      Name = dto.Name,
-      Description = dto.Description,
-      OrganizationId = _tenantService.OrganizationId!.Value
+      Name = dto.Name?.Trim() ?? "",
+      Description = dto.Description ?? "",
+      OrganizationId = orgId
     };
 
     _context.AgentGroups.Add(group);
     await _context.SaveChangesAsync();
 
-    return Ok(new { message = "Group created", id = group.Id });
+    // Add members
+    if (dto.MemberIds?.Any() == true)
+    {
+      foreach (var memberId in dto.MemberIds)
+      {
+        if (Guid.TryParse(
+            memberId, out var uid))
+        {
+          _context.AgentGroupMembers.Add(
+              new AgentGroupMember
+              {
+                AgentGroupId = group.Id,
+                UserId = uid
+              });
+        }
+      }
+      await _context.SaveChangesAsync();
+    }
+
+    return Ok(new
+    {
+      id = group.Id,
+      name = group.Name,
+      message = "Group created"
+    });
   }
 
-  [HttpPost("{id}/members")]
-  public async Task<IActionResult> AddMember(Guid id,
-      [FromBody] AddMemberDto dto)
+  // ✅ PUT — explicit route
+  [HttpPut("{id}")]
+  public async Task<IActionResult> Update(
+      Guid id, [FromBody] AgentGroupDto dto)
   {
-    var exists = await _context.AgentGroupMembers
-        .AnyAsync(m => m.AgentGroupId == id
-            && m.UserId == dto.UserId);
+    var orgId = _tenant.OrganizationId!.Value;
 
-    if (exists)
-      return BadRequest(new { message = "Already a member" });
+    var group = await _context.AgentGroups
+        .FirstOrDefaultAsync(g =>
+            g.Id == id &&
+            g.OrganizationId == orgId);
 
-    var member = new AgentGroupMember
+    if (group == null) return NotFound();
+
+    group.Name = dto.Name?.Trim()
+        ?? group.Name;
+    group.Description =
+        dto.Description ?? group.Description;
+
+    // Remove old members
+    var oldMembers = await _context
+        .AgentGroupMembers
+        .Where(m => m.AgentGroupId == id)
+        .ToListAsync();
+    _context.AgentGroupMembers
+        .RemoveRange(oldMembers);
+
+    // Add new members
+    if (dto.MemberIds?.Any() == true)
     {
-      AgentGroupId = id,
-      UserId = dto.UserId
-    };
+      foreach (var memberId in dto.MemberIds)
+      {
+        if (Guid.TryParse(
+            memberId, out var uid))
+        {
+          _context.AgentGroupMembers.Add(
+              new AgentGroupMember
+              {
+                AgentGroupId = id,
+                UserId = uid
+              });
+        }
+      }
+    }
 
-    _context.AgentGroupMembers.Add(member);
     await _context.SaveChangesAsync();
+    return Ok(new { message = "Group updated" });
+  }
+
+  // ✅ DELETE — with cascade
+  [HttpDelete("{id}")]
+  public async Task<IActionResult> Delete(Guid id)
+  {
+    var orgId = _tenant.OrganizationId!.Value;
+
+    var group = await _context.AgentGroups
+        .FirstOrDefaultAsync(g =>
+            g.Id == id &&
+            g.OrganizationId == orgId);
+
+    if (group == null) return NotFound();
+
+    // Remove members first
+    var members = await _context
+        .AgentGroupMembers
+        .Where(m => m.AgentGroupId == id)
+        .ToListAsync();
+    _context.AgentGroupMembers
+        .RemoveRange(members);
+
+    // Unassign tickets from this group
+    var tickets = await _context.Tickets
+        .Where(t => t.AgentGroupId == id)
+        .ToListAsync();
+    tickets.ForEach(t =>
+        t.AgentGroupId = null);
+
+    _context.AgentGroups.Remove(group);
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+      message = "Group deleted"
+    });
+  }
+
+  [HttpPost("{id}/members/{userId}")]
+  public async Task<IActionResult> AddMember(
+      Guid id, Guid userId)
+  {
+    var exists = await _context
+        .AgentGroupMembers
+        .AnyAsync(m =>
+            m.AgentGroupId == id &&
+            m.UserId == userId);
+
+    if (!exists)
+    {
+      _context.AgentGroupMembers.Add(
+          new AgentGroupMember
+          {
+            AgentGroupId = id,
+            UserId = userId
+          });
+      await _context.SaveChangesAsync();
+    }
 
     return Ok(new { message = "Member added" });
   }
 
   [HttpDelete("{id}/members/{userId}")]
-  public async Task<IActionResult> RemoveMember(Guid id, Guid userId)
+  public async Task<IActionResult> RemoveMember(
+      Guid id, Guid userId)
   {
-    var member = await _context.AgentGroupMembers
+    var member = await _context
+        .AgentGroupMembers
         .FirstOrDefaultAsync(m =>
-            m.AgentGroupId == id && m.UserId == userId);
+            m.AgentGroupId == id &&
+            m.UserId == userId);
 
-    if (member == null) return NotFound();
-
-    _context.AgentGroupMembers.Remove(member);
-    await _context.SaveChangesAsync();
+    if (member != null)
+    {
+      _context.AgentGroupMembers.Remove(member);
+      await _context.SaveChangesAsync();
+    }
 
     return Ok(new { message = "Member removed" });
   }
+}
 
-  [HttpDelete("{id}")]
-  public async Task<IActionResult> Delete(Guid id)
-  {
-    var group = await _context.AgentGroups.FindAsync(id);
-    if (group == null) return NotFound();
-
-    _context.AgentGroups.Remove(group);
-    await _context.SaveChangesAsync();
-
-    return Ok(new { message = "Group deleted" });
-  }
+public class AgentGroupDto
+{
+  public string Name { get; set; } = "";
+  public string? Description { get; set; }
+  public List<string>? MemberIds { get; set; }
 }
 
 public class CreateGroupDto

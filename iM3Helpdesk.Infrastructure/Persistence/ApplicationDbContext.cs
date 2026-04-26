@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext
   public DbSet<TicketViewer> TicketViewers => Set<TicketViewer>();
   public DbSet<EmailNotificationSetting> EmailNotificationSettings => Set<EmailNotificationSetting>();
   public DbSet<Contact> Contacts => Set<Contact>();
+  public DbSet<TodoItem> TodoItems { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {

@@ -74,6 +74,32 @@ public class NotificationsController : ControllerBase
     return Ok(new { count });
   }
 
+  [HttpGet("activity")]
+  public async Task<IActionResult> GetActivity(
+      [FromQuery] int page = 1,
+      [FromQuery] int pageSize = 20)
+  {
+    var userId = GetUserId();
+
+    var logs = await _context.ActivityLogs
+        .AsNoTracking()
+        .Where(a => a.UserId == userId)
+        .OrderByDescending(a => a.CreatedAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(a => new
+        {
+          a.Id,
+          a.Action,
+          a.Description,
+          a.EntityType,
+          a.CreatedAt
+        })
+        .ToListAsync();
+
+    return Ok(logs);
+  }
+
   [HttpPut("{id}/read")]
   public async Task<IActionResult> MarkRead(Guid id)
   {
