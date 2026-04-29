@@ -10,6 +10,7 @@ import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
+import { ChatService } from '../../services/chat.service';
 
 @Component({
   selector: 'app-layout',
@@ -26,7 +27,9 @@ export class LayoutComponent
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private destroy$ = new Subject<void>();
+  private chatService = inject(ChatService);
 
+  chatUnreadCount = 0;
   userName = '';
   userEmail = '';
   userRole = '';
@@ -47,7 +50,6 @@ export class LayoutComponent
   showTodoPanel = false;
   todos: any[] = [];
 
-  // ✅ FIX 1: Load todo count on startup (sidebar badge ke liye)
   loadTodoCount() {
     this.http.get<any[]>(
       'https://localhost:7071/api/Todo',
@@ -65,12 +67,10 @@ export class LayoutComponent
 
   toggleTodoPanel() {
     this.showTodoPanel = !this.showTodoPanel;
-    // ✅ FIX 2: Panel open hone pe bhi fresh data lo
     if (this.showTodoPanel) this.loadTodoCount();
     this.cdr.detectChanges();
   }
 
-  // ✅ TodoPanel ne koi change kiya (add/delete/toggle) to count update karo
   onTodoPanelChange() {
     this.loadTodoCount();
   }
@@ -113,14 +113,18 @@ export class LayoutComponent
         : 'https://localhost:7071' + saved;
     }
 
+    this.chatService.connect();
+    this.chatService.unreadCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => {
+        this.chatUnreadCount = count;
+        this.cdr.detectChanges();
+      });
+
     this.loadProfile();
     this.loadNotifications();
     this.startNotifPolling();
-
-    // ✅ FIX 3: ngOnInit pe hi todo count load karo — sidebar badge ke liye
     this.loadTodoCount();
-
-    // ✅ FIX 4: Har 60 second pe todo count refresh karo
     interval(60000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.loadTodoCount());
@@ -129,6 +133,7 @@ export class LayoutComponent
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    this.chatService.disconnect();
   }
 
   loadProfile() {

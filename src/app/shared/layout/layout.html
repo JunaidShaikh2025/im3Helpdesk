@@ -59,6 +59,17 @@
         </a>
 
         <a class="nav-item"
+          routerLink="/chat"
+          routerLinkActive="active">
+          <span class="nav-icon">💬</span>
+          <span>Chat</span>
+          <span class="badge"
+            *ngIf="chatUnreadCount > 0">
+            {{ chatUnreadCount }}
+          </span>
+        </a>
+
+        <a class="nav-item"
           routerLink="/kb"
           routerLinkActive="active">
           <span class="nav-icon">📚</span>

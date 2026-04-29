@@ -42,6 +42,15 @@ export const routes: Routes = [
   //       .then(m => m.TodoPanelComponent),
   //   canActivate: [authGuard]
   // },
+
+  {
+  path: 'chat',
+  loadComponent: () =>
+    import('./features/chat/chat-page/chat-page')
+      .then(m => m.ChatPageComponent),
+  canActivate: [authGuard]
+  },
+
   {
     path: 'verify-email',
     loadComponent: () =>
