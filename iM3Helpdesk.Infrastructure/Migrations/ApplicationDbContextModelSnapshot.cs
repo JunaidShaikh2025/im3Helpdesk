@@ -112,6 +112,52 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.ToTable("AgentGroupMembers");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.ChatMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AttachmentName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AttachmentUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ReceiverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiverId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("ChatMessages");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.Contact", b =>
                 {
                     b.Property<Guid>("Id")
@@ -699,6 +745,46 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.ToTable("TicketViewers");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TodoItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TicketNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TodoItems");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -768,6 +854,32 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.UserOnlineStatus", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConnectionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastSeen")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserOnlineStatuses");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.ActivityLog", b =>
                 {
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "User")
@@ -795,6 +907,24 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Navigation("Group");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.ChatMessage", b =>
+                {
+                    b.HasOne("iM3Helpdesk.Domain.Entities.User", "Receiver")
+                        .WithMany()
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("iM3Helpdesk.Domain.Entities.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Receiver");
+
+                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.KbArticle", b =>
@@ -915,6 +1045,23 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Navigation("Ticket");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TodoItem", b =>
+                {
+                    b.HasOne("iM3Helpdesk.Domain.Entities.Ticket", "Ticket")
+                        .WithMany()
+                        .HasForeignKey("TicketId");
+
+                    b.HasOne("iM3Helpdesk.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.User", b =>
                 {
                     b.HasOne("iM3Helpdesk.Domain.Entities.Organization", "Organization")
@@ -922,6 +1069,16 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasForeignKey("OrganizationId");
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.UserOnlineStatus", b =>
+                {
+                    b.HasOne("iM3Helpdesk.Domain.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("iM3Helpdesk.Domain.Entities.UserOnlineStatus", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.AgentGroup", b =>

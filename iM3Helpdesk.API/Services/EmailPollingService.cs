@@ -12,7 +12,6 @@ namespace iM3Helpdesk.API.Services;
 
 public class EmailPollingService : BackgroundService
 {
-  // ── Compiled regex (performance) ──────────────
   private static readonly Regex TicketNumberRegex =
       new(@"#TN(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -21,15 +20,11 @@ public class EmailPollingService : BackgroundService
 
   private static readonly Regex TagSanitizeRegex =
       new(@"[^a-z0-9\-]", RegexOptions.Compiled);
-
-  // Max attachment size: 10 MB
   private const long MaxAttachmentBytes = 10 * 1024 * 1024;
 
   private readonly IServiceScopeFactory _scopeFactory;
   private readonly IConfiguration _config;
   private readonly ILogger<EmailPollingService> _logger;
-
-  // ✅ Track service start — skip emails before this time
   private readonly DateTime _serviceStartTime = DateTime.UtcNow;
 
   public EmailPollingService(
@@ -41,10 +36,6 @@ public class EmailPollingService : BackgroundService
     _config = config;
     _logger = logger;
   }
-
-  // ══════════════════════════════════════════════
-  // Main loop
-  // ══════════════════════════════════════════════
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
@@ -75,11 +66,6 @@ public class EmailPollingService : BackgroundService
 
     _logger.LogInformation("✉ Email Polling stopped");
   }
-
-  // ══════════════════════════════════════════════
-  // Fetch active orgs, read SMTP config once,
-  // then poll each org
-  // ══════════════════════════════════════════════
 
   private async Task PollAllOrgsAsync(CancellationToken ct)
   {
@@ -190,24 +176,15 @@ public class EmailPollingService : BackgroundService
       catch { /* ignore disconnect errors */ }
     }
   }
-
-  // ══════════════════════════════════════════════
-  // Match incoming email → correct org
-  // Priority: TO address → single org → subject
-  // ══════════════════════════════════════════════
-
   private static Organization? FindMatchingOrg(
       MimeMessage message,
       List<Organization> orgs,
       string inboxEmail)
   {
-    // ✅ Get TO addresses
     var toAddresses = message.To.Mailboxes
         .Select(m => m.Address?.ToLower() ?? "")
         .Where(a => !string.IsNullOrEmpty(a))
         .ToList();
-
-    // ✅ Also check CC addresses
     var ccAddresses = message.Cc.Mailboxes
         .Select(m => m.Address?.ToLower() ?? "")
         .ToList();
@@ -215,27 +192,20 @@ public class EmailPollingService : BackgroundService
     var allAddresses = toAddresses
         .Concat(ccAddresses)
         .ToList();
-
-    // ✅ Match by org support email
     foreach (var org in orgs)
     {
       var supportEmail =
           org.SupportEmail?.ToLower() ?? "";
       if (string.IsNullOrEmpty(supportEmail))
         continue;
-
-      // Exact match
       if (allAddresses.Contains(supportEmail))
         return org;
-
-      // Partial match
       if (allAddresses.Any(a =>
           a.Contains(supportEmail) ||
           supportEmail.Contains(a)))
         return org;
     }
 
-    // ✅ If inbox email matches org support email
     foreach (var org in orgs)
     {
       var supportEmail =
@@ -243,17 +213,11 @@ public class EmailPollingService : BackgroundService
       if (inboxEmail.ToLower() == supportEmail)
         return org;
     }
-
-    // Single org — assign to it
     if (orgs.Count == 1)
       return orgs[0];
 
     return null;
   }
-
-  // ══════════════════════════════════════════════
-  // Core: process one email for one org
-  // ══════════════════════════════════════════════
 
   private async Task ProcessEmailAsync(
       MimeMessage message,
@@ -261,7 +225,6 @@ public class EmailPollingService : BackgroundService
       ApplicationDbContext context,
       CancellationToken ct)
   {
-    // ── 1. Parse sender ──────────────────────────
     var fromBox = message.From.Mailboxes.FirstOrDefault();
     if (fromBox == null)
     {
@@ -276,7 +239,6 @@ public class EmailPollingService : BackgroundService
         ? fromEmail.Split('@')[0]
         : fromBox.Name.Trim();
 
-    // ── 2. Skip emails sent by own system ────────
     var ownEmail = _config["SmtpSettings:FromEmail"] ?? "";
     if (fromEmail.Equals(ownEmail, StringComparison.OrdinalIgnoreCase))
     {
@@ -284,7 +246,6 @@ public class EmailPollingService : BackgroundService
       return;
     }
 
-    // ── 2b. Skip spam/notification emails ────────
     if (fromEmail.Contains("noreply") ||
         fromEmail.Contains("no-reply") ||
         fromEmail.Contains("notify") ||
@@ -298,7 +259,6 @@ public class EmailPollingService : BackgroundService
     _logger.LogInformation(
         "Processing email from {E} — Subject: {S}", fromEmail, message.Subject);
 
-    // ── 3. Reply or new ticket? ──────────────────
     var subject = CleanSubject(message.Subject, fromName);
 
     var existingTicketId = await FindExistingTicketAsync(
@@ -312,11 +272,8 @@ public class EmailPollingService : BackgroundService
       return;
     }
 
-    // ── 4. Save as Contact FIRST (Contact is separate from User) ──
     var contact = await UpsertContactAsync(
         fromEmail, fromName, org.Id, null, context, ct);
-
-    // ── 5. Find or create customer user ──────────
     var customer = await context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u =>
@@ -338,8 +295,6 @@ public class EmailPollingService : BackgroundService
       context.Users.Add(customer);
       await context.SaveChangesAsync(ct);
       _logger.LogInformation("Auto-created customer: {E}", fromEmail);
-
-      // Link contact to user
       if (contact != null)
       {
         contact.LinkedUserId = customer.Id;
@@ -347,10 +302,7 @@ public class EmailPollingService : BackgroundService
       }
     }
 
-    // ── 6. Build description ─────────────────────
     var description = BuildDescription(message);
-
-    // ── 7. Duplicate check (same title within 1hr) ─
     var isDuplicate = await context.Tickets
         .AnyAsync(t =>
             t.OrganizationId == org.Id &&
@@ -363,15 +315,11 @@ public class EmailPollingService : BackgroundService
       _logger.LogDebug("Duplicate ticket, skipping: {S}", subject);
       return;
     }
-
-    // ── 8. Auto-increment ticket number ──────────
     var lastNum = await context.Tickets
         .IgnoreQueryFilters()
         .Where(t => t.OrganizationId == org.Id)
         .MaxAsync(t => (int?)t.TicketNumber, ct)
         ?? 1000;
-
-    // ── 9. Create ticket ─────────────────────────
     var nameTag = MakeTag(fromName);
     var ticket = new Ticket
     {
@@ -395,20 +343,9 @@ public class EmailPollingService : BackgroundService
     _logger.LogInformation(
         "✅ Ticket #TN{N} created for org [{O}]: {S}",
         ticket.TicketNumber, org.Name, subject);
-
-    // ── 10. Save attachments ─────────────────────
     await SaveAttachmentsAsync(message, ticket, null, context, ct);
-
-    // ── 11. Notify agents ────────────────────────
     await NotifyAgentsAsync(fromName, subject, ticket, org.Id, context, ct);
   }
-
-  // ══════════════════════════════════════════════
-  // Find existing ticket for a reply
-  // 1) #TN number in subject
-  // 2) InReplyTo / References header present
-  //    → most recent open ticket from sender
-  // ══════════════════════════════════════════════
 
   private async Task<Guid?> FindExistingTicketAsync(
       MimeMessage message,
@@ -459,10 +396,6 @@ public class EmailPollingService : BackgroundService
     return recentTicket?.Id;
   }
 
-  // ══════════════════════════════════════════════
-  // Add reply as a comment on existing ticket
-  // ══════════════════════════════════════════════
-
   private async Task AddReplyToTicketAsync(
       MimeMessage message,
       Guid ticketId,
@@ -510,13 +443,6 @@ public class EmailPollingService : BackgroundService
         "💬 Reply added to ticket {T} from {E}", ticketId, fromEmail);
   }
 
-  // ══════════════════════════════════════════════
-  // Helpers
-  // ══════════════════════════════════════════════
-
-  /// <summary>
-  /// Prefer HTML body; fallback to plain text with basic HTML formatting.
-  /// </summary>
   private static string BuildDescription(MimeMessage message)
   {
     if (!string.IsNullOrEmpty(message.HtmlBody))
@@ -535,9 +461,6 @@ public class EmailPollingService : BackgroundService
     return "<p>(No content)</p>";
   }
 
-  /// <summary>
-  /// Strip Re:/Fwd: prefixes and return a clean subject line.
-  /// </summary>
   private static string CleanSubject(string? raw, string fromName)
   {
     if (string.IsNullOrWhiteSpace(raw))
@@ -552,9 +475,6 @@ public class EmailPollingService : BackgroundService
         : clean;
   }
 
-  /// <summary>
-  /// Create a URL-safe tag (max 20 chars) from a display name.
-  /// </summary>
   private static string MakeTag(string name)
   {
     var slug = TagSanitizeRegex.Replace(
@@ -567,10 +487,6 @@ public class EmailPollingService : BackgroundService
     return slug.Length > 20 ? slug[..20] : slug;
   }
 
-  /// <summary>
-  /// Insert or update Contact record without failing ticket creation.
-  /// Returns the Contact entity (new or existing), or null on error.
-  /// </summary>
   private async Task<Contact?> UpsertContactAsync(
       string email,
       string name,
@@ -593,7 +509,7 @@ public class EmailPollingService : BackgroundService
         var domain = email.Split('@').LastOrDefault() ?? "";
         var company = IsGenericDomain(domain)
             ? null
-            : CapitalizeDomain(domain);
+            : ExtractCompanyName(domain);
 
         var contact = new Contact
         {
@@ -625,13 +541,11 @@ public class EmailPollingService : BackgroundService
     }
     catch (Exception ex)
     {
-      // Non-fatal — log and continue
       _logger.LogWarning("Contact upsert warning: {M}", ex.Message);
       return null;
     }
   }
 
-  // Check if domain is a generic email provider
   private static bool IsGenericDomain(string domain)
   {
     var generic = new[]
@@ -644,15 +558,35 @@ public class EmailPollingService : BackgroundService
     return generic.Contains(domain.ToLower());
   }
 
-  private static string CapitalizeDomain(string domain)
+  private static string ExtractCompanyName(string domain)
   {
-    var name = domain.Split('.')[0];
-    return char.ToUpper(name[0]) + name.Substring(1);
+    var lower = domain.ToLower();
+
+    // Known multi-part TLDs
+    var multiTlds = new[] { "co.in", "co.uk", "com.au", "co.nz", "co.za" };
+    foreach (var tld in multiTlds)
+    {
+      if (lower.EndsWith("." + tld))
+      {
+        var withoutTld = lower[..^(tld.Length + 1)];
+        var parts = withoutTld.Split('.');
+        return Capitalize(parts[^1]); // company name before .co.in
+      }
+    }
+
+    var segments = domain.Split('.');
+    if (segments.Length >= 2)
+      return Capitalize(segments[^2]);
+
+    return Capitalize(segments[0]);
   }
 
-  /// <summary>
-  /// Notify all agents and admins of the org about a new email ticket.
-  /// </summary>
+  private static string Capitalize(string s)
+  {
+    if (string.IsNullOrEmpty(s)) return s;
+    return char.ToUpper(s[0]) + s.Substring(1).ToLower();
+  }
+
   private async Task NotifyAgentsAsync(
       string fromName,
       string subject,
@@ -686,10 +620,6 @@ public class EmailPollingService : BackgroundService
     await context.SaveChangesAsync(ct);
   }
 
-  /// <summary>
-  /// Save email attachments to disk and record in DB.
-  /// Skips files larger than <see cref="MaxAttachmentBytes"/>.
-  /// </summary>
   private async Task SaveAttachmentsAsync(
       MimeMessage message,
       Ticket ticket,
@@ -720,7 +650,6 @@ public class EmailPollingService : BackgroundService
 
         var size = new FileInfo(filePath).Length;
 
-        // ✅ Skip oversized attachments
         if (size > MaxAttachmentBytes)
         {
           _logger.LogWarning(
@@ -748,7 +677,6 @@ public class EmailPollingService : BackgroundService
       {
         _logger.LogError(ex, "Attachment failed: {F}", fileName);
 
-        // Clean up partial file on error
         if (File.Exists(filePath))
           File.Delete(filePath);
       }

@@ -5,6 +5,7 @@ using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -24,12 +25,14 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddCors(options =>
 {
-  options.AddPolicy("AllowAllLocal", policy =>
+  options.AddPolicy("AllowAngular", policy =>
   {
-    policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-          .AllowAnyHeader()
-          .AllowAnyMethod()
-          .AllowCredentials();
+    policy
+        .SetIsOriginAllowed(origin =>
+            new Uri(origin).Host == "localhost")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials(); // ✅ Required for SignalR
   });
 });
 
@@ -100,19 +103,6 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCaching();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddCors(options =>
-{
-  options.AddPolicy("AllowAngular", policy =>
-  {
-    policy
-        .WithOrigins(
-            "http://localhost:4200",
-            "https://localhost:4200")
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials(); // ✅ Required for SignalR
-  });
-});
 builder.Services.AddSignalR();
 var app = builder.Build();
 
@@ -160,9 +150,8 @@ app.UseStaticFiles(new StaticFileOptions
   }
 });
 app.UseHttpsRedirection();
-app.UseCors("AllowAllLocal");
+app.UseCors("AllowAngular"); // ✅ Single CORS policy
 app.UseRateLimiter();
-app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
