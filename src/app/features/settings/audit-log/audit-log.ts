@@ -49,11 +49,27 @@ export class AuditLogComponent implements OnInit {
   }
 
 loadLogs() {
-  this.http.get<any>(
-    `https://localhost:7071/api/Audit` +
-    `?page=${this.page}&pageSize=${this.pageSize}`,
-    { headers: this.getHeaders() }
-  ).subscribe({ /* ... */ });
+  this.loading = true;
+
+  let url = `https://localhost:7071/api/Audit?page=${this.page}&pageSize=${this.pageSize}`;
+  if (this.selectedType) {
+    url += `&entityType=${this.selectedType}`;
+  }
+
+  this.http.get<any>(url, { headers: this.getHeaders() }).subscribe({
+    next: (res) => {
+      this.logs = res.logs;
+      this.total = res.total;
+      this.totalPages = res.totalPages;
+      this.loading = false;
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      this.toastr.error('Failed to load audit logs');
+      this.loading = false;
+      this.cdr.detectChanges();
+    }
+  });
 }
 
   prevPage() {

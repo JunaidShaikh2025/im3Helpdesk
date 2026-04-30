@@ -4,7 +4,9 @@
   <div class="sidebar">
 
     <!-- Logo -->
-    <div class="sidebar-logo">
+ <div class="sidebar-logo" 
+      routerLink="/dashboard" 
+      style="cursor:pointer">
       <div class="logo-icon">⚡</div>
       <span class="logo-text">
         <ng-container *ngIf="!isSuperAdmin && !isCustomer">
@@ -280,6 +282,51 @@
             <app-todo-panel
               (close)="showTodoPanel = false; onTodoPanelChange()">
             </app-todo-panel>
+          </div>
+        </div>
+
+        <!-- KB Bell -->
+        <div class="notif-bell"
+          *ngIf="!isSuperAdmin"
+          (click)="toggleKbDropdown()">
+          <span class="bell-icon">📚</span>
+          <span class="notif-count"
+            *ngIf="kbUnreadCount > 0">
+            {{ kbUnreadCount > 99 ? '99+' : kbUnreadCount }}
+          </span>
+
+          <!-- KB Dropdown -->
+          <div class="notif-dropdown"
+            *ngIf="showKbDropdown"
+            (click)="$event.stopPropagation()">
+            <div class="nd-header">
+              <span>New KB Articles</span>
+              <button (click)="router.navigate(['/kb']); showKbDropdown=false">
+                View All
+              </button>
+            </div>
+
+            <div class="nd-empty"
+              *ngIf="kbUnreadArticles.length === 0">
+              No new articles
+            </div>
+
+            <div class="nd-item"
+              *ngFor="let a of kbUnreadArticles"
+              (click)="goToKbArticle(a.id)">
+              <div class="nd-content">
+                <div class="nd-title">{{ a.title }}</div>
+                <div class="nd-msg">{{ a.category }}</div>
+                <div class="nd-time">
+                  {{ a.createdAt | date:'dd MMM, hh:mm a' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="nd-footer"
+              (click)="router.navigate(['/kb']); showKbDropdown=false">
+              Browse Knowledge Base
+            </div>
           </div>
         </div>
 

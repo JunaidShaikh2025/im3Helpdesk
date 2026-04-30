@@ -49,6 +49,9 @@ export class LayoutComponent
   todoCount = 0;
   showTodoPanel = false;
   todos: any[] = [];
+  kbUnreadCount = 0;
+  kbUnreadArticles: any[] = [];
+  showKbDropdown = false;
 
   loadTodoCount() {
     this.http.get<any[]>(
@@ -64,6 +67,31 @@ export class LayoutComponent
       error: () => {}
     });
   }
+
+  loadKbUnread() {
+  this.http.get<any>(
+    'https://localhost:7071/api/KnowledgeBase/unread-count',
+    { headers: this.getHeaders() }
+  ).subscribe({
+    next: (data) => {
+      this.kbUnreadCount = data.count || 0;
+      this.kbUnreadArticles = data.articles || [];
+      this.cdr.detectChanges();
+    },
+    error: () => {}
+  });
+}
+
+toggleKbDropdown() {
+  this.showKbDropdown = !this.showKbDropdown;
+  this.cdr.detectChanges();
+}
+
+goToKbArticle(id: string) {
+  this.showKbDropdown = false;
+  this.router.navigate(['/kb', id]);
+  this.cdr.detectChanges();
+}
 
   toggleTodoPanel() {
     this.showTodoPanel = !this.showTodoPanel;
@@ -90,10 +118,11 @@ export class LayoutComponent
       const payload = JSON.parse(
         atob(token.split('.')[1]));
 
-      this.userName = payload[
-        'http://schemas.xmlsoap.org/ws/2005/05/' +
-        'identity/claims/name'
-      ] || payload.email?.split('@')[0] || 'User';
+      this.userName =
+      payload['fullName'] ||
+      payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+      payload.email?.split('@')[0] ||
+      'User';
 
       this.userEmail = payload.email || '';
 
@@ -106,11 +135,17 @@ export class LayoutComponent
       this.isCustomer = this.userRole === 'Customer';
     } catch {}
 
-    const saved = localStorage.getItem('im3_photo');
-    if (saved) {
-      this.userPhotoUrl = saved.startsWith('http')
-        ? saved
-        : 'https://localhost:7071' + saved;
+    const savedEmail = localStorage.getItem('im3_email');
+    if (savedEmail && savedEmail === this.userEmail) {
+      const saved = localStorage.getItem('im3_photo');
+      if (saved) {
+        this.userPhotoUrl = saved.startsWith('http')
+          ? saved
+          : 'https://localhost:7071' + saved;
+      }
+    } else {
+      localStorage.removeItem('im3_photo');
+      this.userPhotoUrl = '';
     }
 
     this.chatService.connect();
@@ -128,6 +163,11 @@ export class LayoutComponent
     interval(60000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.loadTodoCount());
+    this.loadKbUnread();
+    interval(60000)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(() => this.loadKbUnread());
+
   }
 
   ngOnDestroy() {
@@ -149,8 +189,10 @@ export class LayoutComponent
         }
         if (data.fullName)
           this.userName = data.fullName;
-        if (data.email)
+        if (data.email) {
           this.userEmail = data.email;
+          localStorage.setItem('im3_email', data.email); // ✅ email save
+        }
         this.cdr.detectChanges();
       }
     });

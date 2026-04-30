@@ -1,74 +1,66 @@
 <app-layout>
 <div class="chat-page">
 
-  <!-- ══════════════════════════════════
-       INCOMING CALL OVERLAY
-  ══════════════════════════════════ -->
-  <div class="call-overlay incoming"
+  <!-- ══════════ INCOMING CALL ══════════ -->
+  <div class="call-overlay"
     *ngIf="callState === 'receiving'">
-    <div class="call-card">
-      <div class="call-av"
-        [style.background]="
-          getAvatarColor(
-            incomingCallData?.callerName)">
-        {{ getInitials(
-          incomingCallData?.callerName) }}
+    <div class="call-card incoming-card">
+      <div class="call-ring-animation">
+        <div class="call-av-ring"
+          [style.background]="
+            getAvatarColor(
+              incomingCallData?.callerName)">
+          {{ getInitials(
+            incomingCallData?.callerName) }}
+        </div>
       </div>
       <div class="call-name">
         {{ incomingCallData?.callerName }}
       </div>
-      <div class="call-type-label">
+      <div class="call-subtitle">
         Incoming
         {{ callType === 'video'
-          ? '📹 Video' : '📞 Audio' }}
-        call...
+          ? '📹 Video' : '📞 Audio' }} call
       </div>
-      <div class="call-ring-dots">
-        <span></span><span></span>
-        <span></span>
-      </div>
-      <div class="call-btns">
-        <button class="call-reject-btn"
+      <div class="call-actions">
+        <button class="call-btn reject"
           type="button"
           (click)="rejectCall()">
-          📵 Decline
+          <span class="call-btn-icon">📵</span>
+          Decline
         </button>
-        <button class="call-accept-btn"
+        <button class="call-btn accept"
           type="button"
           (click)="answerCall()">
-          📞 Accept
+          <span class="call-btn-icon">📞</span>
+          Accept
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════
-       ACTIVE CALL OVERLAY
-  ══════════════════════════════════ -->
-  <div class="call-overlay active-call"
+  <!-- ══════════ ACTIVE CALL ══════════ -->
+  <div class="call-overlay"
     *ngIf="callState === 'calling'
       || callState === 'active'">
-    <div class="call-card">
+    <div class="call-card active-card">
 
       <!-- Video streams -->
       <div class="call-videos"
         *ngIf="callType === 'video'">
         <video class="remote-video"
-          #remoteVideo
-          autoplay playsinline
-          [muted]="false">
+          #remoteVideo autoplay playsinline>
         </video>
         <video class="local-video"
-          #localVideo
-          autoplay playsinline
-          [muted]="true">
+          #localVideo autoplay playsinline
+          muted>
         </video>
       </div>
 
-      <!-- Audio call UI -->
+      <!-- Audio UI -->
       <ng-container
         *ngIf="callType === 'audio'">
-        <div class="call-av"
+        <div class="call-av-large"
           [style.background]="
             getAvatarColor(
               selectedUser?.fullName
@@ -84,34 +76,51 @@
       </ng-container>
 
       <div class="call-status">
-        <span *ngIf="callState === 'calling'">
-          📞 Calling...
+        <span *ngIf="callState==='calling'">
+          Calling...
         </span>
-        <span *ngIf="callState === 'active'">
+        <span *ngIf="callState==='active'"
+          class="call-timer">
           🟢 {{ getCallDurationStr() }}
         </span>
       </div>
 
-      <div class="call-btns">
-        <button class="call-end-btn"
+      <!-- Call controls -->
+      <div class="call-controls">
+        <button class="ctrl-btn mute"
           type="button"
-          (click)="hangUp()">
-          📵 End Call
+          [class.active]="isMuted"
+          (click)="toggleMute()"
+          title="Mute">
+          {{ isMuted ? '🔇' : '🎙' }}
+        </button>
+        <button class="ctrl-btn camera"
+          type="button"
+          *ngIf="callType==='video'"
+          [class.active]="isCameraOff"
+          (click)="toggleCamera()"
+          title="Camera">
+          {{ isCameraOff ? '📵' : '📷' }}
+        </button>
+        <button class="ctrl-btn end"
+          type="button"
+          (click)="hangUp()"
+          title="End call">
+          📵
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════
-       CREATE GROUP MODAL
-  ══════════════════════════════════ -->
+  <!-- ══════════ CREATE GROUP MODAL ══════════ -->
   <div class="modal-overlay"
     *ngIf="showCreateGroup"
     (click)="showCreateGroup = false">
     <div class="modal-card"
       (click)="$event.stopPropagation()">
+
       <div class="modal-header">
-        <h3>Create Group</h3>
+        <h3>Create Group Chat</h3>
         <button type="button"
           class="modal-close"
           (click)="showCreateGroup = false">
@@ -120,56 +129,89 @@
       </div>
 
       <div class="modal-body">
-        <div class="form-group">
+        <!-- Group name -->
+        <div class="mf-group">
           <label>Group Name *</label>
-          <input class="form-input"
+          <input class="mf-input"
             [(ngModel)]="newGroupName"
             placeholder="e.g. Support Team"/>
         </div>
-        <div class="form-group">
+
+        <!-- Description -->
+        <div class="mf-group">
           <label>Description</label>
-          <input class="form-input"
+          <input class="mf-input"
             [(ngModel)]="newGroupDesc"
             placeholder="Optional..."/>
         </div>
-        <div class="form-group">
-          <label>Add Members</label>
-          <div class="member-list">
-            <div class="member-item"
-              *ngFor="let u of users"
-              [class.selected]="
+
+        <!-- Members -->
+        <div class="mf-group">
+          <label>
+            Add Members
+            <span class="mf-count"
+              *ngIf="selectedMemberIds.length > 0">
+              {{ selectedMemberIds.length }}
+              selected
+            </span>
+          </label>
+
+          <!-- ✅ Search members -->
+          <div class="mf-search">
+            <span>🔍</span>
+            <input
+              [(ngModel)]="memberSearchQuery"
+              placeholder="Search members..."/>
+          </div>
+
+          <!-- ✅ Scrollable member list -->
+          <div class="mf-member-list">
+            <div class="mf-empty"
+              *ngIf="filteredModalUsers
+                .length === 0">
+              No users found
+            </div>
+
+            <div class="mf-member-item"
+              *ngFor="let u of
+                filteredModalUsers"
+              [class.sel]="
                 isMemberSelected(u.id)"
               (click)="toggleMember(u.id)">
-              <div class="member-av"
+
+              <div class="mf-av"
                 [style.background]="
                   getAvatarColor(u.fullName)">
                 {{ getInitials(u.fullName) }}
               </div>
-              <div class="member-info">
-                <div class="member-name">
+              <div class="mf-info">
+                <div class="mf-name">
                   {{ u.fullName }}
                 </div>
-                <div class="member-role">
+                <div class="mf-role">
                   {{ getRoleLabel(u.role) }}
+                  · {{ u.email }}
                 </div>
               </div>
-              <span class="member-check"
-                *ngIf="isMemberSelected(u.id)">
-                ✓
-              </span>
+              <div class="mf-check"
+                [class.checked]="
+                  isMemberSelected(u.id)">
+                {{ isMemberSelected(u.id)
+                  ? '✓' : '' }}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-cancel"
-          type="button"
+        <button type="button"
+          class="mf-cancel"
           (click)="showCreateGroup = false">
           Cancel
         </button>
-        <button class="btn-create"
-          type="button"
+        <button type="button"
+          class="mf-create"
           [disabled]="!newGroupName.trim()"
           (click)="createGroup()">
           Create Group
@@ -178,57 +220,156 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════
-       LEFT SIDEBAR
-  ══════════════════════════════════ -->
+  <!-- ══════════ ADD MEMBERS MODAL ══════════ -->
+  <div class="modal-overlay"
+    *ngIf="showAddMembers"
+    (click)="showAddMembers = false">
+    <div class="modal-card"
+      (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h3>
+          Add Members to
+          {{ addMemberGroupName }}
+        </h3>
+        <button type="button"
+          class="modal-close"
+          (click)="showAddMembers = false">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mf-group">
+          <label>
+            Select Members to Add
+            <span class="mf-count"
+              *ngIf="
+                addMemberSelected.length > 0">
+              {{ addMemberSelected.length }}
+              selected
+            </span>
+          </label>
+
+          <!-- Search -->
+          <div class="mf-search">
+            <span>🔍</span>
+            <input
+              [(ngModel)]="addMemberSearch"
+              placeholder="Search people..."/>
+          </div>
+
+          <!-- Member list -->
+          <div class="mf-member-list">
+            <div class="mf-empty"
+              *ngIf="filteredAddMemberUsers
+                .length === 0">
+              All users are already members
+            </div>
+
+            <div class="mf-member-item"
+              *ngFor="let u of
+                filteredAddMemberUsers"
+              [class.sel]="
+                isAddMemberSelected(u.id)"
+              (click)="toggleAddMember(u.id)">
+
+              <div class="mf-av"
+                [style.background]="
+                  getAvatarColor(u.fullName)">
+                {{ getInitials(u.fullName) }}
+              </div>
+              <div class="mf-info">
+                <div class="mf-name">
+                  {{ u.fullName }}
+                </div>
+                <div class="mf-role">
+                  {{ getRoleLabel(u.role) }}
+                  · {{ u.email }}
+                </div>
+              </div>
+              <div class="mf-check"
+                [class.checked]="
+                  isAddMemberSelected(u.id)">
+                {{ isAddMemberSelected(u.id)
+                  ? '✓' : '' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+          class="mf-cancel"
+          (click)="showAddMembers = false">
+          Cancel
+        </button>
+        <button type="button"
+          class="mf-create"
+          [disabled]="
+            !addMemberSelected.length
+            || addMemberLoading"
+          (click)="confirmAddMembers()">
+          {{ addMemberLoading
+            ? 'Adding...'
+            : 'Add Members' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ LEFT SIDEBAR ══════════ -->
   <div class="chat-sidebar">
 
-    <!-- Header -->
     <div class="cs-header">
       <h2>Messages</h2>
-      <button class="cs-new-group-btn"
-        type="button"
-        title="New Group"
-        (click)="showCreateGroup = true">
+      <button type="button"
+        class="cs-new-btn"
+        title="Create Group"
+        (click)="openCreateGroup()">
         👥+
       </button>
     </div>
 
-    <!-- Search -->
     <div class="cs-search">
-      <span class="cs-search-icon">🔍</span>
+      <span>🔍</span>
       <input
         [(ngModel)]="searchQuery"
         (ngModelChange)="applyFilter()"
-        placeholder="Search people..."/>
+        placeholder="Search..."/>
     </div>
 
-    <!-- Filter Tabs -->
-    <div class="cs-filter-tabs">
-      <button class="cs-ftab"
-        type="button"
+    <!-- Filter tabs -->
+    <div class="cs-tabs">
+      <button type="button"
+        class="cs-tab"
         [class.active]="activeFilter==='all'"
         (click)="setFilter('all')">
         All
       </button>
-      <button class="cs-ftab"
-        type="button"
-        [class.active]="activeFilter==='unread'"
+      <button type="button"
+        class="cs-tab"
+        [class.active]="
+          activeFilter==='unread'"
         (click)="setFilter('unread')">
         Unread
-        <span class="cs-ftab-badge"
-          *ngIf="users.some(u => u.unreadCount > 0)">
+        <span class="cs-tab-dot"
+          *ngIf="users.some(
+            u => (u.unreadCount||0) > 0)">
         </span>
       </button>
-      <button class="cs-ftab"
-        type="button"
-        [class.active]="activeFilter==='online'"
+      <button type="button"
+        class="cs-tab"
+        [class.active]="
+          activeFilter==='online'"
         (click)="setFilter('online')">
         Online
       </button>
-      <button class="cs-ftab"
-        type="button"
-        [class.active]="activeFilter==='groups'"
+      <button type="button"
+        class="cs-tab"
+        [class.active]="
+          activeFilter==='groups'"
         (click)="setFilter('groups')">
         Groups
       </button>
@@ -237,7 +378,7 @@
     <!-- Loading -->
     <div class="cs-loading"
       *ngIf="loadingUsers">
-      <div class="cs-spinner"></div>
+      <div class="cs-spin"></div>
     </div>
 
     <!-- List -->
@@ -246,30 +387,32 @@
 
       <div class="cs-empty"
         *ngIf="filteredItems.length === 0">
-        <span *ngIf="activeFilter==='all'">
-          No users found
-        </span>
-        <span *ngIf="activeFilter==='unread'">
-          No unread messages 🎉
-        </span>
-        <span *ngIf="activeFilter==='online'">
-          No one online right now
-        </span>
-        <span *ngIf="activeFilter==='groups'">
-          No groups yet
-          <br/>
-          <button class="cs-create-group-btn"
-            type="button"
-            (click)="showCreateGroup = true">
-            + Create Group
-          </button>
-        </span>
+        <ng-container
+          [ngSwitch]="activeFilter">
+          <span *ngSwitchCase="'unread'">
+            No unread messages 🎉
+          </span>
+          <span *ngSwitchCase="'online'">
+            No one online right now
+          </span>
+          <span *ngSwitchCase="'groups'">
+            No groups yet
+            <br/>
+            <button type="button"
+              class="cs-create-g"
+              (click)="openCreateGroup()">
+              + Create Group
+            </button>
+          </span>
+          <span *ngSwitchDefault>
+            No results
+          </span>
+        </ng-container>
       </div>
 
-      <!-- User/Group items -->
       <div class="cs-item"
         *ngFor="let item of filteredItems"
-        [class.selected]="
+        [class.sel]="
           (!item.isGroupItem &&
             selectedUser?.id === item.id) ||
           (item.isGroupItem &&
@@ -278,12 +421,10 @@
 
         <!-- Avatar -->
         <div class="cs-av-wrap">
-          <!-- Group avatar -->
-          <div class="cs-av group-av"
+          <div class="cs-av g-av"
             *ngIf="item.isGroupItem">
             👥
           </div>
-          <!-- User avatar -->
           <div class="cs-av"
             *ngIf="!item.isGroupItem"
             [style.background]="
@@ -298,8 +439,7 @@
               {{ getInitials(item.fullName) }}
             </span>
           </div>
-          <!-- Online dot (users only) -->
-          <span class="online-dot"
+          <span class="cs-dot"
             *ngIf="!item.isGroupItem"
             [class.online]="item.isOnline"
             [class.offline]="!item.isOnline">
@@ -311,24 +451,16 @@
           <div class="cs-name">
             {{ item.fullName || item.name }}
           </div>
-
-          <!-- Last message preview -->
           <div class="cs-last"
             *ngIf="item.lastMessage">
-            <span
-              *ngIf="item.lastMessage.isFromMe"
-              class="cs-you">
+            <span class="cs-you"
+              *ngIf="
+                item.lastMessage.isFromMe">
               You:
             </span>
-            {{ (item.lastMessage.content
-              || '') | slice:0:30 }}
-            <span *ngIf="(item.lastMessage
-              .content || '').length > 30">
-              ...
-            </span>
+            {{ (item.lastMessage.content||'')
+              | slice:0:32 }}
           </div>
-
-          <!-- Role / member count -->
           <div class="cs-sub"
             *ngIf="!item.lastMessage">
             <span *ngIf="!item.isGroupItem">
@@ -340,57 +472,45 @@
           </div>
         </div>
 
-        <!-- Meta right -->
+        <!-- Meta -->
         <div class="cs-meta">
-          <!-- Time -->
-          <div class="cs-time"
+          <span class="cs-time"
             *ngIf="item.lastMessage">
             {{ getTimeStr(
               item.lastMessage.createdAt) }}
-          </div>
-
-          <!-- Online text (no last message) -->
-          <div class="cs-online-lbl"
+          </span>
+          <span class="cs-status"
             *ngIf="!item.lastMessage
-              && !item.isGroupItem">
-            <span
-              [class.cs-online-txt]="
-                item.isOnline"
-              [class.cs-offline-txt]="
-                !item.isOnline">
-              {{ item.isOnline
-                ? 'Online'
-                : getLastSeenText(item) }}
-            </span>
-          </div>
-
-          <!-- Unread badge -->
-          <div class="cs-unread-badge"
-            *ngIf="item.unreadCount > 0">
-            {{ item.unreadCount > 9
+              && !item.isGroupItem"
+            [class.o-txt]="item.isOnline"
+            [class.f-txt]="!item.isOnline">
+            {{ item.isOnline ? 'Online'
+              : getLastSeenText(item) }}
+          </span>
+          <span class="cs-unread"
+            *ngIf="(item.unreadCount||0) > 0">
+            {{ (item.unreadCount||0) > 9
               ? '9+' : item.unreadCount }}
-          </div>
+          </span>
         </div>
 
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════
-       MAIN CHAT AREA
-  ══════════════════════════════════ -->
+  <!-- ══════════ MAIN CHAT ══════════ -->
   <div class="chat-main">
 
-    <!-- Empty state -->
+    <!-- Empty -->
     <div class="cm-empty"
       *ngIf="!selectedUser && !selectedGroup">
-      <div class="cm-empty-icon">💬</div>
+      <span class="cm-empty-icon">💬</span>
       <h3>Select a conversation</h3>
-      <p>Choose someone to start chatting</p>
-      <button class="cm-empty-group-btn"
-        type="button"
-        (click)="showCreateGroup = true">
-        👥 Create Group Chat
+      <p>Choose a person or group to chat</p>
+      <button type="button"
+        class="cm-empty-btn"
+        (click)="openCreateGroup()">
+        👥 New Group Chat
       </button>
     </div>
 
@@ -400,14 +520,12 @@
 
       <!-- Header -->
       <div class="cm-header">
-        <div class="cm-av-wrap">
-          <!-- Group header -->
-          <div class="cm-av group-hav"
+        <div class="cm-hd-av-wrap">
+          <div class="cm-hd-av g"
             *ngIf="selectedGroup">
             👥
           </div>
-          <!-- User header -->
-          <div class="cm-av"
+          <div class="cm-hd-av"
             *ngIf="selectedUser"
             [style.background]="
               selectedUser.photoUrl
@@ -424,45 +542,52 @@
                 selectedUser.fullName) }}
             </span>
           </div>
-          <span class="online-dot"
+          <span class="cm-hd-dot"
             *ngIf="selectedUser"
-            [class.online]="selectedUser.isOnline"
+            [class.online]="
+              selectedUser.isOnline"
             [class.offline]="
               !selectedUser.isOnline">
           </span>
         </div>
 
-        <div class="cm-header-info">
-          <div class="cm-header-name">
+        <div class="cm-hd-info">
+          <div class="cm-hd-name">
             {{ selectedUser?.fullName
               || selectedGroup?.name }}
           </div>
-          <div class="cm-header-status"
+          <div class="cm-hd-status"
             *ngIf="selectedUser"
-            [class.online-status]="
+            [class.o-status]="
               selectedUser.isOnline"
-            [class.offline-status]="
+            [class.f-status]="
               !selectedUser.isOnline">
             {{ getLastSeenText(selectedUser) }}
           </div>
-          <div class="cm-header-status"
+          <div class="cm-hd-status"
             *ngIf="selectedGroup">
             {{ selectedGroup.memberCount }}
             members
+            <span class="cm-hd-sep"> · </span>
+            <span class="cm-add-member"
+              (click)="
+                openAddMembers(selectedGroup)">
+              + Add members
+            </span>
           </div>
         </div>
 
-        <!-- Call buttons -->
-        <div class="cm-header-actions"
+        <!-- Call buttons (direct only) -->
+        <div class="cm-hd-actions"
           *ngIf="selectedUser">
-          <button class="cm-call-btn audio"
-            type="button"
+          <button type="button"
+            class="cm-call audio"
             title="Audio Call"
             (click)="startCall('audio')">
             📞
           </button>
-          <button class="cm-call-btn video"
-            type="button"
+          <button type="button"
+            class="cm-call video"
             title="Video Call"
             (click)="startCall('video')">
             📹
@@ -471,43 +596,31 @@
       </div>
 
       <!-- Messages -->
-      <div class="cm-messages"
+      <div class="cm-msgs"
         #messagesContainer>
 
-        <div class="cm-msg-loading"
+        <div class="cm-loading"
           *ngIf="loadingMessages">
-          <div class="cs-spinner"></div>
+          <div class="cs-spin"></div>
         </div>
 
         <div class="cm-no-msgs"
           *ngIf="!loadingMessages
             && messages.length === 0">
           <p>No messages yet 👋</p>
-          <p *ngIf="selectedUser">
-            Say hi to
-            {{ selectedUser.fullName }}!
-          </p>
-          <p *ngIf="selectedGroup">
-            Start the conversation in
-            {{ selectedGroup.name }}!
-          </p>
         </div>
 
-        <!-- Message bubbles -->
         <ng-container
           *ngFor="let m of messages;
             let i = index">
 
           <!-- Date separator -->
           <div class="cm-date-sep"
-            *ngIf="i === 0 ||
-              shouldShowDate(
-                messages[i-1]?.createdAt,
-                m.createdAt)">
-            <span>
-              {{ m.createdAt
-                | date:'EEEE, MMMM d' }}
-            </span>
+            *ngIf="shouldShowDate(
+              messages[i-1]?.createdAt,
+              m.createdAt)">
+            <span>{{ m.createdAt
+              | date:'EEEE, MMMM d' }}</span>
           </div>
 
           <div class="cm-msg"
@@ -533,20 +646,19 @@
 
             <div class="cm-msg-body">
 
-              <!-- Sender name (groups) -->
-              <div class="cm-sender-name"
-                *ngIf="selectedGroup &&
-                  !m.isFromMe &&
-                  m.senderId !== myId">
+              <!-- Sender name (group) -->
+              <div class="cm-sender"
+                *ngIf="selectedGroup
+                  && !m.isFromMe
+                  && m.senderId !== myId">
                 {{ m.senderName }}
               </div>
 
-              <!-- IMAGE message -->
-              <div class="cm-image-wrap"
-                *ngIf="m.messageType === 'image'
+              <!-- IMAGE -->
+              <div class="cm-img-wrap"
+                *ngIf="m.messageType==='image'
                   && m.attachmentUrl">
-                <img
-                  class="cm-image"
+                <img class="cm-img"
                   [src]="'https://localhost:7071'
                     + m.attachmentUrl"
                   [alt]="m.attachmentName
@@ -556,138 +668,113 @@
                     + m.attachmentUrl)"/>
               </div>
 
-              <!-- FILE message -->
-              <div class="cm-file-wrap"
-                *ngIf="m.messageType === 'file'
-                  && m.attachmentUrl">
-                <a class="cm-file-link"
-                  [href]="'https://localhost:7071'
-                    + m.attachmentUrl"
-                  target="_blank"
-                  [download]="m.attachmentName">
-                  <span class="cm-file-icon">
-                    📎
-                  </span>
-                  <div class="cm-file-info">
-                    <div class="cm-file-name">
-                      {{ m.attachmentName
-                        || 'File' }}
-                    </div>
-                    <div class="cm-file-size"
-                      *ngIf="m.attachmentSize">
-                      {{ formatFileSize(
-                        m.attachmentSize) }}
-                    </div>
+              <!-- FILE -->
+              <a class="cm-file"
+                *ngIf="m.messageType==='file'
+                  && m.attachmentUrl"
+                [href]="'https://localhost:7071'
+                  + m.attachmentUrl"
+                target="_blank"
+                [download]="m.attachmentName">
+                <span class="cm-file-ic">
+                  📎
+                </span>
+                <div>
+                  <div class="cm-file-nm">
+                    {{ m.attachmentName
+                      || 'File' }}
                   </div>
-                  <span class="cm-file-dl">
-                    ↓
-                  </span>
-                </a>
-              </div>
+                  <div class="cm-file-sz"
+                    *ngIf="m.attachmentSize">
+                    {{ formatFileSize(
+                      m.attachmentSize) }}
+                  </div>
+                </div>
+                <span class="cm-file-dl">
+                  ↓
+                </span>
+              </a>
 
-              <!-- TEXT bubble -->
+              <!-- TEXT -->
               <div class="cm-bubble"
                 *ngIf="m.content &&
                   m.messageType !== 'file'">
                 {{ m.content }}
               </div>
 
-              <!-- Time + read -->
+              <!-- Time + ticks -->
               <div class="cm-time-row">
                 <span class="cm-time">
                   {{ getTimeStr(m.createdAt) }}
                 </span>
-                <span
-                  *ngIf="m.isFromMe
-                    || m.senderId === myId"
-                  class="cm-ticks"
-                  [class.read-ticks]="m.isRead">
+                <span class="cm-ticks"
+                  *ngIf="m.isFromMe ||
+                    m.senderId === myId"
+                  [class.read]="m.isRead">
                   {{ m.isRead ? '✓✓' : '✓' }}
                 </span>
               </div>
-
             </div>
           </div>
-
         </ng-container>
 
-        <!-- Typing indicator -->
+        <!-- Typing -->
         <div class="cm-typing"
           *ngIf="isTyping">
-          <div class="cm-typing-av"
+          <div class="cm-typ-av"
             [style.background]="
               getAvatarColor(
-                selectedUser?.fullName || '')">
+                selectedUser?.fullName||'')">
             {{ getInitials(
-              selectedUser?.fullName || '') }}
+              selectedUser?.fullName||'') }}
           </div>
-          <div class="cm-typing-dots">
+          <div class="cm-typ-dots">
             <span></span>
             <span></span>
             <span></span>
           </div>
         </div>
-
       </div>
 
-      <!-- Input Area -->
+      <!-- Input -->
       <div class="cm-input-area">
-
-        <!-- File/Image attach button -->
-        <label class="cm-attach-btn"
-          type="button"
-          title="Attach file or image">
+        <label class="cm-att" title="File">
           📎
-          <input type="file"
-            #fileInput
-            hidden
-            multiple
-            accept="image/*,.pdf,.doc,
-              .docx,.xls,.xlsx,.zip,.txt"
+          <input type="file" hidden multiple
+            accept="*/*"
             (change)="onFileSelect($event)"/>
         </label>
-
-        <!-- Image only button -->
-        <label class="cm-attach-btn img-btn"
-          type="button"
-          title="Send image">
+        <label class="cm-att img"
+          title="Image">
           🖼
-          <input type="file"
-            hidden
-            multiple
+          <input type="file" hidden multiple
             accept="image/*"
             (change)="onFileSelect($event)"/>
         </label>
 
-        <!-- Uploading indicator -->
         <div class="cm-uploading"
           *ngIf="uploadingFile">
-          <div class="up-spinner"></div>
+          <div class="up-spin"></div>
         </div>
 
-        <!-- Text input -->
-        <textarea class="cm-input"
+        <textarea class="cm-text"
           [(ngModel)]="newMessage"
           (keydown)="onKeydown($event)"
-          placeholder=
-            "Type a message... (Enter to send)"
+          placeholder="Type a message..."
           rows="1">
         </textarea>
 
-        <!-- Send button -->
-        <button class="cm-send-btn"
-          type="button"
+        <button type="button"
+          class="cm-send"
           [disabled]="
-            (!newMessage.trim() &&
-             !uploadingFile)"
+            !newMessage.trim() &&
+            !uploadingFile"
           (click)="sendMessage()">
           ➤
         </button>
-
       </div>
 
     </div>
-
   </div>
 
 </div>

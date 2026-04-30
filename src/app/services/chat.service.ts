@@ -21,8 +21,10 @@ export class ChatService {
   private hub!: signalR.HubConnection;
 
   // ── Reactive streams ─────────────────
-  messages$ =
-    new BehaviorSubject<any[]>([]);
+  // Single new message stream — only for
+  // real-time incoming messages, NOT history
+  newMessage$ =
+    new BehaviorSubject<any>(null);
   typing$ =
     new BehaviorSubject<any>(null);
   userStatus$ =
@@ -43,6 +45,13 @@ export class ChatService {
     new BehaviorSubject<any>(null);
   iceCandidate$ =
     new BehaviorSubject<any>(null);
+
+  // ── Connection state check ────────────
+  get isConnected(): boolean {
+    return !!this.hub &&
+      this.hub.state ===
+        signalR.HubConnectionState.Connected;
+  }
 
   getHeaders(): HttpHeaders {
     return new HttpHeaders({
@@ -96,7 +105,6 @@ export class ChatService {
   uploadFile(file: File): Observable<any> {
     const fd = new FormData();
     fd.append('file', file);
-    // No Content-Type — browser sets it
     const h = new HttpHeaders({
       'Authorization':
         `Bearer ${this.authService.getToken()}`
@@ -112,12 +120,31 @@ export class ChatService {
       { headers: this.getHeaders() });
   }
 
+  addGroupMembers(
+    groupId: string,
+    memberIds: string[]
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.BASE}/api/Chat/groups/${groupId}/members`,
+      { memberIds },
+      { headers: this.getHeaders() });
+  }
+
+  loadUnreadCount() {
+    this.getUnreadCount().subscribe({
+      next: (d) =>
+        this.unreadCount$.next(d.count || 0),
+      error: () => {}
+    });
+  }
+
+  clearMessages() {
+    this.newMessage$.next(null);
+  }
+
   // ── SignalR ──────────────────────────
   connect() {
-    if (this.hub &&
-        this.hub.state ===
-          signalR.HubConnectionState.Connected)
-      return;
+    if (this.isConnected) return;
 
     this.hub = new signalR
       .HubConnectionBuilder()
@@ -125,13 +152,14 @@ export class ChatService {
         accessTokenFactory: () =>
           this.authService.getToken() || ''
       })
-      .withAutomaticReconnect([0, 2000, 5000])
+      .withAutomaticReconnect([
+        0, 2000, 5000, 10000, 30000
+      ])
       .build();
 
-    // Messages
+    // Messages — emit single new message
     this.hub.on('ReceiveMessage', (msg) => {
-      const curr = this.messages$.value;
-      this.messages$.next([...curr, msg]);
+      this.newMessage$.next(msg);
       this.loadUnreadCount();
     });
 
@@ -142,7 +170,7 @@ export class ChatService {
         this.typing$.next(null), 3000);
     });
 
-    // Online/Offline
+    // Online / Offline
     this.hub.on('UserOnline', (d) =>
       this.userStatus$.next(
         { ...d, isOnline: true }));
@@ -166,13 +194,19 @@ export class ChatService {
     this.hub.on('IceCandidate', (d) =>
       this.iceCandidate$.next(d));
 
+    // Reconnecting — update state
+    this.hub.onreconnecting(() => {
+      this.isConnected$.next(false);
+    });
+
     this.hub.onreconnected(() => {
       this.isConnected$.next(true);
       this.loadUnreadCount();
     });
 
-    this.hub.onclose(() =>
-      this.isConnected$.next(false));
+    this.hub.onclose(() => {
+      this.isConnected$.next(false);
+    });
 
     this.hub.start()
       .then(() => {
@@ -180,11 +214,30 @@ export class ChatService {
         this.loadUnreadCount();
       })
       .catch(e =>
-        console.error('Chat hub:', e));
+        console.error('Chat hub error:', e));
   }
 
   disconnect() {
     this.hub?.stop();
+  }
+
+  // ── Hub invoke — safe wrapper ─────────
+  private safeInvoke(
+    method: string,
+    ...args: any[]
+  ): Promise<void> {
+    if (!this.isConnected) {
+      // Silently ignore — don't throw
+      return Promise.resolve();
+    }
+    return this.hub.invoke(method, ...args)
+      .catch(e => {
+        // Only log non-state errors
+        if (!e?.message?.includes(
+            'not in the \'Connected\''))
+          console.error(
+            `Hub.${method} error:`, e);
+      });
   }
 
   // ── Hub methods ──────────────────────
@@ -196,10 +249,10 @@ export class ChatService {
     attachmentName?: string,
     attachmentType?: string
   ): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+    return this.safeInvoke(
       'SendMessage',
-      receiverId, content,
+      receiverId,
+      content,
       messageType,
       attachmentUrl ?? null,
       attachmentName ?? null,
@@ -214,26 +267,26 @@ export class ChatService {
     attachmentName?: string,
     attachmentType?: string
   ): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+    return this.safeInvoke(
       'SendGroupMessage',
-      groupId, content, messageType,
+      groupId,
+      content,
+      messageType,
       attachmentUrl ?? null,
       attachmentName ?? null,
       attachmentType ?? null);
   }
 
   markRead(senderId: string): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+    return this.safeInvoke(
       'MarkRead', senderId);
   }
 
   sendTyping(
     receiverId: string,
-    isTyping: boolean): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+    isTyping: boolean
+  ): Promise<void> {
+    return this.safeInvoke(
       'Typing', receiverId, isTyping);
   }
 
@@ -241,50 +294,39 @@ export class ChatService {
   initiateCall(
     receiverId: string,
     callType: string,
-    offer: string): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+    offer: string
+  ): Promise<void> {
+    return this.safeInvoke(
       'InitiateCall',
       receiverId, callType, offer);
   }
 
   acceptCall(
     callerId: string,
-    answer: string): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+    answer: string
+  ): Promise<void> {
+    return this.safeInvoke(
       'AcceptCall', callerId, answer);
   }
 
-  rejectCall(callerId: string): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+  rejectCall(
+    callerId: string
+  ): Promise<void> {
+    return this.safeInvoke(
       'RejectCall', callerId);
   }
 
   endCall(userId: string): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
+    return this.safeInvoke(
       'EndCall', userId);
   }
 
   sendIceCandidate(
     targetId: string,
-    candidate: string): Promise<void> {
-    if (!this.hub) return Promise.resolve();
-    return this.hub.invoke(
-      'SendIceCandidate', targetId, candidate);
-  }
-
-  loadUnreadCount() {
-    this.getUnreadCount().subscribe({
-      next: (d) =>
-        this.unreadCount$.next(d.count || 0),
-      error: () => {}
-    });
-  }
-
-  clearMessages() {
-    this.messages$.next([]);
+    candidate: string
+  ): Promise<void> {
+    return this.safeInvoke(
+      'SendIceCandidate',
+      targetId, candidate);
   }
 }
