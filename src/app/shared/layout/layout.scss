@@ -1,9 +1,9 @@
-
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: 240px;
   min-width: 240px;
   height: 100vh;
+  transition: width 0.3s ease, min-width 0.3s ease;
   background: var(--bg-card, #ffffff);
   border-right: 1px solid
     var(--border-color, #e8e8e8);
@@ -294,6 +294,9 @@
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
   z-index: 200;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
 }
 
 .nd-header {
@@ -306,6 +309,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary, #333);
+  flex-shrink: 0;
 
   button {
     background: none;
@@ -323,6 +327,13 @@
   text-align: center;
   font-size: 13px;
   color: var(--text-muted, #bbb);
+  overflow-y: auto;
+}
+
+.nd-scroll-area {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .nd-item {
@@ -382,6 +393,7 @@
   color: var(--accent, #2563eb);
   cursor: pointer;
   border-top: 1px solid var(--border-color, #f0f0f0);
+  flex-shrink: 0;
 
   &:hover { background: var(--hover-bg, #f5f5f5); }
 }
@@ -525,6 +537,7 @@ body.theme-dark .topbar {
   height: 100vh;
   overflow: hidden;
   min-width: 0;
+  transition: margin-left 0.3s ease; 
 }
 
 .topbar {
@@ -571,4 +584,81 @@ body.theme-dark .topbar {
   top: calc(100% + 8px);
   right: 0;
   z-index: 200;
+}
+
+/* =========================================
+   COLLAPSED SIDEBAR STYLES
+   ========================================= */
+
+.sidebar.collapsed {
+  width: 76px;
+  min-width: 76px;
+}
+
+.main-area.collapsed {
+  margin-left: 76px;
+}
+
+/* Hide extra text when collapsed */
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .nav-item span:not(.nav-icon):not(.badge),
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .user-info,
+.sidebar.collapsed .collapse-text {
+  display: none;
+}
+
+/* Center icons & avatars */
+.sidebar.collapsed .sidebar-logo {
+  padding: 18px 0;
+  justify-content: center;
+}
+
+.sidebar.collapsed .nav-item {
+  padding: 12px 0;
+  justify-content: center;
+  position: relative;
+}
+
+.sidebar.collapsed .nav-icon {
+  margin: 0;
+  width: auto;
+}
+
+.sidebar.collapsed .sidebar-user {
+  padding: 14px 0;
+  justify-content: center;
+}
+
+/* Fix Notification Badge position */
+.sidebar.collapsed .badge {
+  position: absolute;
+  top: 4px;
+  right: 14px;
+  padding: 2px 5px;
+  font-size: 9px;
+  min-width: auto;
+}
+
+/* Collapse Toggle Button Base Styles */
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-color, #f0f0f0);
+  cursor: pointer;
+  color: var(--text-secondary, #555);
+  font-size: 14px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--hover-bg, #f5f5f5);
+}
+
+.sidebar.collapsed .sidebar-collapse-btn {
+  padding: 14px 0;
+  justify-content: center;
 }

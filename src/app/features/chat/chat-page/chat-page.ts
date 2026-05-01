@@ -14,6 +14,8 @@ import { AuthService }
   from '../../../services/auth.service';
 import { LayoutComponent }
   from '../../../shared/layout/layout';
+import { CallLogComponent }
+  from '../../call-logs/call-log.component';
 
 type FilterType =
   'all' | 'unread' | 'online' | 'groups';
@@ -24,7 +26,8 @@ type FilterType =
   imports: [
     CommonModule,
     FormsModule,
-    LayoutComponent
+    LayoutComponent,
+    CallLogComponent
   ],
   templateUrl: './chat-page.html',
   styleUrls: ['./chat-page.scss']
@@ -35,8 +38,8 @@ export class ChatPageComponent
 
   private chatService = inject(ChatService);
   private authService = inject(AuthService);
-  public router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
+  public  router      = inject(Router);
+  private cdr         = inject(ChangeDetectorRef);
 
   @ViewChild('messagesContainer')
     msgContainer!: ElementRef;
@@ -45,32 +48,35 @@ export class ChatPageComponent
   @ViewChild('remoteVideo')
     remoteVideoRef!: ElementRef;
 
-  // ── State ─────────────────────────
-  users: any[] = [];
-  groups: any[] = [];
-  filteredItems: any[] = [];
-  selectedUser: any = null;
-  selectedGroup: any = null;
-  messages: any[] = [];
-  newMessage = '';
-  searchQuery = '';
+  // ── State ──────────────────────────────
+  users:         any[]     = [];
+  groups:        any[]     = [];
+  filteredItems: any[]     = [];
+  selectedUser:  any       = null;
+  selectedGroup: any       = null;
+  messages:      any[]     = [];
+  newMessage              = '';
+  searchQuery             = '';
   activeFilter: FilterType = 'all';
-  loadingUsers = true;
-  loadingMessages = false;
-  isTyping = false;
+  loadingUsers            = true;
+  loadingMessages         = false;
+  isTyping                = false;
   typingTimeout: any;
-  shouldScrollToBottom = false;
-  uploadingFile = false;
+  shouldScrollToBottom    = false;
+  uploadingFile           = false;
 
-  myId = '';
+  myId   = '';
   myName = '';
 
-  // ── Create Group Modal ─────────────
-  showCreateGroup = false;
-  newGroupName = '';
-  newGroupDesc = '';
+  // ── Sidebar tab: 'chat' | 'calls' ──────
+  sidebarTab: 'chat' | 'calls' = 'chat';
+
+  // ── Create Group Modal ─────────────────
+  showCreateGroup     = false;
+  newGroupName        = '';
+  newGroupDesc        = '';
   selectedMemberIds: string[] = [];
-  memberSearchQuery = '';
+  memberSearchQuery   = '';
 
   get filteredModalUsers(): any[] {
     const q =
@@ -81,13 +87,13 @@ export class ChatPageComponent
       u.email?.toLowerCase().includes(q));
   }
 
-  // ── Add Members to Existing Group ──
-  showAddMembers = false;
-  addMemberGroupId = '';
+  // ── Add Members to Existing Group ──────
+  showAddMembers    = false;
+  addMemberGroupId  = '';
   addMemberGroupName = '';
-  addMemberSearch = '';
+  addMemberSearch   = '';
   addMemberSelected: string[] = [];
-  addMemberLoading = false;
+  addMemberLoading  = false;
 
   get filteredAddMemberUsers(): any[] {
     const q =
@@ -104,32 +110,28 @@ export class ChatPageComponent
     return list;
   }
 
-  // ── Call State ─────────────────────
+  // ── Call State ─────────────────────────
   callState:
     'idle' | 'calling' |
     'receiving' | 'active' = 'idle';
   callType: 'audio' | 'video' = 'audio';
-  incomingCallData: any = null;
-  callDuration = 0;
+  incomingCallData: any  = null;
+  callDuration           = 0;
   callTimer: any;
-  isMuted = false;
-  isCameraOff = false;
+  isMuted                = false;
+  isCameraOff            = false;
 
   // WebRTC
   private pc: RTCPeerConnection | null = null;
   private isSettingRemoteAnswer = false;
   localStream: MediaStream | null = null;
-
-  // ICE candidate queue —
-  // holds candidates that arrived before
-  // remote description was set
-  private iceCandidateQueue: RTCIceCandidateInit[] = [];
+  private iceCandidateQueue:
+    RTCIceCandidateInit[] = [];
 
   private subs: Subscription[] = [];
 
-  // ── ngOnInit ───────────────────────
+  // ── ngOnInit ────────────────────────────
   ngOnInit() {
-    // Reset call state on every page load
     this.resetCallState();
 
     const token = this.authService.getToken();
@@ -154,20 +156,18 @@ export class ChatPageComponent
     this.subscribeToEvents();
   }
 
-  // ── Full call state reset ──────────
+  // ── Reset call state ────────────────────
   private resetCallState() {
-    this.callState = 'idle';
-    this.incomingCallData = null;
+    this.callState            = 'idle';
+    this.incomingCallData     = null;
     this.isSettingRemoteAnswer = false;
-    this.iceCandidateQueue = [];
+    this.iceCandidateQueue    = [];
 
     if (this.pc) {
       try { this.pc.close(); } catch {}
       this.pc = null;
     }
 
-    // Reset BehaviorSubjects so stale data
-    // from previous session doesn't trigger
     this.chatService.incomingCall$.next(null);
     this.chatService.callAccepted$.next(null);
     this.chatService.callRejected$.next(null);
@@ -176,14 +176,12 @@ export class ChatPageComponent
   }
 
   private subscribeToEvents() {
-    // Only handle NEWLY arriving messages
-    // (not the full history loaded on select)
+    // ── New real-time message ──
     this.subs.push(
       this.chatService.newMessage$.subscribe(
         msg => {
           if (!msg) return;
 
-          // Is this message for current chat?
           const forCurrentUser =
             this.selectedUser &&
             !msg.groupId &&
@@ -199,25 +197,23 @@ export class ChatPageComponent
             msg.groupId ===
               this.selectedGroup.id;
 
-          if (forCurrentUser || forCurrentGroup) {
-            // Avoid duplicate: check by id
+          if (forCurrentUser ||
+              forCurrentGroup) {
             const exists = this.messages
               .some(m => m.id === msg.id);
             if (!exists) {
-              this.messages = [
-                ...this.messages, msg
-              ];
+              this.messages =
+                [...this.messages, msg];
               this.shouldScrollToBottom = true;
             }
           }
 
           this.cdr.detectChanges();
-          // Refresh user list silently
           this.loadUsers(true);
         })
     );
 
-    // Typing
+    // ── Typing ──
     this.subs.push(
       this.chatService.typing$.subscribe(d => {
         if (!d) return;
@@ -229,7 +225,7 @@ export class ChatPageComponent
       })
     );
 
-    // Online status
+    // ── Online status ──
     this.subs.push(
       this.chatService.userStatus$.subscribe(
         d => {
@@ -245,28 +241,27 @@ export class ChatPageComponent
         })
     );
 
-    // Incoming call — only if idle
+    // ── Incoming call — only if idle ──
     this.subs.push(
       this.chatService.incomingCall$.subscribe(
         d => {
           if (!d) return;
           if (this.callState !== 'idle') return;
           this.incomingCallData = d;
-          this.callState = 'receiving';
-          this.callType = d.callType || 'audio';
+          this.callState  = 'receiving';
+          this.callType   =
+            d.callType || 'audio';
           this.cdr.detectChanges();
         })
     );
 
-    // Call accepted
+    // ── Call accepted ──
     this.subs.push(
       this.chatService.callAccepted$.subscribe(
         async d => {
           if (!d) return;
           if (!this.pc) return;
           if (this.isSettingRemoteAnswer) return;
-
-          // Only set if we sent an offer
           if (this.pc.signalingState !==
               'have-local-offer') return;
 
@@ -275,10 +270,7 @@ export class ChatPageComponent
             const ans = JSON.parse(d.answer);
             await this.pc.setRemoteDescription(
               new RTCSessionDescription(ans));
-
-            // Flush queued ICE candidates
             await this.flushIceCandidates();
-
             this.callState = 'active';
             this.startCallTimer();
           } catch (e) {
@@ -292,7 +284,7 @@ export class ChatPageComponent
         })
     );
 
-    // Call rejected
+    // ── Call rejected ──
     this.subs.push(
       this.chatService.callRejected$.subscribe(
         d => {
@@ -301,7 +293,7 @@ export class ChatPageComponent
         })
     );
 
-    // Call ended
+    // ── Call ended ──
     this.subs.push(
       this.chatService.callEnded$.subscribe(
         d => {
@@ -310,34 +302,49 @@ export class ChatPageComponent
         })
     );
 
-    // ICE candidates — queue if remote
-    // not set yet, else add immediately
+    // ── ICE candidates ──
     this.subs.push(
       this.chatService.iceCandidate$.subscribe(
         async d => {
           if (!d || !this.pc) return;
           try {
-            const candidate = JSON.parse(
+            const c = JSON.parse(
               d.candidate) as RTCIceCandidateInit;
             if (!this.pc.remoteDescription) {
-              // Queue it for later
-              this.iceCandidateQueue
-                .push(candidate);
+              this.iceCandidateQueue.push(c);
             } else {
               await this.pc.addIceCandidate(
-                new RTCIceCandidate(candidate));
+                new RTCIceCandidate(c));
             }
           } catch {}
         })
     );
+
+    // ✅ Call-back request from call log ──
+    this.subs.push(
+      this.chatService.startCallRequest$
+        .subscribe(req => {
+          if (!req) return;
+          const user = this.users.find(
+            u => u.id === req.userId);
+          if (user) {
+            this.selectUser(user);
+            this.sidebarTab = 'chat';
+            setTimeout(() =>
+              this.startCall(req.type), 400);
+          }
+          // Reset after handling
+          this.chatService
+            .startCallRequest$.next(null);
+        })
+    );
   }
 
-  // Flush queued ICE candidates after
-  // remote description is set
   private async flushIceCandidates() {
     if (!this.pc) return;
     while (this.iceCandidateQueue.length) {
-      const c = this.iceCandidateQueue.shift()!;
+      const c =
+        this.iceCandidateQueue.shift()!;
       try {
         await this.pc.addIceCandidate(
           new RTCIceCandidate(c));
@@ -349,8 +356,6 @@ export class ChatPageComponent
     this.subs.forEach(s => s.unsubscribe());
     clearTimeout(this.typingTimeout);
     this.endCallLocal();
-    // Do NOT disconnect hub — stay online
-    // while app is open in other pages
   }
 
   ngAfterViewChecked() {
@@ -360,14 +365,19 @@ export class ChatPageComponent
     }
   }
 
-  // ── LOAD DATA ──────────────────────
+  // ── Sidebar tab ─────────────────────────
+  setSidebarTab(t: 'chat' | 'calls') {
+    this.sidebarTab = t;
+  }
+
+  // ── Load data ───────────────────────────
   loadUsers(silent = false) {
     if (!silent) this.loadingUsers = true;
 
     this.chatService.getChatUsers()
       .subscribe({
         next: (data) => {
-          this.users = data;
+          this.users        = data;
           this.loadingUsers = false;
 
           if (this.selectedUser) {
@@ -405,7 +415,7 @@ export class ChatPageComponent
     });
   }
 
-  // ── FILTER ─────────────────────────
+  // ── Filter ──────────────────────────────
   setFilter(f: FilterType) {
     this.activeFilter = f;
     this.applyFilter();
@@ -428,32 +438,25 @@ export class ChatPageComponent
     }
 
     if (this.searchQuery.trim()) {
-      const q =
-        this.searchQuery.toLowerCase();
+      const q = this.searchQuery.toLowerCase();
       items = items.filter(i =>
         i.fullName?.toLowerCase().includes(q) ||
         i.name?.toLowerCase().includes(q) ||
         i.email?.toLowerCase().includes(q));
     }
 
-    // Sort: unread first, then by last message
     items.sort((a, b) => {
-      const ua = (a.unreadCount || 0);
-      const ub = (b.unreadCount || 0);
+      const ua = a.unreadCount || 0;
+      const ub = b.unreadCount || 0;
       if (ua !== ub) return ub - ua;
-
-      const ta =
-        a.lastMessage?.createdAt
-          ? new Date(
-              a.lastMessage.createdAt)
-              .getTime()
-          : 0;
-      const tb =
-        b.lastMessage?.createdAt
-          ? new Date(
-              b.lastMessage.createdAt)
-              .getTime()
-          : 0;
+      const ta = a.lastMessage?.createdAt
+        ? new Date(
+            a.lastMessage.createdAt).getTime()
+        : 0;
+      const tb = b.lastMessage?.createdAt
+        ? new Date(
+            b.lastMessage.createdAt).getTime()
+        : 0;
       return tb - ta;
     });
 
@@ -461,7 +464,7 @@ export class ChatPageComponent
     this.cdr.detectChanges();
   }
 
-  // ── SELECT ─────────────────────────
+  // ── Select ──────────────────────────────
   selectItem(item: any) {
     if (item.isGroupItem)
       this.selectGroup(item);
@@ -470,9 +473,9 @@ export class ChatPageComponent
   }
 
   selectUser(user: any) {
-    this.selectedUser = user;
+    this.selectedUser  = user;
     this.selectedGroup = null;
-    this.messages = [];
+    this.messages      = [];
     this.loadingMessages = true;
     this.cdr.detectChanges();
 
@@ -480,7 +483,7 @@ export class ChatPageComponent
       .getMessages(user.id)
       .subscribe({
         next: (data) => {
-          this.messages = data;
+          this.messages        = data;
           this.loadingMessages = false;
           this.shouldScrollToBottom = true;
           this.cdr.detectChanges();
@@ -495,8 +498,8 @@ export class ChatPageComponent
 
   selectGroup(group: any) {
     this.selectedGroup = group;
-    this.selectedUser = null;
-    this.messages = [];
+    this.selectedUser  = null;
+    this.messages      = [];
     this.loadingMessages = true;
     this.cdr.detectChanges();
 
@@ -504,7 +507,7 @@ export class ChatPageComponent
       .getGroupMessages(group.id)
       .subscribe({
         next: (data) => {
-          this.messages = data;
+          this.messages        = data;
           this.loadingMessages = false;
           this.shouldScrollToBottom = true;
           this.cdr.detectChanges();
@@ -512,7 +515,7 @@ export class ChatPageComponent
       });
   }
 
-  // ── SEND MESSAGE ───────────────────
+  // ── Send message ────────────────────────
   sendMessage() {
     const content = this.newMessage.trim();
     if (!content && !this.uploadingFile)
@@ -523,19 +526,16 @@ export class ChatPageComponent
     this.newMessage = '';
 
     if (this.selectedUser) {
-      // Stop typing indicator before sending
       this.stopTyping();
       this.chatService.sendMessage(
-        this.selectedUser.id, content
-      );
+        this.selectedUser.id, content);
     } else if (this.selectedGroup) {
       this.chatService.sendGroupMessage(
-        this.selectedGroup.id, content
-      );
+        this.selectedGroup.id, content);
     }
   }
 
-  // ── FILE UPLOAD ────────────────────
+  // ── File upload ─────────────────────────
   onFileSelect(event: any) {
     const files =
       Array.from(event.target.files) as File[];
@@ -552,7 +552,6 @@ export class ChatPageComponent
       .subscribe({
         next: (res) => {
           this.uploadingFile = false;
-
           const rid = this.selectedUser?.id;
           const gid = this.selectedGroup?.id;
 
@@ -561,19 +560,13 @@ export class ChatPageComponent
               rid,
               this.newMessage || '',
               res.messageType,
-              res.url,
-              res.name,
-              res.type
-            );
+              res.url, res.name, res.type);
           } else if (gid) {
             this.chatService.sendGroupMessage(
               gid,
               this.newMessage || '',
               res.messageType,
-              res.url,
-              res.name,
-              res.type
-            );
+              res.url, res.name, res.type);
           }
 
           this.newMessage = '';
@@ -596,20 +589,15 @@ export class ChatPageComponent
     }
   }
 
-  // ── TYPING INDICATOR ───────────────
+  // ── Typing indicator ────────────────────
   onTyping() {
-    // Only send typing if connected
-    // and chatting with a user (not group)
     if (!this.selectedUser) return;
     if (!this.chatService.isConnected) return;
-
     this.chatService.sendTyping(
       this.selectedUser.id, true);
-
     clearTimeout(this.typingTimeout);
-    this.typingTimeout = setTimeout(() => {
-      this.stopTyping();
-    }, 2000);
+    this.typingTimeout = setTimeout(() =>
+      this.stopTyping(), 2000);
   }
 
   private stopTyping() {
@@ -620,11 +608,11 @@ export class ChatPageComponent
       this.selectedUser.id, false);
   }
 
-  // ── CREATE GROUP ───────────────────
+  // ── Create group ────────────────────────
   openCreateGroup() {
-    this.showCreateGroup = true;
-    this.newGroupName = '';
-    this.newGroupDesc = '';
+    this.showCreateGroup   = true;
+    this.newGroupName      = '';
+    this.newGroupDesc      = '';
     this.selectedMemberIds = [];
     this.memberSearchQuery = '';
   }
@@ -645,11 +633,10 @@ export class ChatPageComponent
 
   createGroup() {
     if (!this.newGroupName.trim()) return;
-
     this.chatService.createGroup({
-      name: this.newGroupName.trim(),
+      name:        this.newGroupName.trim(),
       description: this.newGroupDesc,
-      memberIds: this.selectedMemberIds
+      memberIds:   this.selectedMemberIds
     }).subscribe({
       next: () => {
         this.showCreateGroup = false;
@@ -659,13 +646,13 @@ export class ChatPageComponent
     });
   }
 
-  // ── ADD MEMBERS TO EXISTING GROUP ──
+  // ── Add members to group ────────────────
   openAddMembers(group: any) {
-    this.addMemberGroupId = group.id;
+    this.addMemberGroupId   = group.id;
     this.addMemberGroupName = group.name;
-    this.addMemberSelected = [];
-    this.addMemberSearch = '';
-    this.showAddMembers = true;
+    this.addMemberSelected  = [];
+    this.addMemberSearch    = '';
+    this.showAddMembers     = true;
     this.cdr.detectChanges();
   }
 
@@ -694,14 +681,11 @@ export class ChatPageComponent
     ).subscribe({
       next: () => {
         this.addMemberLoading = false;
-        this.showAddMembers = false;
+        this.showAddMembers   = false;
         this.loadGroups();
-
-        // Refresh selected group
         if (this.selectedGroup?.id ===
             this.addMemberGroupId)
           this.selectGroup(this.selectedGroup);
-
         this.cdr.detectChanges();
       },
       error: () => {
@@ -711,16 +695,16 @@ export class ChatPageComponent
     });
   }
 
-  // ── CALLS (WebRTC) ─────────────────
+  // ── Calls (WebRTC) ──────────────────────
   async startCall(type: 'audio' | 'video') {
     if (!this.selectedUser) return;
     if (this.callState !== 'idle') return;
     if (!this.chatService.isConnected) return;
 
-    this.callType = type;
+    this.callType  = type;
     this.callState = 'calling';
     this.isSettingRemoteAnswer = false;
-    this.iceCandidateQueue = [];
+    this.iceCandidateQueue     = [];
     this.cdr.detectChanges();
 
     try {
@@ -731,22 +715,21 @@ export class ChatPageComponent
             video: type === 'video'
           });
 
-      if (this.localVideoRef?.nativeElement
-          && type === 'video') {
+      if (this.localVideoRef?.nativeElement &&
+          type === 'video') {
         setTimeout(() => {
           this.localVideoRef.nativeElement
             .srcObject = this.localStream;
         }, 100);
       }
 
-      // Create fresh peer connection
       this.pc = this.createPeerConnection();
-
       this.localStream.getTracks().forEach(t =>
         this.pc!.addTrack(
           t, this.localStream!));
 
-      const offer = await this.pc.createOffer();
+      const offer =
+        await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
 
       await this.chatService.initiateCall(
@@ -761,9 +744,9 @@ export class ChatPageComponent
 
   async answerCall() {
     if (!this.incomingCallData) return;
-    this.callState = 'active';
+    this.callState             = 'active';
     this.isSettingRemoteAnswer = false;
-    this.iceCandidateQueue = [];
+    this.iceCandidateQueue     = [];
     this.cdr.detectChanges();
 
     try {
@@ -774,28 +757,24 @@ export class ChatPageComponent
             video: this.callType === 'video'
           });
 
-      if (this.localVideoRef?.nativeElement
-          && this.callType === 'video') {
+      if (this.localVideoRef?.nativeElement &&
+          this.callType === 'video') {
         setTimeout(() => {
           this.localVideoRef.nativeElement
             .srcObject = this.localStream;
         }, 100);
       }
 
-      // Create fresh peer connection
       this.pc = this.createPeerConnection();
-
       this.localStream.getTracks().forEach(t =>
         this.pc!.addTrack(
           t, this.localStream!));
 
-      // MUST set remote FIRST before answer
       const offer = JSON.parse(
         this.incomingCallData.offer);
       await this.pc.setRemoteDescription(
         new RTCSessionDescription(offer));
 
-      // Flush any queued ICE candidates
       await this.flushIceCandidates();
 
       const answer =
@@ -849,29 +828,24 @@ export class ChatPageComponent
 
   endCallLocal() {
     clearInterval(this.callTimer);
-    this.callDuration = 0;
-    this.isMuted = false;
-    this.isCameraOff = false;
+    this.callDuration  = 0;
+    this.isMuted       = false;
+    this.isCameraOff   = false;
     this.iceCandidateQueue = [];
 
-    // Stop all media tracks
     this.localStream?.getTracks()
       .forEach(t => t.stop());
     this.localStream = null;
 
-    // Close peer connection
     if (this.pc) {
       try { this.pc.close(); } catch {}
       this.pc = null;
     }
 
-    // Reset call state
-    this.callState = 'idle';
-    this.incomingCallData = null;
+    this.callState             = 'idle';
+    this.incomingCallData      = null;
     this.isSettingRemoteAnswer = false;
 
-    // Reset BehaviorSubjects so they don't
-    // re-trigger on next subscription
     this.chatService.incomingCall$.next(null);
     this.chatService.callAccepted$.next(null);
     this.chatService.callRejected$.next(null);
@@ -904,10 +878,9 @@ export class ChatPageComponent
     pc.ontrack = (e) => {
       const remoteStream = e.streams[0];
       setTimeout(() => {
-        if (this.remoteVideoRef?.nativeElement) {
+        if (this.remoteVideoRef?.nativeElement)
           this.remoteVideoRef.nativeElement
             .srcObject = remoteStream;
-        }
       }, 100);
       this.cdr.detectChanges();
     };
@@ -936,21 +909,20 @@ export class ChatPageComponent
     const m = Math.floor(
       this.callDuration / 60);
     const s = this.callDuration % 60;
-    return `${m.toString().padStart(2, '0')}:` +
-      `${s.toString().padStart(2, '0')}`;
+    return `${m.toString().padStart(2,'0')}:` +
+      `${s.toString().padStart(2,'0')}`;
   }
 
-  // ── SCROLL ─────────────────────────
+  // ── Scroll ──────────────────────────────
   scrollToBottom() {
     try {
       const el =
         this.msgContainer?.nativeElement;
-      if (el)
-        el.scrollTop = el.scrollHeight;
+      if (el) el.scrollTop = el.scrollHeight;
     } catch {}
   }
 
-  // ── HELPERS ────────────────────────
+  // ── Helpers ─────────────────────────────
   shouldShowDate(
     prev: string, curr: string): boolean {
     if (!prev) return true;
@@ -964,9 +936,9 @@ export class ChatPageComponent
 
   getAvatarColor(name: string): string {
     const c = [
-      '#ef4444', '#f97316', '#eab308',
-      '#22c55e', '#3b82f6',
-      '#8b5cf6', '#ec4899'
+      '#ef4444','#f97316','#eab308',
+      '#22c55e','#3b82f6',
+      '#8b5cf6','#ec4899'
     ];
     return c[
       (name?.charCodeAt(0) || 0) % c.length];
@@ -987,7 +959,7 @@ export class ChatPageComponent
     const diff = Date.now() -
       new Date(user.lastSeen).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
+    if (mins < 1)  return 'Just now';
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
@@ -999,21 +971,21 @@ export class ChatPageComponent
 
   getTimeStr(dateStr: string): string {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const d    = new Date(dateStr);
     const diff = Date.now() - d.getTime();
     if (diff < 86400000)
       return d.toLocaleTimeString('en-US',
-        { hour: '2-digit', minute: '2-digit' });
+        { hour:'2-digit', minute:'2-digit' });
     return d.toLocaleDateString('en-US',
-      { month: 'short', day: 'numeric' });
+      { month:'short', day:'numeric' });
   }
 
   getRoleLabel(role: string): string {
     const m: any = {
-      'CompanyAdmin': 'Admin',
-      'Agent': 'Agent',
-      'Customer': 'Customer',
-      'SuperAdmin': 'Super Admin'
+      CompanyAdmin: 'Admin',
+      Agent:        'Agent',
+      Customer:     'Customer',
+      SuperAdmin:   'Super Admin'
     };
     return m[role] || role || '';
   }
@@ -1023,7 +995,7 @@ export class ChatPageComponent
     if (bytes < 1024)
       return `${bytes} B`;
     if (bytes < 1048576)
-      return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1048576).toFixed(1)} MB`;
+      return `${(bytes/1024).toFixed(1)} KB`;
+    return `${(bytes/1048576).toFixed(1)} MB`;
   }
 }

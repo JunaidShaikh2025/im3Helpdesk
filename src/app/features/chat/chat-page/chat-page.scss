@@ -531,6 +531,57 @@
   }
 }
 
+/* ── Sidebar top tab switcher ── */
+.cs-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cs-main-tabs {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+
+.cs-main-tab {
+  flex: 1;
+  padding: 7px 10px;
+  background: #f3f4f6;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sub);
+  font-family: inherit;
+  transition: all 0.15s;
+  white-space: nowrap;
+
+  &:hover {
+    background: #e5e7eb;
+    color: var(--text);
+  }
+
+  &.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+}
+
+/* Keep old cs-header h2 style */
+.cs-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
 /* New group button — updated class name */
 .cs-new-btn {
   padding: 5px 10px;

@@ -29,6 +29,7 @@ export class LayoutComponent
   private destroy$ = new Subject<void>();
   private chatService = inject(ChatService);
 
+  isSidebarCollapsed = localStorage.getItem('im3_sidebar_collapsed') === 'true';
   chatUnreadCount = 0;
   userName = '';
   userEmail = '';
@@ -66,6 +67,11 @@ export class LayoutComponent
       },
       error: () => {}
     });
+  }
+
+  toggleSidebarCollapse() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+    localStorage.setItem('im3_sidebar_collapsed', String(this.isSidebarCollapsed));
   }
 
   loadKbUnread() {

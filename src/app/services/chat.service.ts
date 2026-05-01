@@ -14,15 +14,14 @@ import { AuthService }
 @Injectable({ providedIn: 'root' })
 export class ChatService {
 
-  private http = inject(HttpClient);
+  private http        = inject(HttpClient);
   private authService = inject(AuthService);
 
   readonly BASE = 'https://localhost:7071';
   private hub!: signalR.HubConnection;
 
-  // ── Reactive streams ─────────────────
-  // Single new message stream — only for
-  // real-time incoming messages, NOT history
+  // ── Reactive streams ──────────────────
+  // Single new message — real-time only
   newMessage$ =
     new BehaviorSubject<any>(null);
   typing$ =
@@ -46,7 +45,13 @@ export class ChatService {
   iceCandidate$ =
     new BehaviorSubject<any>(null);
 
-  // ── Connection state check ────────────
+  // ✅ Call-back request from call log
+  startCallRequest$ = new BehaviorSubject<{
+    userId: string;
+    type: 'audio' | 'video'
+  } | null>(null);
+
+  // ── Connection state check ─────────────
   get isConnected(): boolean {
     return !!this.hub &&
       this.hub.state ===
@@ -60,7 +65,7 @@ export class ChatService {
     });
   }
 
-  // ── API calls ────────────────────────
+  // ── Chat API ───────────────────────────
   getChatUsers(): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.BASE}/api/Chat/users`,
@@ -69,10 +74,11 @@ export class ChatService {
 
   getMessages(
     userId: string,
-    page = 1): Observable<any[]> {
+    page = 1
+  ): Observable<any[]> {
     return this.http.get<any[]>(
-      `${this.BASE}/api/Chat/messages/${userId}` +
-      `?page=${page}&pageSize=50`,
+      `${this.BASE}/api/Chat/messages/` +
+      `${userId}?page=${page}&pageSize=50`,
       { headers: this.getHeaders() });
   }
 
@@ -84,7 +90,8 @@ export class ChatService {
 
   getGroupMessages(
     groupId: string,
-    page = 1): Observable<any[]> {
+    page = 1
+  ): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.BASE}/api/Chat/group/` +
       `${groupId}/messages?page=${page}`,
@@ -125,7 +132,8 @@ export class ChatService {
     memberIds: string[]
   ): Observable<any> {
     return this.http.post<any>(
-      `${this.BASE}/api/Chat/groups/${groupId}/members`,
+      `${this.BASE}/api/Chat/groups/` +
+      `${groupId}/members`,
       { memberIds },
       { headers: this.getHeaders() });
   }
@@ -142,7 +150,35 @@ export class ChatService {
     this.newMessage$.next(null);
   }
 
-  // ── SignalR ──────────────────────────
+  // ── Call Log API ───────────────────────
+  getCallLogs(
+    filter: string = 'all',
+    page = 1,
+    size = 100
+  ): Observable<any> {
+    return this.http.get<any>(
+      `${this.BASE}/api/CallLog` +
+      `?filter=${filter}&page=${page}` +
+      `&size=${size}`,
+      { headers: this.getHeaders() });
+  }
+
+  getMissedCallCount(): Observable<any> {
+    return this.http.get<any>(
+      `${this.BASE}/api/CallLog/unread-missed`,
+      { headers: this.getHeaders() });
+  }
+
+  // ✅ Trigger call-back from call log UI
+  startCallFromLog(
+    userId: string,
+    type: 'audio' | 'video'
+  ): void {
+    this.startCallRequest$.next(
+      { userId, type });
+  }
+
+  // ── SignalR ────────────────────────────
   connect() {
     if (this.isConnected) return;
 
@@ -157,20 +193,18 @@ export class ChatService {
       ])
       .build();
 
-    // Messages — emit single new message
+    // Single new message — real-time only
     this.hub.on('ReceiveMessage', (msg) => {
       this.newMessage$.next(msg);
       this.loadUnreadCount();
     });
 
-    // Typing
     this.hub.on('UserTyping', (d) => {
       this.typing$.next(d);
       setTimeout(() =>
         this.typing$.next(null), 3000);
     });
 
-    // Online / Offline
     this.hub.on('UserOnline', (d) =>
       this.userStatus$.next(
         { ...d, isOnline: true }));
@@ -194,19 +228,16 @@ export class ChatService {
     this.hub.on('IceCandidate', (d) =>
       this.iceCandidate$.next(d));
 
-    // Reconnecting — update state
-    this.hub.onreconnecting(() => {
-      this.isConnected$.next(false);
-    });
+    this.hub.onreconnecting(() =>
+      this.isConnected$.next(false));
 
     this.hub.onreconnected(() => {
       this.isConnected$.next(true);
       this.loadUnreadCount();
     });
 
-    this.hub.onclose(() => {
-      this.isConnected$.next(false);
-    });
+    this.hub.onclose(() =>
+      this.isConnected$.next(false));
 
     this.hub.start()
       .then(() => {
@@ -221,18 +252,15 @@ export class ChatService {
     this.hub?.stop();
   }
 
-  // ── Hub invoke — safe wrapper ─────────
+  // ── Safe hub invoke ────────────────────
   private safeInvoke(
     method: string,
     ...args: any[]
   ): Promise<void> {
-    if (!this.isConnected) {
-      // Silently ignore — don't throw
+    if (!this.isConnected)
       return Promise.resolve();
-    }
     return this.hub.invoke(method, ...args)
       .catch(e => {
-        // Only log non-state errors
         if (!e?.message?.includes(
             'not in the \'Connected\''))
           console.error(
@@ -240,7 +268,7 @@ export class ChatService {
       });
   }
 
-  // ── Hub methods ──────────────────────
+  // ── Hub methods ────────────────────────
   sendMessage(
     receiverId: string,
     content: string,
@@ -250,11 +278,9 @@ export class ChatService {
     attachmentType?: string
   ): Promise<void> {
     return this.safeInvoke(
-      'SendMessage',
-      receiverId,
-      content,
+      'SendMessage', receiverId, content,
       messageType,
-      attachmentUrl ?? null,
+      attachmentUrl  ?? null,
       attachmentName ?? null,
       attachmentType ?? null);
   }
@@ -268,11 +294,9 @@ export class ChatService {
     attachmentType?: string
   ): Promise<void> {
     return this.safeInvoke(
-      'SendGroupMessage',
-      groupId,
-      content,
+      'SendGroupMessage', groupId, content,
       messageType,
-      attachmentUrl ?? null,
+      attachmentUrl  ?? null,
       attachmentName ?? null,
       attachmentType ?? null);
   }
@@ -290,7 +314,6 @@ export class ChatService {
       'Typing', receiverId, isTyping);
   }
 
-  // Call methods
   initiateCall(
     receiverId: string,
     callType: string,
@@ -309,9 +332,7 @@ export class ChatService {
       'AcceptCall', callerId, answer);
   }
 
-  rejectCall(
-    callerId: string
-  ): Promise<void> {
+  rejectCall(callerId: string): Promise<void> {
     return this.safeInvoke(
       'RejectCall', callerId);
   }
@@ -326,7 +347,6 @@ export class ChatService {
     candidate: string
   ): Promise<void> {
     return this.safeInvoke(
-      'SendIceCandidate',
-      targetId, candidate);
+      'SendIceCandidate', targetId, candidate);
   }
 }

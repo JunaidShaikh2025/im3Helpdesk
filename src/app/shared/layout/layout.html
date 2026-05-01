@@ -1,8 +1,7 @@
 <div class="app-shell">
 
   <!-- SIDEBAR -->
-  <div class="sidebar">
-
+<div class="sidebar" [class.collapsed]="isSidebarCollapsed">
     <!-- Logo -->
  <div class="sidebar-logo" 
       routerLink="/dashboard" 
@@ -191,12 +190,19 @@
         <div class="user-role">{{ userRole }}</div>
       </div>
     </div>
+  
+    <div class="sidebar-collapse-btn" (click)="toggleSidebarCollapse()">
+      <span class="nav-icon" style="font-size: 18px;">
+        {{ isSidebarCollapsed ? '⇥' : '⇤' }}
+      </span>
+      <span class="collapse-text" *ngIf="!isSidebarCollapsed">Collapse</span>
+    </div>
 
   </div>
   <!-- End Sidebar -->
 
   <!-- MAIN AREA -->
-  <div class="main-area">
+  <div class="main-area" [class.collapsed]="isSidebarCollapsed">
 
     <!-- TOPBAR -->
     <div class="topbar">
@@ -311,6 +317,7 @@
               No new articles
             </div>
 
+            <div class="nd-scroll-area">
             <div class="nd-item"
               *ngFor="let a of kbUnreadArticles"
               (click)="goToKbArticle(a.id)">
@@ -321,6 +328,7 @@
                   {{ a.createdAt | date:'dd MMM, hh:mm a' }}
                 </div>
               </div>
+            </div>
             </div>
 
             <div class="nd-footer"
@@ -356,6 +364,7 @@
               No notifications
             </div>
 
+            <div class="nd-scroll-area">
             <div class="nd-item"
               *ngFor="let n of notifications.slice(0,8)"
               [class.unread]="!n.isRead"
@@ -368,6 +377,7 @@
                   {{ n.createdAt | date:'dd MMM, hh:mm a' }}
                 </div>
               </div>
+            </div>
             </div>
 
             <div class="nd-footer"

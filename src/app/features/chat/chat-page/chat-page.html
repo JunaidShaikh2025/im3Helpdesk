@@ -322,15 +322,38 @@
   <!-- ══════════ LEFT SIDEBAR ══════════ -->
   <div class="chat-sidebar">
 
+    <!-- ── Sidebar top: Chat / Calls switcher ── -->
     <div class="cs-header">
-      <h2>Messages</h2>
+      <div class="cs-main-tabs">
+        <button type="button"
+          class="cs-main-tab"
+          [class.active]="sidebarTab==='chat'"
+          (click)="setSidebarTab('chat')">
+          💬 Chat
+        </button>
+        <button type="button"
+          class="cs-main-tab"
+          [class.active]="sidebarTab==='calls'"
+          (click)="setSidebarTab('calls')">
+          📞 Calls
+        </button>
+      </div>
       <button type="button"
         class="cs-new-btn"
+        *ngIf="sidebarTab==='chat'"
         title="Create Group"
         (click)="openCreateGroup()">
         👥+
       </button>
     </div>
+
+    <!-- ══ CALLS TAB ══ -->
+    <app-call-log
+      *ngIf="sidebarTab==='calls'">
+    </app-call-log>
+
+    <!-- ══ CHAT TAB ══ -->
+    <ng-container *ngIf="sidebarTab==='chat'">
 
     <div class="cs-search">
       <span>🔍</span>
@@ -496,6 +519,10 @@
 
       </div>
     </div>
+
+    </ng-container>
+    <!-- ══ END CHAT TAB ══ -->
+
   </div>
 
   <!-- ══════════ MAIN CHAT ══════════ -->

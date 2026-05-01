@@ -1,0 +1,126 @@
+<div class="call-log-panel">
+
+  <!-- Header -->
+  <div class="cl-header">
+    <div class="cl-title-row">
+      <h2 class="cl-title">History</h2>
+      <span class="cl-missed-badge"
+        *ngIf="missedCount > 0">
+        {{ missedCount }}
+      </span>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="cl-filter-bar">
+      <button
+        *ngFor="let f of filters"
+        type="button"
+        class="cl-filter-btn"
+        [class.active]="
+          activeFilter === f.key"
+        (click)="setFilter(f.key)">
+        {{ f.label }}
+        <span class="cl-f-dot"
+          *ngIf="f.key === 'missed' &&
+            missedCount > 0">
+        </span>
+      </button>
+      <button class="cl-sort-btn"
+        type="button" title="Sort">≡</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="cl-loading" *ngIf="loading">
+    <div class="cl-spin"></div>
+    <span>Loading call history...</span>
+  </div>
+
+  <!-- Empty -->
+  <div class="cl-empty"
+    *ngIf="!loading && !logs.length">
+    <div class="cl-empty-icon">📵</div>
+    <p>No {{ activeFilter === 'all'
+      ? '' : activeFilter }} calls yet</p>
+  </div>
+
+  <!-- Call list -->
+  <div class="cl-list"
+    *ngIf="!loading && logs.length">
+
+    <div
+      *ngFor="let log of logs"
+      class="cl-item"
+      [class.hovered]="hoveredId === log.id"
+      (mouseenter)="hoveredId = log.id"
+      (mouseleave)="hoveredId = null">
+
+      <!-- Avatar -->
+      <div class="cl-av-wrap">
+        <div class="cl-av"
+          [style.background]="
+            getAvatarColor(
+              log.otherUser?.name)">
+          <img
+            *ngIf="log.otherUser?.photo"
+            [src]="log.otherUser.photo"
+            [alt]="log.otherUser?.name" />
+          <span
+            *ngIf="!log.otherUser?.photo">
+            {{ getInitials(
+              log.otherUser?.name) }}
+          </span>
+        </div>
+        <span class="cl-type-badge"
+          [title]="log.callType">
+          {{ getCallTypeIcon(log) }}
+        </span>
+      </div>
+
+      <!-- Info -->
+      <div class="cl-info">
+        <div class="cl-name">
+          {{ log.otherUser?.name ||
+             log.otherUser?.email }}
+        </div>
+        <div class="cl-status"
+          [class]="getStatusClass(log)">
+          <span class="cl-status-icon">
+            {{ getStatusIcon(log) }}
+          </span>
+          {{ getStatusLabel(log) }}
+          <span
+            *ngIf="getDurationStr(
+              log.durationSeconds)"
+            class="cl-duration">
+            · {{ getDurationStr(
+              log.durationSeconds) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Right: time / actions -->
+      <div class="cl-right">
+        <span class="cl-time"
+          *ngIf="hoveredId !== log.id">
+          {{ getTimeLabel(log.startedAt) }}
+        </span>
+        <div class="cl-actions"
+          *ngIf="hoveredId === log.id">
+          <button
+            type="button"
+            class="cl-act-btn"
+            title="More">···</button>
+          <button
+            type="button"
+            class="cl-call-btn"
+            title="Call back"
+            (click)="callBack(log, 'audio')">
+            📞 Call
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
