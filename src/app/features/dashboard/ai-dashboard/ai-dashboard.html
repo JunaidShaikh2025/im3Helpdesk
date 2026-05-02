@@ -1,0 +1,738 @@
+<app-layout>
+<div class="ai-page">
+
+  <!-- ══════ PAGE HEADER + TABS ══════ -->
+  <div class="ai-header">
+    <div class="ai-hd-left">
+      <div class="ai-hd-icon">🤖</div>
+      <div>
+        <h1>AI Command Center</h1>
+        <p>Intelligent insights powered by your data</p>
+      </div>
+    </div>
+    <div class="ai-tabs">
+      <button type="button"
+        class="ai-tab"
+        [class.active]="activeTab==='tide'"
+        (click)="setTab('tide')">
+        <span class="tab-ic">🌊</span>
+        Tide Forecast
+      </button>
+      <button type="button"
+        class="ai-tab"
+        [class.active]="activeTab==='insights'"
+        (click)="setTab('insights')">
+        <span class="tab-ic">📊</span>
+        AI Insights
+      </button>
+      <button type="button"
+        class="ai-tab"
+        [class.active]="activeTab==='duplicates'"
+        (click)="setTab('duplicates')">
+        <span class="tab-ic">🔀</span>
+        Duplicates
+        <span class="tab-badge"
+          *ngIf="duplicatesData
+            ?.totalDuplicates > 0">
+          {{ duplicatesData.totalDuplicates }}
+        </span>
+      </button>
+      <button type="button"
+        class="ai-tab"
+        [class.active]="activeTab==='summary'"
+        (click)="setTab('summary')">
+        <span class="tab-ic">✨</span>
+        Ticket Summary
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 1: TIDE FORECAST
+  ══════════════════════════════════ -->
+  <div class="tab-panel"
+    *ngIf="activeTab === 'tide'">
+
+    <div class="tab-loading"
+      *ngIf="tideLoading">
+      <div class="ai-spinner"></div>
+      <p>Analyzing historical patterns...</p>
+    </div>
+
+    <div *ngIf="!tideLoading && tideData">
+
+      <!-- Stats row -->
+      <div class="tide-stats-row">
+        <div class="tide-stat">
+          <div class="ts-val">
+            {{ tideData.totalLast90Days }}
+          </div>
+          <div class="ts-lbl">
+            Tickets (90 days)
+          </div>
+        </div>
+        <div class="tide-stat">
+          <div class="ts-val">
+            {{ tideData.avgDailyActual }}
+          </div>
+          <div class="ts-lbl">
+            Avg/Day (actual)
+          </div>
+        </div>
+        <div class="tide-stat highlight">
+          <div class="ts-val">
+            {{
+              tideData.forecast[
+                selectedDayIndex
+              ]?.totalPredicted
+            }}
+          </div>
+          <div class="ts-lbl">
+            Tomorrow's Forecast
+          </div>
+        </div>
+        <div class="tide-stat"
+          [style.border-color]="
+            getTideColor(
+              tideData.forecast[
+                selectedDayIndex
+              ]?.tideLevel)">
+          <div class="ts-val">
+            {{
+              getTideIcon(
+                tideData.forecast[
+                  selectedDayIndex
+                ]?.tideLevel)
+            }}
+            {{
+              tideData.forecast[
+                selectedDayIndex
+              ]?.tideLevel
+            }}
+          </div>
+          <div class="ts-lbl">
+            Tide Level
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 day mini bars -->
+      <div class="tide-week">
+        <div class="tw-label">
+          7-Day Forecast
+        </div>
+        <div class="tw-bars">
+          <div class="tw-day"
+            *ngFor="let day of
+              tideData.forecast;
+              let i = index"
+            [class.tw-sel]="
+              selectedDayIndex === i"
+            (click)="selectDay(i)">
+            <div class="tw-bar-wrap">
+              <div class="tw-bar"
+                [style.height]="
+                  getTideHeight(
+                    day.totalPredicted,
+                    getMaxForecast())"
+                [style.background]="
+                  getTideColor(day.tideLevel)">
+              </div>
+            </div>
+            <div class="tw-name">
+              {{ day.shortDay.split(' ')[0] }}
+            </div>
+            <div class="tw-num">
+              {{ day.totalPredicted }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selected day detail -->
+      <div class="tide-detail-card"
+        *ngIf="tideData.forecast[
+          selectedDayIndex]">
+        <div class="tdc-header">
+          <div class="tdc-day">
+            {{
+              tideData.forecast[
+                selectedDayIndex
+              ].dayName
+            }}
+          </div>
+          <div class="tdc-meta">
+            <span class="tdc-badge"
+              [style.background]="
+                getTideColor(
+                  tideData.forecast[
+                    selectedDayIndex
+                  ].tideLevel) + '20'"
+              [style.color]="
+                getTideColor(
+                  tideData.forecast[
+                    selectedDayIndex
+                  ].tideLevel)">
+              {{
+                getTideIcon(
+                  tideData.forecast[
+                    selectedDayIndex
+                  ].tideLevel)
+              }}
+              {{
+                tideData.forecast[
+                  selectedDayIndex
+                ].tideLevel
+              }} Tide
+            </span>
+            <span class="tdc-peak">
+              ⚡ Peak at
+              {{
+                tideData.forecast[
+                  selectedDayIndex
+                ].peakLabel
+              }}
+            </span>
+          </div>
+        </div>
+        <div class="tdc-chart-wrap">
+          <canvas id="tideMainChart"
+            height="200">
+          </canvas>
+        </div>
+        <div class="tdc-tip">
+          <span>💡</span>
+          <span *ngIf="tideData.forecast[
+            selectedDayIndex]
+            .tideLevel === 'High'">
+            High volume day — schedule
+            extra agents and prepare
+            quick-response templates.
+          </span>
+          <span *ngIf="tideData.forecast[
+            selectedDayIndex]
+            .tideLevel === 'Medium'">
+            Moderate volume —
+            standard staffing should
+            be sufficient.
+          </span>
+          <span *ngIf="tideData.forecast[
+            selectedDayIndex]
+            .tideLevel === 'Low'">
+            Low volume day —
+            great time for training
+            or backlog cleanup.
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 2: AI INSIGHTS
+  ══════════════════════════════════ -->
+  <div class="tab-panel"
+    *ngIf="activeTab === 'insights'">
+
+    <div class="tab-loading"
+      *ngIf="insightsLoading">
+      <div class="ai-spinner"></div>
+      <p>Generating AI insights...</p>
+    </div>
+
+    <div *ngIf="!insightsLoading
+      && insightsData">
+
+      <!-- Summary cards -->
+      <div class="ins-summary-row">
+        <div class="ins-sum-card">
+          <div class="isc-val">
+            {{ insightsData.summary
+              .totalTickets }}
+          </div>
+          <div class="isc-lbl">
+            Total Tickets
+          </div>
+        </div>
+        <div class="ins-sum-card green">
+          <div class="isc-val">
+            {{ insightsData.summary.resolved }}
+          </div>
+          <div class="isc-lbl">
+            Resolved
+          </div>
+        </div>
+        <div class="ins-sum-card blue">
+          <div class="isc-val">
+            {{ insightsData.summary
+              .avgResHours }}h
+          </div>
+          <div class="isc-lbl">
+            Avg Resolution
+          </div>
+        </div>
+        <div class="ins-sum-card purple">
+          <div class="isc-val">
+            {{ insightsData.summary
+              .slaCompliance }}%
+          </div>
+          <div class="isc-lbl">
+            SLA Compliance
+          </div>
+        </div>
+        <div class="ins-sum-card orange">
+          <div class="isc-val">
+            {{ insightsData.summary
+              .unassigned }}
+          </div>
+          <div class="isc-lbl">
+            Unassigned
+          </div>
+        </div>
+      </div>
+
+      <!-- Insight cards -->
+      <div class="ins-cards">
+        <div class="ins-card"
+          *ngFor="let ins of
+            insightsData.insights"
+          [class]="'ins-card '
+            + getInsightTypeClass(ins.type)">
+          <div class="ic-icon">
+            {{ ins.icon }}
+          </div>
+          <div class="ic-body">
+            <div class="ic-title">
+              {{ ins.title }}
+            </div>
+            <div class="ic-text">
+              {{ ins.text }}
+            </div>
+          </div>
+          <div class="ic-metric">
+            {{ ins.metric }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent performance -->
+      <div class="agent-perf-card"
+        *ngIf="insightsData.summary
+          .agentStats?.length > 0">
+        <div class="apc-title">
+          👥 Agent Performance
+        </div>
+        <div class="apc-table">
+          <div class="apc-row apc-head">
+            <span>Agent</span>
+            <span>Tickets</span>
+            <span>Resolved</span>
+            <span>Rate</span>
+          </div>
+          <div class="apc-row"
+            *ngFor="let a of
+              insightsData.summary
+                .agentStats;
+              let i = index"
+            [class.apc-top]="i === 0">
+            <span>
+              <span *ngIf="i === 0">🏆</span>
+              {{ a.agent }}
+            </span>
+            <span>{{ a.total }}</span>
+            <span>{{ a.resolved }}</span>
+            <span class="apc-rate">
+              <div class="rate-bar">
+                <div class="rate-fill"
+                  [style.width]="
+                    a.resRate + '%'">
+                </div>
+              </div>
+              {{ a.resRate }}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 3: DUPLICATES
+  ══════════════════════════════════ -->
+  <div class="tab-panel"
+    *ngIf="activeTab === 'duplicates'">
+
+    <!-- Merge success -->
+    <div class="merge-success"
+      *ngIf="mergeSuccess">
+      ✅ {{ mergeSuccess }}
+    </div>
+
+    <div class="tab-loading"
+      *ngIf="duplicatesLoading">
+      <div class="ai-spinner"></div>
+      <p>Scanning for duplicate tickets...</p>
+    </div>
+
+    <div *ngIf="!duplicatesLoading
+      && duplicatesData">
+
+      <!-- Header stats -->
+      <div class="dup-header-row">
+        <div class="dup-stat">
+          <span class="ds-val">
+            {{ duplicatesData.totalDuplicates
+              || 0 }}
+          </span>
+          <span class="ds-lbl">
+            Duplicate Groups Found
+          </span>
+        </div>
+        <div class="dup-stat green">
+          <span class="ds-val">
+            {{ duplicatesData
+              .potentialSavings || 0 }}
+          </span>
+          <span class="ds-lbl">
+            Tickets to Clean Up
+          </span>
+        </div>
+      </div>
+
+      <!-- No duplicates -->
+      <div class="dup-empty"
+        *ngIf="!duplicatesData.groups
+          ?.length">
+        <div class="dup-empty-icon">🎉</div>
+        <h3>No duplicate tickets found!</h3>
+        <p>Your queue is clean.</p>
+      </div>
+
+      <!-- Duplicate groups -->
+      <div class="dup-groups"
+        *ngIf="duplicatesData.groups?.length">
+
+        <div class="dup-group"
+          *ngFor="let grp of
+            duplicatesData.groups">
+
+          <div class="dg-header">
+            <span class="dg-count">
+              {{ grp.count }} Similar Tickets
+            </span>
+            <span class="dg-conf"
+              [class.high]="
+                grp.confidence === 'High'">
+              {{ grp.confidence }} Match
+            </span>
+          </div>
+
+          <!-- Ticket list -->
+          <div class="dg-tickets">
+            <div class="dg-ticket"
+              *ngFor="let t of grp.tickets"
+              [class.dg-original]="t.isOriginal">
+
+              <div class="dg-t-left">
+                <span class="dg-orig-badge"
+                  *ngIf="t.isOriginal">
+                  Original
+                </span>
+                <span class="dg-dup-badge"
+                  *ngIf="!t.isOriginal">
+                  Duplicate
+                  {{ t.similarity }}%
+                </span>
+                <span class="dg-num">
+                  #TN{{ t.ticketNumber }}
+                </span>
+                <span class="dg-title">
+                  {{ t.title | slice:0:60 }}
+                  <span
+                    *ngIf="t.title.length > 60">
+                    ...
+                  </span>
+                </span>
+              </div>
+
+              <div class="dg-t-right">
+                <span class="dg-status"
+                  [class]="
+                    getStatusClass(t.status)">
+                  {{ t.status }}
+                </span>
+                <span class="dg-date">
+                  {{ t.createdAt
+                    | date:'dd MMM' }}
+                </span>
+                <button type="button"
+                  class="dg-view-btn"
+                  (click)="
+                    navigateToTicket(t.id)">
+                  View
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Merge button -->
+          <div class="dg-footer">
+            <button type="button"
+              class="dg-merge-btn"
+              (click)="startMerge(grp)">
+              🔀 Merge Duplicates
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Merge confirm modal -->
+    <div class="modal-bg"
+      *ngIf="mergingGroup"
+      (click)="mergingGroup = null">
+      <div class="modal-box merge-modal"
+        (click)="$event.stopPropagation()">
+        <div class="modal-hd">
+          <span>🔀 Confirm Merge</span>
+          <button type="button"
+            class="modal-x"
+            (click)="mergingGroup = null">
+            ✕
+          </button>
+        </div>
+        <div class="merge-body">
+          <p class="merge-info">
+            The following tickets will be
+            <strong>closed</strong> and merged
+            into the original:
+          </p>
+          <div class="merge-list">
+            <div class="merge-item orig">
+              <span>✅ Keep Original:</span>
+              <span *ngFor="let t of
+                mergingGroup.tickets">
+                <ng-container
+                  *ngIf="t.isOriginal">
+                  #TN{{ t.ticketNumber }}
+                  — {{ t.title | slice:0:40 }}
+                </ng-container>
+              </span>
+            </div>
+            <div class="merge-item dup"
+              *ngFor="let t of
+                mergingGroup.tickets">
+              <ng-container
+                *ngIf="!t.isOriginal">
+                <span>🗑 Close Duplicate:</span>
+                <span>
+                  #TN{{ t.ticketNumber }}
+                  — {{ t.title | slice:0:40 }}
+                </span>
+              </ng-container>
+            </div>
+          </div>
+          <p class="merge-note">
+            ℹ️ A note will be added to both
+            tickets explaining the merge.
+          </p>
+        </div>
+        <div class="modal-ft">
+          <button type="button"
+            class="mbt cancel"
+            (click)="mergingGroup = null">
+            Cancel
+          </button>
+          <button type="button"
+            class="mbt create"
+            [disabled]="mergeLoading"
+            (click)="confirmMerge()">
+            {{ mergeLoading
+              ? 'Merging...'
+              : '🔀 Confirm Merge' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 4: TICKET SUMMARY
+  ══════════════════════════════════ -->
+  <div class="tab-panel"
+    *ngIf="activeTab === 'summary'">
+
+    <div class="sum-layout">
+
+      <!-- Left: ticket picker -->
+      <div class="sum-picker">
+        <div class="sp-title">
+          Select a Ticket
+        </div>
+        <div class="sp-list">
+          <div class="sp-item"
+            *ngFor="let t of recentTickets"
+            [class.sp-sel]="
+              summaryTicketId === t.id"
+            (click)="loadSummary(t.id)">
+            <div class="sp-num">
+              #TN{{ t.ticketNumber }}
+            </div>
+            <div class="sp-ticket-title">
+              {{ t.title | slice:0:40 }}
+              <span *ngIf="t.title.length > 40">
+                ...
+              </span>
+            </div>
+            <span class="sp-badge"
+              [class]="
+                getStatusClass(t.status)">
+              {{ t.status }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: AI summary -->
+      <div class="sum-result">
+
+        <!-- Empty -->
+        <div class="sr-empty"
+          *ngIf="!summaryData
+            && !summaryLoading">
+          <div class="sr-empty-ico">✨</div>
+          <h3>Select a ticket</h3>
+          <p>AI will generate a smart
+            one-line summary instantly</p>
+        </div>
+
+        <!-- Loading -->
+        <div class="sr-loading"
+          *ngIf="summaryLoading">
+          <div class="ai-spinner"></div>
+          <p>AI analyzing ticket...</p>
+        </div>
+
+        <!-- Summary result -->
+        <div class="sr-card"
+          *ngIf="summaryData
+            && !summaryLoading">
+
+          <!-- One liner -->
+          <div class="sr-oneliner">
+            <div class="sr-ol-label">
+              ✨ AI Summary
+            </div>
+            <div class="sr-ol-text">
+              {{ summaryData.oneLiner }}
+            </div>
+          </div>
+
+          <!-- Suggested action -->
+          <div class="sr-action">
+            <span class="sr-act-ic">🎯</span>
+            <div>
+              <div class="sr-act-label">
+                Suggested Action
+              </div>
+              <div class="sr-act-text">
+                {{ summaryData.suggestedAction }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Sentiment + priority row -->
+          <div class="sr-chips">
+            <span class="sr-chip sentiment"
+              [class]="
+                getSentimentClass(
+                  summaryData.sentiment)">
+              {{
+                getSentimentEmoji(
+                  summaryData.sentiment)
+              }}
+              {{ summaryData.sentiment }}
+            </span>
+            <span class="sr-chip priority"
+              [class]="
+                getPriorityClass(
+                  summaryData.stats.priority)">
+              {{ summaryData.stats.priority }}
+            </span>
+            <span class="sr-chip status"
+              [class]="
+                getStatusClass(
+                  summaryData.stats.status)">
+              {{ summaryData.stats.status }}
+            </span>
+            <span class="sr-chip"
+              *ngIf="
+                summaryData.stats.isBreached"
+              style="background:#fee2e2;
+                color:#dc2626">
+              ⚠️ SLA Breached
+            </span>
+          </div>
+
+          <!-- Key facts -->
+          <div class="sr-facts">
+            <div class="sr-facts-label">
+              Key Facts
+            </div>
+            <div class="sr-fact"
+              *ngFor="let f of
+                summaryData.keyFacts">
+              <span class="sf-dot"></span>
+              {{ f }}
+            </div>
+          </div>
+
+          <!-- Meta -->
+          <div class="sr-meta">
+            <div class="sr-meta-item"
+              *ngIf="summaryData.createdBy">
+              <span>👤 Reporter:</span>
+              {{ summaryData.createdBy }}
+            </div>
+            <div class="sr-meta-item"
+              *ngIf="summaryData.assignedTo">
+              <span>🎧 Agent:</span>
+              {{ summaryData.assignedTo }}
+            </div>
+            <div class="sr-meta-item"
+              *ngIf="summaryData.stats
+                .commentCount > 0">
+              <span>💬 Replies:</span>
+              {{ summaryData.stats
+                .commentCount }}
+            </div>
+            <div class="sr-meta-item"
+              *ngIf="summaryData.stats
+                .tags?.length > 0">
+              <span>🏷 Tags:</span>
+              {{ summaryData.stats.tags
+                .join(', ') }}
+            </div>
+          </div>
+
+          <!-- Open ticket button -->
+          <button type="button"
+            class="sr-open-btn"
+            (click)="navigateToTicket(
+              summaryData.ticketId)">
+            Open Ticket →
+          </button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</app-layout>

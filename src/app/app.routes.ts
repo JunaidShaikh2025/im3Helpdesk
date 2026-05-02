@@ -231,5 +231,12 @@ export const routes: Routes = [
       .then(m => m.AgentGroupsComponent),
   canActivate: [authGuard]
 },
+  {
+    path: 'ai-dashboard',
+    loadComponent: () =>
+      import('./features/dashboard/ai-dashboard/ai-dashboard')
+        .then(m => m.AIDashboardComponent),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: 'login' }
 ];
