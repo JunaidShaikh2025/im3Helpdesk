@@ -1,5 +1,6 @@
 <div class="auth-layout">
-  <!-- Left Side -->
+
+  <!-- ═══ LEFT ═══ -->
   <div class="auth-left">
     <div class="brand">
       <div class="brand-icon">⚡</div>
@@ -9,7 +10,8 @@
       <h1>THE FUTURE OF<br>
         <span class="highlight">SUPPORT</span> IS HERE.
       </h1>
-      <p>Streamline your workflow with our intelligent helpdesk solution. Built for scale, designed for speed.</p>
+      <p>Streamline your workflow with our intelligent
+        helpdesk solution. Built for scale, designed for speed.</p>
     </div>
     <div class="badges">
       <span class="badge-item">⊕ Enterprise Grade</span>
@@ -17,76 +19,178 @@
     </div>
   </div>
 
-  <!-- Right Side -->
+  <!-- ═══ RIGHT ═══ -->
   <div class="auth-right">
     <div class="auth-form-wrap">
-      <h2>Welcome back</h2>
-      <p class="auth-subtitle">Enter your credentials to access your account</p>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
-          <!-- After form fields, before submit button: -->
+      <!-- ── STEP 1: Credentials ── -->
+      <ng-container *ngIf="step === 'credentials'">
+        <h2>Welcome back</h2>
+        <p class="auth-subtitle">
+          Enter your credentials to access your account
+        </p>
+
+        <form [formGroup]="credForm" (ngSubmit)="onSubmit()">
+
           <div class="error-alert" *ngIf="errorMessage">
             <span>⚠</span> {{ errorMessage }}
           </div>
 
-          <div class="success-alert" *ngIf="successMessage">
-            <span>✓</span> {{ successMessage }}
+          <div class="form-group">
+            <label>User ID / Email</label>
+            <div class="input-wrap">
+              <span class="input-icon">✉</span>
+              <input type="email"
+                formControlName="email"
+                placeholder="name@company.com"
+                [class.error]="credForm.get('email')?.invalid
+                  && credForm.get('email')?.touched"/>
+            </div>
+            <span class="field-error"
+              *ngIf="credForm.get('email')?.hasError('email')
+                && credForm.get('email')?.touched">
+              Invalid email address
+            </span>
           </div>
-        <div class="form-group">
-          <label>Email Address</label>
-          <div class="input-wrap">
-            <span class="input-icon">✉</span>
-            <input type="email" formControlName="email"
-              placeholder="name@company.com"
-              [class.error]="form.get('email')?.invalid && form.get('email')?.touched"/>
-          </div>
-          <span class="field-error"
-            *ngIf="form.get('email')?.hasError('email') && form.get('email')?.touched">
-            Invalid email address
-          </span>
-        </div>
 
-        <div class="form-group">
-          <div class="label-row">
+          <div class="form-group" *ngIf="!loginWithOtp">
             <label>Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="••••••••"
+                [class.error]="credForm.get('password')?.invalid
+                  && credForm.get('password')?.touched"/>
+              <button type="button" class="toggle-pass"
+                (click)="showPassword = !showPassword">
+                {{ showPassword ? '🙈' : '👁' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Checkbox -->
+          <div class="otp-toggle-row">
+            <label class="otp-checkbox-label">
+              <input type="checkbox"
+                class="otp-checkbox"
+                [checked]="loginWithOtp"
+                (change)="toggleOtpMode($event)"/>
+              <span class="otp-checkbox-custom"></span>
+              <span class="otp-checkbox-text">Login with OTP</span>
+            </label>
+          </div>
+
+          <div class="forgot-row" *ngIf="!loginWithOtp">
             <a routerLink="/forgot-password" class="forgot-link">
-              Forgot password?
+              Forgot Password?
             </a>
           </div>
-          <div class="input-wrap">
-            <span class="input-icon">🔒</span>
-            <input [type]="showPassword ? 'text' : 'password'"
-              formControlName="password"
-              placeholder="••••••••"
-              [class.error]="form.get('password')?.invalid && form.get('password')?.touched"/>
-            <button type="button" class="toggle-pass"
-              (click)="showPassword = !showPassword">
-              {{ showPassword ? '👁' : '👁' }}
-            </button>
+
+          <button type="submit" class="submit-btn" [disabled]="loading">
+            <span *ngIf="!loading">
+              {{ loginWithOtp ? 'Send OTP →' : 'Login →' }}
+            </span>
+            <span *ngIf="loading" class="btn-loading">
+              <span class="spinner"></span>
+              {{ loginWithOtp ? 'Sending OTP...' : 'Signing in...' }}
+            </span>
+          </button>
+
+          <div class="divider"><span>OR</span></div>
+
+          <div class="alt-links">
+            <span>Don't have an account?</span>
+            <a routerLink="/register" class="create-link">
+              Create an account
+            </a>
           </div>
+
+        </form>
+
+        <div class="footer-links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Contact</a>
+        </div>
+      </ng-container>
+
+      <!-- ── STEP 2: OTP ── -->
+      <ng-container *ngIf="step === 'otp'">
+
+        <button class="back-btn" type="button"
+          (click)="backToLogin()">← Back</button>
+
+        <div class="otp-header">
+          <div class="otp-icon-wrap">🔐</div>
+          <h2>Verify your identity</h2>
+          <p class="auth-subtitle">
+            We sent a 6-digit code to<br/>
+            <strong class="otp-email">{{ otpEmail }}</strong>
+          </p>
         </div>
 
-        <button type="submit" class="submit-btn" [disabled]="loading">
-          <span *ngIf="!loading">Sign in to Dashboard →</span>
-          <span *ngIf="loading">Signing in...</span>
+        <div class="error-alert" *ngIf="errorMessage">
+          <span>⚠</span> {{ errorMessage }}
+        </div>
+
+        <!--
+          ✅ KEY FIX:
+          - NO *ngFor — 6 static inputs
+          - NO [value] binding — pure DOM
+          - NO (keydown)/(input) Angular binding
+          - All events handled via pure JS in initOtpBoxes()
+          - #otpContainer gives us the parent reference
+        -->
+        <div class="otp-boxes" #otpContainer>
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="one-time-code"/>
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off"/>
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off"/>
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off"/>
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off"/>
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off"/>
+        </div>
+
+        <button class="submit-btn" type="button"
+          (click)="verifyOtp()"
+          [disabled]="loading">
+          <span *ngIf="!loading">Verify & Sign In →</span>
+          <span *ngIf="loading" class="btn-loading">
+            <span class="spinner"></span> Verifying...
+          </span>
         </button>
 
-        <div class="divider">
-          <span>OR CONTINUE WITH</span>
+        <div class="resend-row">
+          <span>Didn't receive it?</span>
+          <button type="button" class="resend-btn"
+            (click)="resendOtp()"
+            [disabled]="resendCooldown > 0 || loading">
+            <ng-container *ngIf="resendCooldown > 0">
+              Resend in {{ resendCooldown }}s
+            </ng-container>
+            <ng-container *ngIf="resendCooldown === 0">
+              Resend OTP
+            </ng-container>
+          </button>
         </div>
 
-        <div class="alt-links">
-          <span>Don't have an account?</span>
-          <a routerLink="/register" class="create-link">Create an account</a>
+        <p class="otp-note">⏱ Code expires in 5 minutes</p>
+
+      </ng-container>
+
+      <!-- ── STEP 3: Success ── -->
+      <ng-container *ngIf="step === 'success'">
+        <div class="success-state">
+          <div class="success-circle">✓</div>
+          <h3>Login Successful!</h3>
+          <p>Redirecting to your dashboard...</p>
+          <div class="success-bar">
+            <div class="success-bar-fill"></div>
+          </div>
         </div>
+      </ng-container>
 
-      </form>
-
-      <div class="footer-links">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-        <a href="#">Contact</a>
-      </div>
     </div>
   </div>
 </div>

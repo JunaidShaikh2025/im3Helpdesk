@@ -572,3 +572,24 @@
   background: #f59e0b;
   &:hover { background: #d97706; }
 }
+
+.merge-btn {
+  background: #8b5cf6;
+  &:hover:not(:disabled) { background: #7c3aed; }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.bulk-master-hint {
+  font-size: 12px;
+  color: #1d4ed8;
+  background: white;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 3px 10px;
+  white-space: nowrap;
+
+  strong { font-weight: 600; }
+}

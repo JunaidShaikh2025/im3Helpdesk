@@ -1,24 +1,59 @@
-<div class="verify-container">
-  <div class="verify-card">
-    <div *ngIf="loading" class="loading">
-      <mat-spinner diameter="48"></mat-spinner>
-      <p>Verifying your email...</p>
-    </div>
+<div class="auth-layout">
 
-    <div *ngIf="!loading && success" class="success">
-      <div class="icon success-icon">✓</div>
-      <h2>Email Verified!</h2>
-      <p>{{ message }}</p>
-      <a mat-raised-button color="primary" routerLink="/login">
-        Go to Login
-      </a>
+  <!-- LEFT -->
+  <div class="auth-left">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <span class="brand-name">iM3HelpDesk</span>
     </div>
+    <div class="hero-content">
+      <h1>EMAIL<br>
+        <span class="highlight">VERIFICATION</span>
+      </h1>
+      <p>Verifying your account, please wait...</p>
+    </div>
+  </div>
 
-    <div *ngIf="!loading && !success" class="error">
-      <div class="icon error-icon">✗</div>
-      <h2>Verification Failed</h2>
-      <p>{{ message }}</p>
-      <a mat-raised-button routerLink="/login">Back to Login</a>
+  <!-- RIGHT -->
+  <div class="auth-right">
+    <div class="auth-form-wrap">
+
+      <!-- Loading -->
+      <div class="state-box" *ngIf="status === 'loading'">
+        <div class="spinner-wrap">
+          <div class="spinner"></div>
+        </div>
+        <h3>Verifying your email...</h3>
+        <p>Please wait a moment</p>
+      </div>
+
+      <!-- Success -->
+      <div class="state-box" *ngIf="status === 'success'">
+        <div class="status-circle success-circle">✓</div>
+        <h3>Email Verified!</h3>
+        <p>Your account has been activated successfully.</p>
+        <p class="countdown-msg">
+          Redirecting to login in
+          <strong>{{ countdown }}s</strong>...
+        </p>
+        <a routerLink="/login" class="submit-btn">
+          Login Now →
+        </a>
+      </div>
+
+      <!-- Error -->
+      <div class="state-box" *ngIf="status === 'error'">
+        <div class="status-circle error-circle">✗</div>
+        <h3>Verification Failed</h3>
+        <p>{{ errorMessage }}</p>
+        <a routerLink="/forgot-password" class="submit-btn outline-btn">
+          Request New Link
+        </a>
+        <a routerLink="/login" class="back-link">
+          ← Back to Login
+        </a>
+      </div>
+
     </div>
   </div>
 </div>

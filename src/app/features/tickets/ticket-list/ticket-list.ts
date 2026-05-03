@@ -50,6 +50,7 @@ export class TicketListComponent
   showFilters = false;
   showColumnPicker = false;
   selectedTicketIds = new Set<string>();
+  merging = false;
 
   filters = {
     status: '',
@@ -383,6 +384,70 @@ export class TicketListComponent
         this.toastr.error('Failed to add to To-Do')
       );
     });
+  }
+
+  async mergeBulk() {
+    const ids = Array.from(this.selectedTicketIds);
+
+    if (ids.length < 2) {
+      Promise.resolve().then(() =>
+        this.toastr.warning(
+          'Select at least 2 tickets to merge')
+      );
+      return;
+    }
+
+    const masterTicket = this.tickets.find(
+      t => t.id === ids[0]);
+    const duplicateIds = ids.slice(1);
+
+    const confirmed = confirm(
+      `Merge ${duplicateIds.length} ticket(s) ` +
+      `into #TN${masterTicket?.ticketNumber}` +
+      ` — "${masterTicket?.title}"?\n\n` +
+      `Duplicate tickets will be CLOSED.`
+    );
+    if (!confirmed) return;
+
+    this.merging = true;
+    this.cdr.markForCheck();
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const dupId of duplicateIds) {
+      try {
+        await this.http.post(
+          `https://localhost:7071/api/Tickets` +
+          `/${ids[0]}/merge`,
+          { duplicateTicketId: dupId },
+          { headers: this.getHeaders() }
+        ).toPromise();
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    this.merging = false;
+    this.selectedTicketIds.clear();
+
+    if (successCount > 0) {
+      Promise.resolve().then(() =>
+        this.toastr.success(
+          `${successCount} ticket(s) merged ` +
+          `into #TN${masterTicket?.ticketNumber}!`)
+      );
+      this.loadTickets();
+    }
+    if (failCount > 0) {
+      Promise.resolve().then(() =>
+        this.toastr.error(
+          `${failCount} merge(s) failed`)
+      );
+    }
+
+    this.cdr.markForCheck();
   }
 
   exportCsv() {

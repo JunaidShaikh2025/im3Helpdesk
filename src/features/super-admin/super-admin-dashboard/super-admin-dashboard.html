@@ -1,78 +1,155 @@
-<mat-toolbar color="warn">
-  <span>iM3 Helpdesk — SuperAdmin</span>
-  <span class="spacer"></span>
-  <button mat-button routerLink="/admin/organizations">Organizations</button>
-  <button mat-button routerLink="/admin/users">All Users</button>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<app-layout>
+  <div class="sa-page">
 
-<div class="page-container">
-  <div *ngIf="loading" class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
-
-  <div *ngIf="!loading && stats">
-    <h2 class="page-title">SuperAdmin Dashboard</h2>
-
-    <div class="stats-grid">
-      <mat-card class="stat-card" routerLink="/admin/organizations">
-        <mat-card-content>
-          <div class="stat-num blue">{{ stats.totalOrganizations }}</div>
-          <div class="stat-label">Total Organizations</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card" routerLink="/admin/organizations">
-        <mat-card-content>
-          <div class="stat-num green">{{ stats.activeOrganizations }}</div>
-          <div class="stat-label">Active Organizations</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card" routerLink="/admin/users">
-        <mat-card-content>
-          <div class="stat-num purple">{{ stats.totalUsers }}</div>
-          <div class="stat-label">Total Users</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card">
-        <mat-card-content>
-          <div class="stat-num orange">{{ stats.totalTickets }}</div>
-          <div class="stat-label">Total Tickets</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card">
-        <mat-card-content>
-          <div class="stat-num teal">{{ stats.newOrgsThisMonth }}</div>
-          <div class="stat-label">New Orgs This Month</div>
-        </mat-card-content>
-      </mat-card>
+    <!-- Loading -->
+    <div *ngIf="loading" class="sa-loading">
+      <div class="sa-spinner"></div>
+      <p>Loading platform data...</p>
     </div>
 
-    <mat-card class="recent-card">
-      <mat-card-content>
-        <h3>Recent Organizations</h3>
-        <div class="org-row" *ngFor="let org of stats.recentOrgs"
-          (click)="router.navigate(['/admin/organizations'])">
-          <div class="org-info">
-            <span class="org-name">{{ org.name }}</span>
-            <span class="org-date">
-              Joined {{ org.createdAt | date:'dd MMM yyyy' }}
-            </span>
+    <ng-container *ngIf="!loading && stats">
+
+      <!-- Page Title Row -->
+      <div class="sa-header">
+        <div class="sa-header-left">
+          <div class="sa-badge">🔧 SuperAdmin</div>
+          <div>
+            <h1 class="sa-title">Platform Overview</h1>
+            <p class="sa-subtitle">
+              iM3 Helpdesk — Global Administration
+            </p>
           </div>
-          <div class="org-meta">
-            <span class="trial-date">
-              Trial ends {{ org.trialEndsAt | date:'dd MMM yyyy' }}
+        </div>
+        <div class="sa-header-right">
+          <button class="sa-nav-btn"
+            routerLink="/admin/organizations">
+            🏢 Organizations
+          </button>
+          <button class="sa-nav-btn"
+            routerLink="/admin/users">
+            👤 All Users
+          </button>
+          <button class="sa-logout-btn"
+            (click)="logout()">
+            → Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="sa-stats-grid">
+
+        <div class="sa-stat-card blue"
+          routerLink="/admin/organizations"
+          style="cursor:pointer">
+          <div class="sa-stat-icon">🏢</div>
+          <div class="sa-stat-num">
+            {{ stats.totalOrganizations }}
+          </div>
+          <div class="sa-stat-label">
+            Total Organizations
+          </div>
+          <div class="sa-stat-hint">View all →</div>
+        </div>
+
+        <div class="sa-stat-card green"
+          routerLink="/admin/organizations"
+          style="cursor:pointer">
+          <div class="sa-stat-icon">✅</div>
+          <div class="sa-stat-num">
+            {{ stats.activeOrganizations }}
+          </div>
+          <div class="sa-stat-label">
+            Active Organizations
+          </div>
+          <div class="sa-stat-hint">
+            View active →
+          </div>
+        </div>
+
+        <div class="sa-stat-card purple"
+          routerLink="/admin/users"
+          style="cursor:pointer">
+          <div class="sa-stat-icon">👥</div>
+          <div class="sa-stat-num">
+            {{ stats.totalUsers }}
+          </div>
+          <div class="sa-stat-label">
+            Total Users
+          </div>
+          <div class="sa-stat-hint">View all →</div>
+        </div>
+
+        <div class="sa-stat-card orange">
+          <div class="sa-stat-icon">🎫</div>
+          <div class="sa-stat-num">
+            {{ stats.totalTickets }}
+          </div>
+          <div class="sa-stat-label">
+            Total Tickets
+          </div>
+        </div>
+
+        <div class="sa-stat-card teal">
+          <div class="sa-stat-icon">🆕</div>
+          <div class="sa-stat-num">
+            {{ stats.newOrgsThisMonth }}
+          </div>
+          <div class="sa-stat-label">
+            New Orgs This Month
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Recent Organizations -->
+      <div class="sa-card">
+        <div class="sa-card-header">
+          <h3>Recent Organizations</h3>
+          <button class="sa-view-all"
+            routerLink="/admin/organizations">
+            View All →
+          </button>
+        </div>
+
+        <div class="sa-org-row"
+          *ngFor="let org of stats.recentOrgs"
+          (click)="router.navigate(
+            ['/admin/organizations'])">
+          <div class="sa-org-left">
+            <div class="sa-org-avatar">
+              {{ org.name?.charAt(0)?.toUpperCase() }}
+            </div>
+            <div class="sa-org-info">
+              <span class="sa-org-name">
+                {{ org.name }}
+              </span>
+              <span class="sa-org-date">
+                Joined
+                {{ org.createdAt | date:'dd MMM yyyy' }}
+              </span>
+            </div>
+          </div>
+          <div class="sa-org-right">
+            <span class="sa-trial-date">
+              Trial ends
+              {{ org.trialEndsAt | date:'dd MMM yyyy' }}
             </span>
-            <span class="status-pill" [class.active]="org.isActive"
+            <span class="sa-status-pill"
+              [class.active]="org.isActive"
               [class.inactive]="!org.isActive">
               {{ org.isActive ? 'Active' : 'Inactive' }}
             </span>
           </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+
+        <div class="sa-empty"
+          *ngIf="!stats.recentOrgs?.length">
+          No organizations yet
+        </div>
+      </div>
+
+    </ng-container>
+
   </div>
-</div>
+</app-layout>

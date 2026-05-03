@@ -9,15 +9,12 @@
       </div>
       <button class="new-btn"
         (click)="showCreateForm = !showCreateForm">
-        {{ showCreateForm
-          ? '✕ Cancel'
-          : '+ New Ticket' }}
+        {{ showCreateForm ? '✕ Cancel' : '+ New Ticket' }}
       </button>
     </div>
 
     <!-- Create Form -->
-    <div class="create-card"
-      *ngIf="showCreateForm">
+    <div class="create-card" *ngIf="showCreateForm">
       <h3>Submit a New Ticket</h3>
       <form [formGroup]="createForm"
         (ngSubmit)="createTicket()">
@@ -35,19 +32,15 @@
         </div>
 
         <div class="form-group">
-          <label>
-            Description <span class="req">*</span>
-          </label>
+          <label>Description <span class="req">*</span></label>
           <textarea formControlName="description"
             rows="5"
             placeholder="Describe your issue...">
           </textarea>
           <span class="error-msg"
-            *ngIf="createForm.get('description')
-              ?.invalid
-              && createForm.get('description')
-                ?.touched">
-            Description is required (min 10 chars)
+            *ngIf="createForm.get('description')?.invalid
+              && createForm.get('description')?.touched">
+            Description required (min 10 chars)
           </span>
         </div>
 
@@ -69,16 +62,13 @@
         </div>
 
         <div class="form-actions">
-          <button type="button"
-            class="cancel-btn"
+          <button type="button" class="cancel-btn"
             (click)="showCreateForm = false">
             Cancel
           </button>
-          <button type="submit"
-            class="submit-btn"
+          <button type="submit" class="submit-btn"
             [disabled]="creating">
-            {{ creating
-              ? 'Submitting...' : 'Submit Ticket' }}
+            {{ creating ? 'Submitting...' : 'Submit Ticket' }}
           </button>
         </div>
       </form>
@@ -91,8 +81,7 @@
 
     <!-- Empty -->
     <div *ngIf="!loading && myTickets.length === 0
-      && !showCreateForm"
-      class="empty-state">
+      && !showCreateForm" class="empty-state">
       <div class="empty-icon">🎫</div>
       <h3>No tickets yet</h3>
       <p>Create your first support ticket</p>
@@ -105,19 +94,16 @@
     <!-- Tickets List -->
     <div *ngIf="!loading && myTickets.length > 0"
       class="tickets-list">
-
       <div class="ticket-card"
         *ngFor="let t of myTickets"
-        (click)="router.navigate(
-          ['/customer/ticket', t.id])">
+        (click)="router.navigate(['/customer/ticket', t.id])">
 
         <div class="ticket-top">
           <span class="ticket-num">
             #TN{{ t.ticketNumber || t.id?.slice(0,6) }}
           </span>
           <span class="status-badge"
-            [style.background]="
-              getStatusColor(t.status) + '20'"
+            [style.background]="getStatusColor(t.status) + '20'"
             [style.color]="getStatusColor(t.status)">
             {{ t.status }}
           </span>
@@ -126,13 +112,9 @@
         <div class="ticket-title">{{ t.title }}</div>
 
         <div class="ticket-meta">
-          <span>📅 {{ t.createdAt
-            | date:'dd MMM yyyy' }}</span>
-          <span *ngIf="t.category">
-            📂 {{ t.category }}
-          </span>
+          <span>📅 {{ t.createdAt | date:'dd MMM yyyy' }}</span>
+          <span *ngIf="t.category">📂 {{ t.category }}</span>
         </div>
-
       </div>
     </div>
 

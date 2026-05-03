@@ -280,8 +280,9 @@
           + New Ticket
         </button>
 
-        <!-- ✅ Todo trigger with count -->
+        <!-- ✅ Todo trigger with count (agents/admin only) -->
         <div class="todo-trigger"
+          *ngIf="!isSuperAdmin && !isCustomer"
           (click)="toggleTodoPanel()">
           📋
           <span class="todo-count"
@@ -299,9 +300,9 @@
           </div>
         </div>
 
-        <!-- KB Bell -->
+        <!-- KB Bell (agents/admin only) -->
         <div class="notif-bell"
-          *ngIf="!isSuperAdmin"
+          *ngIf="!isSuperAdmin && !isCustomer"
           (click)="toggleKbDropdown()">
           <span class="bell-icon">📚</span>
           <span class="notif-count"
@@ -346,9 +347,9 @@
           </div>
         </div>
 
-        <!-- Bell -->
+        <!-- Bell (agents/admin only) -->
         <div class="notif-bell"
-          *ngIf="!isSuperAdmin"
+          *ngIf="!isSuperAdmin && !isCustomer"
           (click)="toggleNotifDropdown()">
           <span class="bell-icon">🔔</span>
           <span class="notif-count"

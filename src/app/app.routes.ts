@@ -238,5 +238,11 @@ export const routes: Routes = [
         .then(m => m.AIDashboardComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./auth/reset-password/reset-password')
+        .then(m => m.ResetPasswordComponent)
+  },
   { path: '**', redirectTo: 'login' }
 ];

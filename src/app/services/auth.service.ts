@@ -17,6 +17,20 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/login`, data);
   }
 
+verifyOtp(dto: { email: string; otp: string }) {
+  return this.http.post<any>(
+    `${this.apiUrl}/verify-otp`,   // ✅ sirf /verify-otp
+    dto
+  );
+}
+
+resendOtp(dto: { email: string }) {
+  return this.http.post<any>(
+    `${this.apiUrl}/resend-otp`,   // ✅ sirf /resend-otp
+    dto
+  );
+}
+
   forgotPassword(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/forgot-password`, data);
   }

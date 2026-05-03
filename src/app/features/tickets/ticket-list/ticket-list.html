@@ -90,10 +90,28 @@
       <span class="bulk-count">
         {{ selectedTicketIds.size }} selected
       </span>
+      <span class="bulk-master-hint"
+        *ngIf="selectedTicketIds.size >= 2">
+        🔵 First selected =
+        <strong>master ticket</strong>
+      </span>
       <button class="bulk-btn todo-btn"
         type="button"
         (click)="addSelectedToTodo()">
         📋 Add to To-Do
+      </button>
+      <button class="bulk-btn merge-btn"
+        type="button"
+        [disabled]="selectedTicketIds.size < 2
+          || merging"
+        [title]="selectedTicketIds.size < 2
+          ? 'Select at least 2 tickets'
+          : 'Merge into first selected ticket'"
+        (click)="mergeBulk()">
+        {{ merging ? '⏳ Merging...' :
+          '🔀 Merge (' +
+          (selectedTicketIds.size - 1) +
+          ' → master)' }}
       </button>
       <button class="bulk-btn"
         type="button"

@@ -1,3 +1,6 @@
+/* ═══════════════════════════════════════
+   Existing styles (unchanged)
+═══════════════════════════════════════ */
 .auth-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -17,13 +20,10 @@
   &::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
     background: radial-gradient(circle at 30% 40%,
-      rgba(99,102,241,0.15) 0%,
-      transparent 50%);
+      rgba(99,102,241,0.15) 0%, transparent 50%);
     pointer-events: none;
   }
 }
@@ -35,8 +35,7 @@
 }
 
 .brand-icon {
-  width: 40px;
-  height: 40px;
+  width: 40px; height: 40px;
   background: #3b82f6;
   border-radius: 10px;
   display: flex;
@@ -59,9 +58,7 @@
     line-height: 1.1;
     margin-bottom: 16px;
   }
-
   .highlight { color: #3b82f6; }
-
   p {
     color: rgba(255,255,255,0.6);
     font-size: 16px;
@@ -70,17 +67,13 @@
   }
 }
 
-.badges {
-  display: flex;
-  gap: 24px;
-}
+.badges { display: flex; gap: 24px; }
 
 .badge-item {
   color: rgba(255,255,255,0.5);
   font-size: 13px;
 }
 
-/* Right Side */
 .auth-right {
   display: flex;
   align-items: center;
@@ -104,6 +97,7 @@
     color: rgba(255,255,255,0.5);
     font-size: 14px;
     margin-bottom: 32px;
+    line-height: 1.6;
   }
 }
 
@@ -124,7 +118,6 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-
   label { margin-bottom: 0; }
 }
 
@@ -158,14 +151,13 @@
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 
     &::placeholder { color: rgba(255,255,255,0.3); }
-
     &:focus {
       border-color: #3b82f6;
       background: rgba(59,130,246,0.08);
     }
-
     &.error { border-color: #ef4444; }
   }
 }
@@ -187,6 +179,19 @@
   display: block;
 }
 
+.error-alert {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .submit-btn {
   width: 100%;
   padding: 14px;
@@ -200,8 +205,28 @@
   margin-top: 8px;
   transition: background 0.2s;
 
-  &:hover { background: #2563eb; }
+  &:hover:not(:disabled) { background: #2563eb; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .divider {
@@ -212,9 +237,7 @@
   &::before {
     content: '';
     position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
+    top: 50%; left: 0; right: 0;
     height: 1px;
     background: rgba(255,255,255,0.1);
   }
@@ -238,6 +261,7 @@
   color: #3b82f6;
   font-weight: 500;
   margin-left: 6px;
+  text-decoration: none;
   &:hover { text-decoration: underline; }
 }
 
@@ -250,6 +274,265 @@
   a {
     color: rgba(255,255,255,0.3);
     font-size: 13px;
+    text-decoration: none;
     &:hover { color: rgba(255,255,255,0.6); }
   }
+}
+
+/* ═══════════════════════════════════════
+   ✅ NEW — OTP Toggle Checkbox
+   (matches the image exactly)
+═══════════════════════════════════════ */
+
+// Row that contains the checkbox
+.otp-toggle-row {
+  margin-bottom: 12px;
+  margin-top: 4px;
+}
+
+// The label wraps checkbox + custom box + text
+.otp-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+// Hide native checkbox
+.otp-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+// Custom styled checkbox box
+.otp-checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  position: relative;
+
+  // Checkmark when checked
+  &::after {
+    content: '✓';
+    font-size: 11px;
+    color: white;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+}
+
+// When checkbox is checked → highlight the custom box
+.otp-checkbox:checked + .otp-checkbox-custom {
+  background: #3b82f6;
+  border-color: #3b82f6;
+
+  &::after { opacity: 1; }
+}
+
+.otp-checkbox-text {
+  color: rgba(255,255,255,0.85);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+// "Login with OTP" checked → text gets blue tint
+.otp-checkbox:checked ~ .otp-checkbox-text {
+  color: #93c5fd;
+}
+
+// Forgot Password row (below checkbox)
+.forgot-row {
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+/* ═══════════════════════════════════════
+   ✅ NEW — OTP Step styles
+═══════════════════════════════════════ */
+
+.back-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+
+  &:hover { color: white; }
+}
+
+.otp-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.otp-icon-wrap {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.otp-email {
+  color: #60a5fa;
+}
+
+// 6 OTP digit boxes side by side
+.otp-boxes {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.otp-box {
+  width: 52px;
+  height: 58px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.15s;
+  caret-color: #3b82f6;
+
+  &:focus {
+    border-color: #3b82f6;
+    background: rgba(59,130,246,0.12);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  }
+
+  &.filled {
+    border-color: rgba(59,130,246,0.5);
+    background: rgba(59,130,246,0.08);
+  }
+}
+
+// Resend row
+.resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
+
+  &:disabled {
+    color: rgba(255,255,255,0.3);
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    text-decoration: underline;
+  }
+}
+
+.otp-note {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+  margin-top: 12px;
+}
+
+/* ═══════════════════════════════════════
+   ✅ NEW — Success state
+═══════════════════════════════════════ */
+
+.success-state {
+  text-align: center;
+  padding: 32px 0;
+
+  h3 {
+    color: white;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 16px 0 8px;
+  }
+
+  p {
+    color: rgba(255,255,255,0.4);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+}
+
+.success-circle {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: white;
+  margin: 0 auto;
+  animation: pop-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+
+@keyframes pop-in {
+  0%   { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.success-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  width: 200px;
+  margin: 0 auto;
+}
+
+.success-bar-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 2px;
+  animation: fill-bar 1.2s ease forwards;
+}
+
+@keyframes fill-bar {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* ═══════════════════════════════════════
+   Responsive
+═══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+  .auth-left { display: none; }
+  .auth-right { padding: 24px 20px; }
+  .otp-box { width: 44px; height: 52px; font-size: 20px; }
 }
