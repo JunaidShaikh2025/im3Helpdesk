@@ -1,63 +1,94 @@
 <div class="groups-page">
+
+  <!-- Header -->
   <div class="groups-header">
     <div>
       <h2>Agent Groups</h2>
       <p>Manage support groups and their members</p>
     </div>
     <button class="add-btn"
-      (click)="showForm = !showForm;
-        editingId = '';
-        form.reset();
-        selectedGroupMembers = []">
-      {{ showForm ? 'Cancel' : '+ New Group' }}
+      *ngIf="!showForm"
+      (click)="openNewForm()">
+      + New Group
     </button>
   </div>
 
-  <!-- Form -->
+  <!-- Form Card -->
   <div class="form-card" *ngIf="showForm">
-    <h4>{{ editingId ? 'Edit' : 'New' }} Group</h4>
-    <form [formGroup]="form"
-      (ngSubmit)="saveGroup()">
+    <div class="form-card-header">
+      <h4>
+        <span class="form-icon">{{ editingId ? '✏️' : '➕' }}</span>
+        {{ editingId ? 'Edit Group' : 'New Group' }}
+      </h4>
+    </div>
 
-      <div class="form-group">
-        <label>Group Name *</label>
-        <input type="text"
-          formControlName="name"
-          placeholder="e.g. Customer Support Tier 1"/>
+    <form [formGroup]="form" (ngSubmit)="saveGroup()">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Group Name <span class="req">*</span></label>
+          <input type="text"
+            formControlName="name"
+            placeholder="e.g. Customer Support Tier 1"
+            [class.invalid]="form.get('name')?.invalid
+              && form.get('name')?.touched"/>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text"
+            formControlName="description"
+            placeholder="Optional description"/>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Description</label>
-        <input type="text"
-          formControlName="description"
-          placeholder="Optional description"/>
-      </div>
+      <!-- Agents Section -->
+      <div class="agents-section">
+        <label class="agents-label">
+          Add Agents
+          <span class="member-count-badge"
+            *ngIf="selectedGroupMembers.length > 0">
+            {{ selectedGroupMembers.length }} selected
+          </span>
+        </label>
 
-      <div class="form-group">
-        <label>Add Agents</label>
-        <div class="agents-checkboxes">
-          <label class="agent-check"
-            *ngFor="let a of agents">
-            <input type="checkbox"
-              [checked]="isMember(a.id)"
-              (change)="toggleMember(a.id)"/>
-            <div class="ac-av"
-              [style.background]="'#3b82f6'">
-              {{ a.fullName?.charAt(0) }}
+        <div class="agents-grid">
+          <div class="agent-card"
+            *ngFor="let a of agents"
+            [class.selected]="isMember(a.id)"
+            [class.disabled]="!isMember(a.id) && isAgentInOtherGroup(a.id)"
+            (click)="toggleMember(a.id)">
+
+            <div class="agent-card-left">
+              <div class="ac-av"
+                [style.background]="getAvatarColor(a.fullName)">
+                {{ a.fullName?.charAt(0)?.toUpperCase() }}
+              </div>
+              <div class="agent-card-info">
+                <span class="agent-card-name">{{ a.fullName }}</span>
+                <span class="agent-card-role">{{ a.role }}</span>
+                <!-- ✅ Already kisi aur group mein ho to show karo -->
+                <span class="agent-other-group"
+                  *ngIf="!isMember(a.id) && isAgentInOtherGroup(a.id)">
+                  Already in: {{ getAgentCurrentGroup(a.id) }}
+                </span>
+              </div>
             </div>
-            {{ a.fullName }}
-          </label>
+
+            <!-- Custom checkbox -->
+            <div class="custom-check"
+              [class.checked]="isMember(a.id)">
+              <span *ngIf="isMember(a.id)">✓</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="form-actions">
-        <button type="button"
-          class="cancel-btn"
-          (click)="showForm = false">
+        <button type="button" class="cancel-btn"
+          (click)="showForm = false; editingId = ''">
           Cancel
         </button>
-        <button type="submit"
-          class="save-btn"
+        <button type="submit" class="save-btn"
           [disabled]="form.invalid">
           Save Group
         </button>
@@ -66,38 +97,42 @@
   </div>
 
   <!-- Groups List -->
-  <div class="groups-list"
-    *ngIf="groups.length > 0">
-    <div class="group-item"
-      *ngFor="let g of groups">
-      <div class="group-icon">👥</div>
-      <div class="group-info">
-        <div class="group-name">{{ g.name }}</div>
-        <div class="group-desc"
-          *ngIf="g.description">
-          {{ g.description }}
-        </div>
-        <div class="group-count"
-          *ngIf="g.memberCount >= 0">
-          {{ g.memberCount }} member(s)
+  <div class="groups-list" *ngIf="groups.length > 0 && !showForm">
+    <div class="group-item" *ngFor="let g of groups">
+      <div class="group-left">
+        <div class="group-icon-wrap">👥</div>
+        <div class="group-info">
+          <div class="group-name">{{ g.name }}</div>
+          <div class="group-desc" *ngIf="g.description">
+            {{ g.description }}
+          </div>
+          <div class="group-meta">
+            <span class="group-count-badge">
+              {{ g.memberCount }} member{{ g.memberCount !== 1 ? 's' : '' }}
+            </span>
+          </div>
         </div>
       </div>
       <div class="group-actions">
-        <button class="edit-btn"
-          (click)="editGroup(g)">
-          Edit
+        <button class="edit-btn" (click)="editGroup(g)">
+          ✏️ Edit
         </button>
-        <button class="del-btn"
-          (click)="deleteGroup(g.id)">
-          Delete
+        <button class="del-btn" (click)="deleteGroup(g.id)">
+          🗑️ Delete
         </button>
       </div>
     </div>
   </div>
 
+  <!-- Empty State -->
   <div class="empty-state"
     *ngIf="groups.length === 0 && !showForm">
-    <div>👥</div>
-    <p>No groups yet. Create your first group.</p>
+    <div class="empty-icon">👥</div>
+    <h3>No groups yet</h3>
+    <p>Create your first agent group to organize your support team</p>
+    <button class="add-btn" (click)="openNewForm()">
+      + Create First Group
+    </button>
   </div>
+
 </div>

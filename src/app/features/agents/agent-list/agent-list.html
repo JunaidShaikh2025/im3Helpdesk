@@ -24,8 +24,8 @@
           Export
         </button>
         <button class="new-btn"
-          (click)="router.navigate(['/agents/invite'])"
-          *ngIf="isAdmin">
+          *ngIf="isCompanyAdmin"
+          (click)="router.navigate(['/agents/invite'])">
           New agent
         </button>
       </div>
@@ -35,8 +35,7 @@
     <div class="agent-tabs">
       <button class="a-tab"
         [class.active]="activeTab === 'active'"
-        (click)="activeTab = 'active';
-          filterAgents()">
+        (click)="activeTab = 'active'; filterAgents()">
         Support Agents
         <span class="tab-count">
           {{ getActiveCount() }}
@@ -44,8 +43,7 @@
       </button>
       <button class="a-tab"
         [class.active]="activeTab === 'inactive'"
-        (click)="activeTab = 'inactive';
-          filterAgents()">
+        (click)="activeTab = 'inactive'; filterAgents()">
         Deactivated Agents
         <span class="tab-count inactive">
           {{ getInactiveCount() }}
@@ -62,7 +60,8 @@
             <th>Roles</th>
             <th>Groups</th>
             <th>Last Seen</th>
-            <th>Actions</th>
+            <!-- ✅ Actions column sirf CompanyAdmin ke liye -->
+            <th *ngIf="isCompanyAdmin">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -76,37 +75,36 @@
                     : getAvatarColor(a.fullName)"
                   style="overflow:hidden">
                   <img *ngIf="a.photoUrl"
-                    [src]="'https://localhost:7071'
-                      + a.photoUrl"
+                    [src]="'https://localhost:7071' + a.photoUrl"
                     style="width:100%;height:100%;
-                      object-fit:cover;
-                      border-radius:50%"/>
+                      object-fit:cover;border-radius:50%"/>
                   <span *ngIf="!a.photoUrl">
-                    {{ a.fullName
-                      ?.charAt(0)?.toUpperCase() }}
+                    {{ a.fullName?.charAt(0)?.toUpperCase() }}
                   </span>
                 </div>
                 <div class="ag-info">
-                  <span class="ag-name">
-                    {{ a.fullName }}
-                  </span>
-                  <span class="ag-email">
-                    {{ a.email }}
-                  </span>
+                  <span class="ag-name">{{ a.fullName }}</span>
+                  <span class="ag-email">{{ a.email }}</span>
                 </div>
               </div>
             </td>
             <td>
               <span class="role-badge"
-                [class]="'role-' +
-                  a.role?.toLowerCase()">
+                [class]="'role-' + a.role?.toLowerCase()">
                 {{ getRoleLabel(a.role) }}
               </span>
             </td>
             <td>
-              <span class="group-text">
-                {{ a.groupName || '—' }}
-              </span>
+              <!-- ✅ Groups badges — groupName empty ho toh — -->
+              <div class="group-badges"
+                *ngIf="a.groupName">
+                <span class="group-badge"
+                  *ngFor="let gn of a.groupName.split(', ')">
+                  {{ gn }}
+                </span>
+              </div>
+              <span class="group-dash"
+                *ngIf="!a.groupName">—</span>
             </td>
             <td>
               <span class="lastseen">
@@ -115,30 +113,13 @@
                   : 'Never' }}
               </span>
             </td>
-            <td>
-              <div class="action-btns">
-                <!-- Edit button — all admins -->
-                <button class="edit-btn"
-                  (click)="editAgent(a)"
-                  *ngIf="isAdmin">
-                  Edit
-                </button>
-
-                <!-- ✅ Delete ONLY for CompanyAdmin -->
-                <button class="del-btn"
-                  *ngIf="isCompanyAdmin"
-                  (click)="deleteAgent(a)">
-                  Delete
-                </button>
-
-                <!-- Deactivate/Activate -->
-                <button class="deact-btn"
-                  *ngIf="isAdmin"
-                  (click)="toggleActive(a)">
-                  {{ a.isActive
-                    ? 'Deactivate' : 'Activate' }}
-                </button>
-              </div>
+            <!-- ✅ Sirf CompanyAdmin ko Activate/Deactivate button -->
+            <td *ngIf="isCompanyAdmin">
+              <button class="deact-btn"
+                [class.activate-btn]="!a.isActive"
+                (click)="toggleActive(a)">
+                {{ a.isActive ? 'Deactivate' : 'Activate' }}
+              </button>
             </td>
           </tr>
         </tbody>

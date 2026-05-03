@@ -63,12 +63,42 @@ export class AgentsComponent implements OnInit {
   }
 
   loadAgents() {
-    this.agentService.getAll().subscribe({
-      next: (data: any[]) => {
-        this.agents = data;
-        this.filterAgents();
-        this.loading = false;
-        this.cdr.detectChanges();
+    // ✅ Groups aur Agents dono load karo, phir UUID lowercase se match karo
+    this.http.get<any[]>(
+      'https://localhost:7071/api/AgentGroups',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (groups) => {
+        this.agentService.getAll().subscribe({
+          next: (data: any[]) => {
+            this.agents = data.map(agent => {
+              const agentIdLower = (agent.id || '').toLowerCase();
+              const agentGroups = groups
+                .filter(g => {
+                  const ids: string[] = g.memberIds || g.MemberIds || [];
+                  // Backend UUID uppercase string return karta hai — lowercase compare
+                  return ids.some(mid =>
+                    mid.toLowerCase() === agentIdLower);
+                })
+                .map((g: any) => g.name || g.Name);
+              return { ...agent, groupName: agentGroups.join(', ') };
+            });
+            this.filterAgents();
+            this.loading = false;
+            this.cdr.detectChanges();
+          }
+        });
+      },
+      error: () => {
+        // Groups fail — agents bina groups ke load karo
+        this.agentService.getAll().subscribe({
+          next: (data: any[]) => {
+            this.agents = data.map(a => ({ ...a, groupName: '' }));
+            this.filterAgents();
+            this.loading = false;
+            this.cdr.detectChanges();
+          }
+        });
       }
     });
   }

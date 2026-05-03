@@ -14,15 +14,11 @@ import { AuthService } from '../../../services/auth.service';
 @Component({
   selector: 'app-agent-groups-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule,
-    ReactiveFormsModule],
-  templateUrl:
-    './agent-groups-settings.html',
-  styleUrls: [
-    './agent-groups-settings.scss']
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  templateUrl: './agent-groups-settings.html',
+  styleUrls: ['./agent-groups-settings.scss']
 })
-export class AgentGroupsSettingsComponent
-  implements OnInit {
+export class AgentGroupsSettingsComponent implements OnInit {
 
   private http = inject(HttpClient);
   private authService = inject(AuthService);
@@ -44,8 +40,7 @@ export class AgentGroupsSettingsComponent
 
   private getHeaders(): HttpHeaders {
     return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
+      'Authorization': `Bearer ${this.authService.getToken()}`
     });
   }
 
@@ -78,18 +73,34 @@ export class AgentGroupsSettingsComponent
     });
   }
 
+  // ✅ Kisi agent ka group pata karo (editing group ko exclude karo)
+  getAgentCurrentGroup(agentId: string): string {
+    const agentIdLower = agentId.toLowerCase();
+    const group = this.groups.find(g => {
+      if (g.id === this.editingId) return false; // current group ignore
+      const ids: string[] = g.memberIds || g.MemberIds || [];
+      return ids.some(mid => mid.toLowerCase() === agentIdLower);
+    });
+    return group ? group.name : '';
+  }
+
+  // ✅ Agent already kisi aur group mein hai?
+  isAgentInOtherGroup(agentId: string): boolean {
+    return !!this.getAgentCurrentGroup(agentId);
+  }
+
   saveGroup() {
     if (this.form.invalid) return;
 
     const payload = {
-      ...this.form.value,
+      name: this.form.value.name,
+      description: this.form.value.description || '',
       memberIds: this.selectedGroupMembers
     };
 
     const req = this.editingId
       ? this.http.put(
-          `https://localhost:7071/api/AgentGroups` +
-          `/${this.editingId}`,
+          `https://localhost:7071/api/AgentGroups/${this.editingId}`,
           payload,
           { headers: this.getHeaders() })
       : this.http.post(
@@ -107,48 +118,85 @@ export class AgentGroupsSettingsComponent
           this.toastr.success('Group saved!')
         );
         this.loadGroups();
+        this.cdr.detectChanges();
       },
       error: () =>
         Promise.resolve().then(() =>
-          this.toastr.error('Failed')
+          this.toastr.error('Failed to save group')
         )
     });
   }
 
   editGroup(g: any) {
     this.editingId = g.id;
-    this.form.patchValue(g);
-    this.selectedGroupMembers =
-      g.memberIds || [];
+    this.form.patchValue({
+      name: g.name,
+      description: g.description || ''
+    });
+
+    // ✅ UUID case fix — memberIds lowercase karke store karo
+    const rawIds: string[] = g.memberIds || g.MemberIds || [];
+    this.selectedGroupMembers = rawIds.map((id: string) => id.toLowerCase());
+
+    this.showForm = true;
+    this.cdr.detectChanges();
+  }
+
+  openNewForm() {
+    this.editingId = '';
+    this.form.reset();
+    this.selectedGroupMembers = [];
     this.showForm = true;
   }
 
   deleteGroup(id: string) {
-    if (!confirm('Delete this group?')) return;
+    if (!confirm('Delete this group? All members will be removed.')) return;
     this.http.delete(
       `https://localhost:7071/api/AgentGroups/${id}`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
         Promise.resolve().then(() =>
-          this.toastr.success('Deleted'));
+          this.toastr.success('Group deleted'));
         this.loadGroups();
-      }
+      },
+      error: () =>
+        Promise.resolve().then(() =>
+          this.toastr.error('Failed to delete'))
     });
   }
 
   toggleMember(agentId: string) {
-    const idx = this.selectedGroupMembers
-      .indexOf(agentId);
+    // ✅ Already kisi aur group mein hai to allow nahi
+    if (!this.isMember(agentId) &&
+        this.isAgentInOtherGroup(agentId)) {
+      const groupName = this.getAgentCurrentGroup(agentId);
+      Promise.resolve().then(() =>
+        this.toastr.warning(
+          `This agent is already in "${groupName}". Remove them from there first.`)
+      );
+      return;
+    }
+    const agentIdLower = agentId.toLowerCase();
+    const idx = this.selectedGroupMembers.indexOf(agentIdLower);
     if (idx > -1)
       this.selectedGroupMembers.splice(idx, 1);
     else
-      this.selectedGroupMembers.push(agentId);
+      this.selectedGroupMembers.push(agentIdLower);
     this.cdr.detectChanges();
   }
 
+  // ✅ UUID lowercase compare
   isMember(agentId: string): boolean {
     return this.selectedGroupMembers
-      .includes(agentId);
+      .includes(agentId.toLowerCase());
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = [
+      '#ef4444','#f97316','#22c55e',
+      '#3b82f6','#8b5cf6','#ec4899'
+    ];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
   }
 }

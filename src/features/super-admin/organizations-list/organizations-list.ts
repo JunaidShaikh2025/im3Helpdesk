@@ -1,27 +1,20 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatTableModule } from '@angular/material/table';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
+import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../services/super-admin';
 import { AuthService } from '../../../app/services/auth.service';
+import { LayoutComponent } from '../../../app/shared/layout/layout';
 import { ActiveFilterPipe } from '../../../app/pipes/active-filter-pipe';
-
-
-
 
 @Component({
   selector: 'app-organizations-list',
   standalone: true,
   imports: [
     CommonModule, RouterModule,
-    MatButtonModule, MatToolbarModule,
-    MatTableModule, MatProgressSpinnerModule,
-    MatCardModule,ActiveFilterPipe
+    FormsModule, LayoutComponent,
+    ActiveFilterPipe
   ],
   templateUrl: './organizations-list.html',
   styleUrls: ['./organizations-list.scss']
@@ -34,12 +27,10 @@ export class OrganizationsListComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   organizations: any[] = [];
+  filteredOrganizations: any[] = [];
   loading = true;
-  displayedColumns = [
-    'name', 'slug', 'supportEmail',
-    'users', 'tickets', 'trial',
-    'status', 'actions'
-  ];
+  searchQuery = '';
+  filterStatus = '';
 
   ngOnInit() {
     this.loadOrganizations();
@@ -50,6 +41,7 @@ export class OrganizationsListComponent implements OnInit {
     this.superAdminService.getOrganizations().subscribe({
       next: (data: any[]) => {
         this.organizations = data;
+        this.applyFilter();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -61,13 +53,41 @@ export class OrganizationsListComponent implements OnInit {
     });
   }
 
+  applyFilter() {
+    const q = this.searchQuery.toLowerCase().trim();
+    let result = [...this.organizations];
+
+    if (q) {
+      result = result.filter(o =>
+        o.name?.toLowerCase().includes(q) ||
+        o.slug?.toLowerCase().includes(q) ||
+        o.supportEmail?.toLowerCase().includes(q)
+      );
+    }
+
+    if (this.filterStatus === 'active') {
+      result = result.filter(o => o.isActive);
+    } else if (this.filterStatus === 'inactive') {
+      result = result.filter(o => !o.isActive);
+    }
+
+    this.filteredOrganizations = result;
+    this.cdr.detectChanges();
+  }
+
+  clearFilters() {
+    this.searchQuery = '';
+    this.filterStatus = '';
+    this.applyFilter();
+  }
+
   toggleOrg(id: string, name: string) {
     this.superAdminService.toggleOrganization(id).subscribe({
       next: (res: any) => {
         const org = this.organizations.find(o => o.id === id);
         if (org) {
           org.isActive = res.isActive;
-          this.cdr.detectChanges();
+          this.applyFilter();
         }
         this.toastr.success(res.message);
       },
@@ -75,6 +95,16 @@ export class OrganizationsListComponent implements OnInit {
         this.toastr.error('Failed to toggle organization');
       }
     });
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899'];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
+  }
+
+  getInitials(name: string): string {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2);
   }
 
   logout() {

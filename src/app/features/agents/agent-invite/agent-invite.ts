@@ -35,9 +35,7 @@ export class AgentInviteComponent {
   invitedTempPassword = '';
 
   roles = [
-    { value: 'Account Administrator', label: 'Account Administrator' },
     { value: 'Administrator', label: 'Administrator' },
-    { value: 'Supervisor', label: 'Supervisor' },
     { value: 'Agent', label: 'Agent' }
   ];
 
@@ -98,7 +96,13 @@ export class AgentInviteComponent {
   this.cdr.detectChanges();
 
   const payload = {
-    ...this.form.value,
+    fullName: this.form.value.fullName,
+    email: this.form.value.email,
+    phoneNumber: this.form.value.phoneNumber || '',
+    role: this.form.value.role,
+    signature: this.form.value.signature || '',
+    photoUrl: this.form.value.photoUrl || '',
+    // ✅ groupIds as string array — backend Guid.Parse karega
     groupIds: this.selectedGroups
   };
 
