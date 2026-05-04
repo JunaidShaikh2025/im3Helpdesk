@@ -101,6 +101,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddResponseCaching();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSignalR();
@@ -149,6 +150,7 @@ app.UseStaticFiles(new StaticFileOptions
             "public,max-age=3600");
   }
 });
+
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular"); // ✅ Single CORS policy
 app.UseRateLimiter();

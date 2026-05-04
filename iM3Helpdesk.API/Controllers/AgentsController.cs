@@ -32,8 +32,10 @@ public class AgentsController : ControllerBase
   {
     var agents = await _context.Users
         .IgnoreQueryFilters()
-        .Where(u => u.OrganizationId == _tenantService.OrganizationId
-            && (u.Role == UserRole.Agent || u.Role == UserRole.CompanyAdmin))
+        .Where(u =>
+            u.OrganizationId == _tenantService.OrganizationId &&
+            (u.Role == UserRole.Agent ||
+             u.Role == UserRole.CompanyAdmin))
         .Select(u => new
         {
           u.Id,
@@ -43,7 +45,10 @@ public class AgentsController : ControllerBase
           Role = u.Role.ToString(),
           u.IsEmailVerified,
           u.CreatedAt,
-          u.LastLoginAt
+          u.LastLoginAt,
+          // ✅ IsActive: LockedUntil nahi hai ya past mein hai to active
+          IsActive = !u.LockedUntil.HasValue ||
+              u.LockedUntil < DateTime.UtcNow
         })
         .ToListAsync();
 
@@ -55,7 +60,8 @@ public class AgentsController : ControllerBase
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id &&
+        .FirstOrDefaultAsync(u =>
+            u.Id == id &&
             u.OrganizationId == _tenantService.OrganizationId);
 
     if (agent == null) return NotFound();
@@ -84,7 +90,8 @@ public class AgentsController : ControllerBase
         .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
     if (existingUser != null)
-      return BadRequest(new { message = "Email already registered" });
+      return BadRequest(
+          new { message = "Email already registered" });
 
     var tempPassword = GenerateTempPassword();
 
@@ -121,13 +128,18 @@ public class AgentsController : ControllerBase
     var org = await _context.Organizations
         .FirstOrDefaultAsync(o =>
             o.Id == _tenantService.OrganizationId);
+
     try
     {
-      await _emailService.SendAsync(
-          agent.Email, agent.FullName,
-          org?.Name ?? "Company", tempPassword);
+      // ✅ FIX: Use proper invite email with all correct params
+      await _emailService.SendAgentInviteAsync(
+          agent.Email,
+          agent.FullName,
+          org?.Name ?? "Your Company",
+          tempPassword);
     }
     catch { }
+
     return Ok(new
     {
       message = "Agent invited successfully",
@@ -137,14 +149,17 @@ public class AgentsController : ControllerBase
   }
 
   [HttpPut("{id}")]
-  public async Task<IActionResult> UpdateAgent(Guid id, [FromBody] UpdateAgentDto dto)
+  public async Task<IActionResult> UpdateAgent(
+      Guid id, [FromBody] UpdateAgentDto dto)
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id &&
+        .FirstOrDefaultAsync(u =>
+            u.Id == id &&
             u.OrganizationId == _tenantService.OrganizationId);
 
-    if (agent == null) return NotFound(new { message = "Agent not found" });
+    if (agent == null)
+      return NotFound(new { message = "Agent not found" });
 
     if (!string.IsNullOrEmpty(dto.FullName))
       agent.FullName = dto.FullName;
@@ -172,17 +187,14 @@ public class AgentsController : ControllerBase
     if (agent == null)
       return NotFound(new { message = "Agent not found" });
 
-    // Toggle: if currently locked → unlock, else lock indefinitely
     if (agent.LockedUntil.HasValue &&
         agent.LockedUntil > DateTime.UtcNow)
     {
-      // Currently locked — unlock
       agent.LockedUntil = null;
       agent.FailedLoginAttempts = 0;
     }
     else
     {
-      // Lock indefinitely = deactivate
       agent.LockedUntil = DateTime.UtcNow.AddYears(100);
     }
 
@@ -201,8 +213,9 @@ public class AgentsController : ControllerBase
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id
-            && u.Role != UserRole.SuperAdmin);
+        .FirstOrDefaultAsync(u =>
+            u.Id == id &&
+            u.Role != UserRole.SuperAdmin);
 
     if (agent == null)
       return NotFound(new { message = "Agent not found" });
@@ -223,7 +236,6 @@ public class AgentsController : ControllerBase
     return role switch
     {
       "Administrator" => UserRole.CompanyAdmin,
-      "Supervisor" => UserRole.Agent,
       "Agent" => UserRole.Agent,
       _ => UserRole.Agent
     };

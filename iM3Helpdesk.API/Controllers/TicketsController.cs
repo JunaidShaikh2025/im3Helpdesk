@@ -403,6 +403,233 @@ public class TicketsController : ControllerBase
     return Ok(new { message = "Deleted" });
   }
 
+  // ── DETECT DUPLICATES ──────────────────
+  [HttpGet("{id}/duplicates")]
+  public async Task<IActionResult>
+      GetDuplicates(Guid id)
+  {
+    var orgId =
+        _tenantService.OrganizationId!.Value;
+
+    var current = await _context.Tickets
+        .AsNoTracking()
+        .FirstOrDefaultAsync(t => t.Id == id);
+
+    if (current == null)
+      return NotFound();
+
+    var cutoff =
+        DateTime.UtcNow.AddDays(-60);
+
+    var others = await _context.Tickets
+        .AsNoTracking()
+        .Where(t =>
+            t.OrganizationId == orgId &&
+            t.Id != id &&
+            t.Status != TicketStatus.Closed &&
+            t.CreatedAt >= cutoff)
+        .Select(t => new
+        {
+          t.Id,
+          t.Title,
+          t.TicketNumber,
+          t.Status,
+          t.CreatedAt,
+          t.CreatedByUserId
+        })
+        .Take(200)
+        .ToListAsync();
+
+    var currentWords = GetWords(current.Title);
+    var duplicates = new List<object>();
+
+    foreach (var t in others)
+    {
+      var words = GetWords(t.Title);
+      var sim = GetSimilarity(
+          currentWords, words);
+
+      var sameCustomer =
+          current.CreatedByUserId ==
+          t.CreatedByUserId;
+
+      var score = sim
+          + (sameCustomer ? 0.2 : 0);
+
+      if (score >= 0.5)
+      {
+        duplicates.Add(new
+        {
+          t.Id,
+          t.TicketNumber,
+          t.Title,
+          Status = t.Status.ToString(),
+          t.CreatedAt,
+          Similarity =
+                (int)(score * 100),
+          SameCustomer = sameCustomer
+        });
+      }
+    }
+
+    return Ok(duplicates
+        .OrderByDescending(d =>
+            ((dynamic)d).Similarity)
+        .Take(5)
+        .ToList());
+  }
+
+  // ── MERGE TICKETS ──────────────────────
+  [HttpPost("{id}/merge")]
+  public async Task<IActionResult> Merge(
+      Guid id,
+      [FromBody] MergeIntoDto dto)
+  {
+    var userId = GetUserId();
+    var orgId =
+        _tenantService.OrganizationId!.Value;
+
+    // Original ticket (keep this)
+    var original = await _context.Tickets
+        .Include(t => t.CreatedBy)
+        .FirstOrDefaultAsync(t =>
+            t.Id == id &&
+            t.OrganizationId == orgId);
+
+    if (original == null)
+      return NotFound(new
+      {
+        message = "Original ticket not found"
+      });
+
+    // Duplicate ticket (close this)
+    var duplicate = await _context.Tickets
+        .Include(t => t.CreatedBy)
+        .FirstOrDefaultAsync(t =>
+            t.Id == dto.DuplicateTicketId &&
+            t.OrganizationId == orgId &&
+            t.Id != id);
+
+    if (duplicate == null)
+      return NotFound(new
+      {
+        message = "Duplicate ticket not found"
+      });
+
+    // Close duplicate
+    duplicate.Status = TicketStatus.Closed;
+    duplicate.ResolvedAt = DateTime.UtcNow;
+    duplicate.UpdatedAt = DateTime.UtcNow;
+
+    // Add note to duplicate
+    _context.TicketComments.Add(
+        new TicketComment
+        {
+          TicketId = duplicate.Id,
+          UserId = userId,
+          Comment =
+                $"🔀 This ticket has been " +
+                $"merged into " +
+                $"<strong>#TN{original.TicketNumber}" +
+                $"</strong> — " +
+                $"<em>{original.Title}</em>. " +
+                $"Please follow up on the " +
+                $"original ticket.",
+          IsInternal = false,
+          Source = "system",
+          OrganizationId = orgId
+        });
+
+    // Add note to original
+    _context.TicketComments.Add(
+        new TicketComment
+        {
+          TicketId = original.Id,
+          UserId = userId,
+          Comment =
+                $"🔀 Ticket " +
+                $"<strong>#TN{duplicate.TicketNumber}" +
+                $"</strong> has been merged " +
+                $"into this ticket.",
+          IsInternal = true,
+          Source = "system",
+          OrganizationId = orgId
+        });
+
+    // Activity log
+    await _notificationService
+        .CreateActivityAsync(
+            userId, orgId,
+            "Merged",
+            $"#TN{duplicate.TicketNumber} " +
+            $"merged into " +
+            $"#TN{original.TicketNumber}",
+            "Ticket", original.Id);
+
+    await _context.SaveChangesAsync();
+
+    // Send email to customer of duplicate
+    if (duplicate.CreatedBy?.Email != null)
+    {
+      try
+      {
+        await _emailService.SendAsync(
+            duplicate.CreatedBy.Email,
+            $"Ticket #TN{duplicate.TicketNumber}" +
+            $" merged",
+            $"<p>Hi {duplicate.CreatedBy.FullName}," +
+            $"</p><p>Your ticket " +
+            $"<strong>#TN{duplicate.TicketNumber}" +
+            $"</strong> has been merged into " +
+            $"<strong>#TN{original.TicketNumber}" +
+            $"</strong>. " +
+            $"Please use that ticket number " +
+            $"for future reference.</p>");
+      }
+      catch { /* don't fail on email error */ }
+    }
+
+    return Ok(new
+    {
+      message =
+            $"#TN{duplicate.TicketNumber} " +
+            $"merged into " +
+            $"#TN{original.TicketNumber}",
+      originalId = original.Id,
+      duplicateId = duplicate.Id,
+      duplicateTicketNumber =
+            duplicate.TicketNumber
+    });
+  }
+
+  // ── Helpers ────────────────────────────
+  private static List<string> GetWords(
+      string text)
+  {
+    if (string.IsNullOrEmpty(text))
+      return new();
+    return text.ToLower()
+        .Split(new[]
+        {
+                ' ',',','.','!','?',
+                '-','_','/','(',')','['
+        }, StringSplitOptions
+            .RemoveEmptyEntries)
+        .Where(w => w.Length > 2)
+        .ToList();
+  }
+
+  private static double GetSimilarity(
+      List<string> w1, List<string> w2)
+  {
+    if (!w1.Any() || !w2.Any())
+      return 0;
+    var inter = w1.Intersect(w2).Count();
+    var union = w1.Union(w2).Count();
+    return union > 0
+        ? (double)inter / union : 0;
+  }
+
   [HttpGet("{id}/timeline")]
   public async Task<IActionResult> GetTimeline(Guid id)
   {
@@ -1103,6 +1330,12 @@ public class UpdatePriorityDto
 public class UpdateTypeDto
 {
   public string TicketType { get; set; } = string.Empty;
+}
+
+public class MergeIntoDto
+{
+  public Guid DuplicateTicketId { get; set; }
+  public string? Note { get; set; }
 }
 
 public class UpdateGroupDto
