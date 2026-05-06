@@ -1,3 +1,5 @@
+// ✅ FILE: src/app/layout/layout/layout.ts
+
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, inject
@@ -19,50 +21,53 @@ import { ChatService } from '../../services/chat.service';
   templateUrl: './layout.html',
   styleUrls: ['./layout.scss']
 })
-export class LayoutComponent
-  implements OnInit, OnDestroy {
+export class LayoutComponent implements OnInit, OnDestroy {
 
   private authService = inject(AuthService);
-  public router = inject(Router);
-  private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef);
-  private destroy$ = new Subject<void>();
+  public  router      = inject(Router);
+  private http        = inject(HttpClient);
+  private cdr         = inject(ChangeDetectorRef);
+  private destroy$    = new Subject<void>();
   private chatService = inject(ChatService);
 
   isSidebarCollapsed = localStorage.getItem('im3_sidebar_collapsed') === 'true';
-  chatUnreadCount = 0;
-  userName = '';
-  userEmail = '';
-  userRole = '';
-  userPhotoUrl = '';
-  orgName = '';
-  isSuperAdmin = false;
-  isCustomer = false;
-  sidebarOpen = false;
+  chatUnreadCount    = 0;
+  missedCallCount    = 0;
+  userName           = '';
+  userEmail          = '';
+  userRole           = '';
+  userPhotoUrl       = '';
+  orgName            = '';
+  isSuperAdmin       = false;
+  isCustomer         = false;
+  sidebarOpen        = false;
 
   notifications: any[] = [];
-  unreadCount = 0;
-  showNotifDropdown = false;
+  unreadCount          = 0;
+  showNotifDropdown    = false;
 
-  searchQuery = '';
+  searchQuery   = '';
   searchResults: any[] = [];
 
-  todoCount = 0;
+  todoCount     = 0;
   showTodoPanel = false;
-  todos: any[] = [];
-  kbUnreadCount = 0;
-  kbUnreadArticles: any[] = [];
-  showKbDropdown = false;
+  todos: any[]  = [];
 
+  kbUnreadCount    = 0;
+  kbUnreadArticles: any[] = [];
+  showKbDropdown   = false;
+
+  // ──────────────────────────────────────────────
+  // Todo
+  // ──────────────────────────────────────────────
   loadTodoCount() {
     this.http.get<any[]>(
       'https://localhost:7071/api/Todo',
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
-        this.todos = data;
-        this.todoCount =
-          data.filter(t => !t.isCompleted).length;
+        this.todos     = data;
+        this.todoCount = data.filter(t => !t.isCompleted).length;
         this.cdr.detectChanges();
       },
       error: () => {}
@@ -71,33 +76,9 @@ export class LayoutComponent
 
   toggleSidebarCollapse() {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
-    localStorage.setItem('im3_sidebar_collapsed', String(this.isSidebarCollapsed));
+    localStorage.setItem('im3_sidebar_collapsed',
+      String(this.isSidebarCollapsed));
   }
-
-  loadKbUnread() {
-  this.http.get<any>(
-    'https://localhost:7071/api/KnowledgeBase/unread-count',
-    { headers: this.getHeaders() }
-  ).subscribe({
-    next: (data) => {
-      this.kbUnreadCount = data.count || 0;
-      this.kbUnreadArticles = data.articles || [];
-      this.cdr.detectChanges();
-    },
-    error: () => {}
-  });
-}
-
-toggleKbDropdown() {
-  this.showKbDropdown = !this.showKbDropdown;
-  this.cdr.detectChanges();
-}
-
-goToKbArticle(id: string) {
-  this.showKbDropdown = false;
-  this.router.navigate(['/kb', id]);
-  this.cdr.detectChanges();
-}
 
   toggleTodoPanel() {
     this.showTodoPanel = !this.showTodoPanel;
@@ -109,38 +90,93 @@ goToKbArticle(id: string) {
     this.loadTodoCount();
   }
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
+  // ──────────────────────────────────────────────
+  // Knowledge Base
+  // ──────────────────────────────────────────────
+  loadKbUnread() {
+    this.http.get<any>(
+      'https://localhost:7071/api/KnowledgeBase/unread-count',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.kbUnreadCount    = data.count    || 0;
+        this.kbUnreadArticles = data.articles || [];
+        this.cdr.detectChanges();
+      },
+      error: () => {}
     });
   }
 
+  toggleKbDropdown() {
+    this.showKbDropdown = !this.showKbDropdown;
+    this.cdr.detectChanges();
+  }
+
+  goToKbArticle(id: string) {
+    this.showKbDropdown = false;
+    this.router.navigate(['/kb', id]);
+    this.cdr.detectChanges();
+  }
+
+  // ──────────────────────────────────────────────
+  // ✅ Missed Call Count — FIX: response mein
+  //    count ya missedCount dono handle karo
+  // ──────────────────────────────────────────────
+  loadMissedCallCount() {
+    this.http.get<any>(
+      'https://localhost:7071/api/CallLog/unread-missed',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        // ✅ FIX: API { count } ya { missedCount } dono support
+         this.missedCallCount = data.count || 0; 
+        this.missedCallCount =
+          data.count       ??
+          data.missedCount ??
+          0;
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // Auth header helper
+  // ──────────────────────────────────────────────
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // Lifecycle
+  // ──────────────────────────────────────────────
   ngOnInit() {
     const token = this.authService.getToken();
     if (!token) return;
 
+    // Parse JWT
     try {
-      const payload = JSON.parse(
-        atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split('.')[1]));
 
       this.userName =
-      payload['fullName'] ||
-      payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-      payload.email?.split('@')[0] ||
-      'User';
+        payload['fullName'] ||
+        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+        payload.email?.split('@')[0] ||
+        'User';
 
       this.userEmail = payload.email || '';
 
-      this.userRole = payload[
-        'http://schemas.microsoft.com/ws/2008/06/' +
-        'identity/claims/role'
-      ] || payload.role || '';
+      this.userRole =
+        payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+        payload.role || '';
 
       this.isSuperAdmin = this.userRole === 'SuperAdmin';
-      this.isCustomer = this.userRole === 'Customer';
+      this.isCustomer   = this.userRole === 'Customer';
     } catch {}
 
+    // Saved photo
     const savedEmail = localStorage.getItem('im3_email');
     if (savedEmail && savedEmail === this.userEmail) {
       const saved = localStorage.getItem('im3_photo');
@@ -154,7 +190,10 @@ goToKbArticle(id: string) {
       this.userPhotoUrl = '';
     }
 
+    // ── SignalR connect ──
     this.chatService.connect();
+
+    // ✅ Chat unread badge
     this.chatService.unreadCount$
       .pipe(takeUntil(this.destroy$))
       .subscribe(count => {
@@ -162,18 +201,60 @@ goToKbArticle(id: string) {
         this.cdr.detectChanges();
       });
 
+    // ──────────────────────────────────────────
+    // ✅ FIX: Missed call badge — SignalR events
+    //
+    // SIRF callRejected$ aur callEnded$ pe
+    // loadMissedCallCount() call karo.
+    //
+    // incomingCall$ pe NAHI karna — call tab
+    // abhi miss hua nahi hota.
+    // ──────────────────────────────────────────
+
+    // Call reject hua → missed count update karo
+    this.chatService.callRejected$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(d => {
+        if (!d) return;
+        setTimeout(() => this.loadMissedCallCount(), 800);
+      });
+
+    // Call end hua (unanswered) → missed count update karo
+    this.chatService.callEnded$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(d => {
+        if (!d) return;
+        setTimeout(() => this.loadMissedCallCount(), 800);
+      });
+
+// layout.ts line ~107
+    this.chatService.incomingCall$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(d => {
+        if (!d) return;
+        setTimeout(() => this.loadMissedCallCount(), 2000);  // ← 2 second wait
+      });
+
+    // ── Initial data load ──
     this.loadProfile();
     this.loadNotifications();
     this.startNotifPolling();
     this.loadTodoCount();
+    this.loadKbUnread();
+    this.loadMissedCallCount(); // ✅ app open hote hi load karo
+
+    // ── Periodic refresh (60s) ──
     interval(60000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.loadTodoCount());
-    this.loadKbUnread();
-    interval(60000)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(() => this.loadKbUnread());
 
+    interval(60000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadKbUnread());
+
+    interval(60000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadMissedCallCount());
   }
 
   ngOnDestroy() {
@@ -182,6 +263,9 @@ goToKbArticle(id: string) {
     this.chatService.disconnect();
   }
 
+  // ──────────────────────────────────────────────
+  // Profile
+  // ──────────────────────────────────────────────
   loadProfile() {
     this.http.get<any>(
       'https://localhost:7071/api/Profile',
@@ -189,30 +273,31 @@ goToKbArticle(id: string) {
     ).subscribe({
       next: (data) => {
         if (data.photoUrl) {
-          this.userPhotoUrl =
-            'https://localhost:7071' + data.photoUrl;
+          this.userPhotoUrl = 'https://localhost:7071' + data.photoUrl;
           localStorage.setItem('im3_photo', data.photoUrl);
         }
-        if (data.fullName)
-          this.userName = data.fullName;
+        if (data.fullName)  this.userName  = data.fullName;
         if (data.email) {
           this.userEmail = data.email;
-          localStorage.setItem('im3_email', data.email); // ✅ email save
+          localStorage.setItem('im3_email', data.email);
         }
         this.cdr.detectChanges();
       }
     });
   }
 
+  // ──────────────────────────────────────────────
+  // Notifications
+  // ──────────────────────────────────────────────
   loadNotifications() {
     this.http.get<any[]>(
       'https://localhost:7071/api/Notifications',
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
+
         this.notifications = data;
-        this.unreadCount = data.filter(
-          n => !n.isRead).length;
+        this.unreadCount   = data.filter(n => !n.isRead).length;
         this.cdr.detectChanges();
       },
       error: () => {}
@@ -240,8 +325,7 @@ goToKbArticle(id: string) {
 
   toggleNotifDropdown() {
     this.showNotifDropdown = !this.showNotifDropdown;
-    if (this.showNotifDropdown)
-      this.loadNotifications();
+    if (this.showNotifDropdown) this.loadNotifications();
     this.cdr.detectChanges();
   }
 
@@ -290,6 +374,9 @@ goToKbArticle(id: string) {
     });
   }
 
+  // ──────────────────────────────────────────────
+  // Search
+  // ──────────────────────────────────────────────
   onSearch() {
     if (!this.searchQuery.trim()) {
       this.searchResults = [];
@@ -321,7 +408,7 @@ goToKbArticle(id: string) {
   }
 
   goToResult(r: any) {
-    this.searchQuery = '';
+    this.searchQuery   = '';
     this.searchResults = [];
 
     if (r.type === 'ticket')
@@ -334,6 +421,9 @@ goToKbArticle(id: string) {
     this.cdr.detectChanges();
   }
 
+  // ──────────────────────────────────────────────
+  // Helpers
+  // ──────────────────────────────────────────────
   getAvatarColor(name: string): string {
     const colors = [
       '#ef4444', '#f97316', '#eab308',

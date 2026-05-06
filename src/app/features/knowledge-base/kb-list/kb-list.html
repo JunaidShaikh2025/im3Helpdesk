@@ -1,114 +1,282 @@
 <app-layout>
-  <div class="kb-page">
+  <div class="feed-wrap">
 
-    <div class="page-top">
-      <div>
-        <h1>Knowledge Base</h1>
-        <p>Help articles for your team and customers</p>
+    <!-- ════════════════════════════════
+         LEFT SIDEBAR — Users
+    ════════════════════════════════ -->
+    <aside class="users-sidebar">
+
+      <div class="sidebar-title">👥 Posts By</div>
+
+      <!-- All Posts -->
+      <div class="user-item"
+        [class.active]="!selectedUserId && !isMyPostsView"
+        (click)="selectAllPosts()">
+        <div class="user-av all-av">🌐</div>
+        <div class="user-info">
+          <div class="user-name">All Posts</div>
+          <div class="user-count">{{ usersWithPosts.length }} contributors</div>
+        </div>
       </div>
-      <button class="add-btn"
-        *ngIf="canManage()"
-        (click)="router.navigate(['/kb/create'])">
-        + New Article
-      </button>
-    </div>
 
-    <!-- Filters -->
-    <div class="filter-row">
-      <form [formGroup]="filterForm">
-        <div class="filter-inputs">
-          <div class="search-wrap">
-            <span>🔍</span>
-            <input class="search-input"
-              formControlName="search"
-              placeholder="Search articles..."/>
+      <!-- My Posts -->
+      <div class="user-item my-posts-item"
+        [class.active]="isMyPostsView"
+        (click)="selectMyPosts()">
+        <div class="user-av me-av">📝</div>
+        <div class="user-info">
+          <div class="user-name">My Posts</div>
+          <div class="user-count">Your drafts & published</div>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- User List -->
+      <div class="users-scroll">
+        <div class="user-item"
+          *ngFor="let u of usersWithPosts"
+          [class.active]="selectedUserId === u.userId"
+          (click)="selectUser(u)">
+          <div class="user-av"
+            [style.background]="getAvatarColor(u.userName)">
+            {{ getInitials(u.userName) }}
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ u.userName }}</div>
+            <div class="user-count">{{ u.postCount }} post{{ u.postCount !== 1 ? 's' : '' }}</div>
+          </div>
+          <div class="user-badge">{{ u.postCount }}</div>
+        </div>
+      </div>
+
+      <!-- New Post Button -->
+      <div class="sidebar-footer">
+        <button class="new-post-btn"
+          (click)="router.navigate(['/kb/create'])">
+          ✏ New Post
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ════════════════════════════════
+         MAIN FEED
+    ════════════════════════════════ -->
+    <div class="feed-main">
+
+      <!-- Feed Header -->
+      <div class="feed-top">
+        <div class="feed-top-left">
+          <h2 class="feed-title">
+            <span *ngIf="!selectedUserId && !isMyPostsView">🌐 All Posts</span>
+            <span *ngIf="isMyPostsView">📝 My Posts</span>
+            <span *ngIf="selectedUserId">
+              <span class="selected-av"
+                [style.background]="getAvatarColor(selectedUserName)">
+                {{ getInitials(selectedUserName) }}
+              </span>
+              {{ selectedUserName }}'s Posts
+            </span>
+          </h2>
+          <span class="post-count-chip">{{ articles.length }} posts</span>
+        </div>
+
+        <!-- Search & Filter (only for All Posts) -->
+        <div class="filter-row"
+          *ngIf="!selectedUserId && !isMyPostsView">
+          <form [formGroup]="filterForm" class="filter-form">
+            <div class="search-box">
+              <span>🔍</span>
+              <input class="search-input"
+                formControlName="search"
+                placeholder="Search..."/>
+            </div>
+            <select class="cat-select" formControlName="category">
+              <option value="">All Categories</option>
+              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+            </select>
+          </form>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="loading-wrap">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!loading && articles.length === 0" class="empty-state">
+        <div class="empty-icon">
+          {{ isMyPostsView ? '📝' : '📭' }}
+        </div>
+        <h3>
+          {{ isMyPostsView
+              ? 'You have no posts yet'
+              : (selectedUserId ? selectedUserName + ' has no posts yet' : 'No posts found') }}
+        </h3>
+        <button class="new-post-btn" *ngIf="isMyPostsView"
+          (click)="router.navigate(['/kb/create'])">
+          Create Your First Post
+        </button>
+      </div>
+
+      <!-- ── Posts Feed ── -->
+      <div class="feed-list" *ngIf="!loading && articles.length > 0">
+        <div class="post-card" *ngFor="let a of articles">
+
+          <!-- Post Header -->
+          <div class="post-header">
+            <div class="post-author" (click)="selectUser({userId: a.createdByUserId, userName: a.createdBy})">
+              <div class="author-av"
+                [style.background]="getAvatarColor(a.createdBy)">
+                {{ getInitials(a.createdBy) }}
+              </div>
+              <div class="author-info">
+                <div class="author-name">{{ a.createdBy }}</div>
+                <div class="post-meta">
+                  <span class="cat-chip">{{ a.category }}</span>
+                  <span class="post-time">
+                    {{ a.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+                  </span>
+                  <span class="draft-chip" *ngIf="!a.isPublished">Draft</span>
+                  <span class="edited-chip" *ngIf="a.updatedAt">Edited</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Owner Actions -->
+            <div class="post-owner-actions" *ngIf="a.isOwner">
+              <button class="action-icon-btn"
+                title="Edit"
+                (click)="$event.stopPropagation(); router.navigate(['/kb/edit', a.id])">
+                ✏
+              </button>
+              <button class="action-icon-btn delete"
+                title="Delete"
+                (click)="deleteArticle(a.id, $event)">
+                🗑
+              </button>
+            </div>
           </div>
 
-          <select class="cat-select"
-            formControlName="category">
-            <option value="">All Categories</option>
-            <option *ngFor="let c of categories"
-              [value]="c">{{ c }}</option>
-          </select>
+          <!-- Post Body -->
+          <div class="post-body" (click)="goToDetail(a.id)">
+            <h3 class="post-title">{{ a.title }}</h3>
+
+            <div class="post-tags" *ngIf="a.tags">
+              <span class="tag-pill"
+                *ngFor="let tag of a.tags?.split(',')?.slice(0,4)">
+                #{{ tag.trim() }}
+              </span>
+            </div>
+
+            <p class="post-content">{{ a.contentPreview }}</p>
+            <span class="read-more" *ngIf="a.content?.length > 200">Read more →</span>
+
+            <!-- Media -->
+            <div class="post-media"
+              *ngIf="a.mediaUrl && a.mediaType !== 'none'">
+              <img *ngIf="a.mediaType === 'image'"
+                [src]="'https://localhost:7071' + a.mediaUrl"
+                alt="Post image" class="media-image"
+                (error)="$event.target.style.display='none'"/>
+              <video *ngIf="a.mediaType === 'video'"
+                class="media-video" controls
+                (click)="$event.stopPropagation()">
+                <source [src]="'https://localhost:7071' + a.mediaUrl"/>
+              </video>
+            </div>
+          </div>
+
+          <!-- Reaction Bar -->
+          <div class="reaction-bar">
+            <div class="reaction-counts">
+              <span *ngIf="a.likeCount > 0">👍 {{ a.likeCount }}</span>
+              <span *ngIf="a.dislikeCount > 0">👎 {{ a.dislikeCount }}</span>
+            </div>
+            <div class="post-stats">
+              <span>👁 {{ a.viewCount }}</span>
+              <span class="clickable"
+                (click)="toggleCommentBox(a.id, $event); loadCommentsForPost(a)">
+                💬 {{ a.commentCount }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-row">
+            <button class="react-btn"
+              [class.active-like]="a.myReaction === 'like'"
+              (click)="onReact(a, 'like', $event)">
+              👍 Like<span *ngIf="a.likeCount > 0">{{ a.likeCount }}</span>
+            </button>
+            <button class="react-btn"
+              [class.active-dislike]="a.myReaction === 'dislike'"
+              (click)="onReact(a, 'dislike', $event)">
+              👎 Dislike<span *ngIf="a.dislikeCount > 0">{{ a.dislikeCount }}</span>
+            </button>
+            <button class="react-btn"
+              [class.active-comment]="openCommentBoxId === a.id"
+              (click)="toggleCommentBox(a.id, $event); loadCommentsForPost(a)">
+              💬 Comment
+            </button>
+            <button class="react-btn"
+              (click)="goToDetail(a.id)">
+              🔗 View Full
+            </button>
+          </div>
+
+          <!-- Comments Section -->
+          <div class="comments-section"
+            *ngIf="openCommentBoxId === a.id">
+
+            <div class="comment-list" *ngIf="a.commentList?.length > 0">
+              <div class="comment-item" *ngFor="let c of a.commentList">
+                <div class="comment-av"
+                  [style.background]="getAvatarColor(c.userName)">
+                  {{ getInitials(c.userName) }}
+                </div>
+                <div class="comment-body">
+                  <div class="comment-header">
+                    <span class="comment-author">{{ c.userName }}</span>
+                    <span class="comment-time">
+                      {{ c.createdAt | date:'dd MMM, hh:mm a' }}
+                    </span>
+                    <button class="del-comment-btn"
+                      *ngIf="c.isOwner"
+                      (click)="deleteComment(a, c.id, $event)">✕</button>
+                  </div>
+                  <p class="comment-text">{{ c.text }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="no-comments"
+              *ngIf="!a.commentList || a.commentList?.length === 0">
+              No comments yet. Be the first!
+            </div>
+
+            <div class="comment-input-row" (click)="$event.stopPropagation()">
+              <input class="comment-input"
+                [(ngModel)]="commentTexts[a.id]"
+                placeholder="Write a comment..."
+                (keyup.enter)="submitComment(a, $event)"/>
+              <button class="send-comment-btn"
+                (click)="submitComment(a, $event)"
+                [disabled]="!commentTexts[a.id]?.trim()">
+                ➤
+              </button>
+            </div>
+
+          </div>
+
         </div>
-      </form>
-    </div>
-
-    <!-- Loading -->
-    <div *ngIf="loading" class="loading-center">
-      <div class="spinner"></div>
-    </div>
-
-    <!-- Empty -->
-    <div *ngIf="!loading && articles.length === 0"
-      class="empty-state">
-      <div class="empty-icon">📚</div>
-      <h3>No articles found</h3>
-      <button class="add-btn"
-        *ngIf="canManage()"
-        (click)="router.navigate(['/kb/create'])">
-        Create First Article
-      </button>
-    </div>
-
-    <!-- Articles Grid -->
-    <div class="articles-grid"
-      *ngIf="!loading && articles.length > 0">
-
-      <div class="article-card"
-        *ngFor="let a of articles"
-        (click)="router.navigate(['/kb', a.id])">
-
-        <div class="card-top">
-          <span class="cat-badge">
-            {{ a.category }}
-          </span>
-          <span class="draft-badge"
-            *ngIf="!a.isPublished">
-            Draft
-          </span>
-        </div>
-
-        <h3 class="card-title">{{ a.title }}</h3>
-
-        <p class="card-preview">
-          {{ a.contentPreview }}
-        </p>
-
-        <div class="card-tags"
-          *ngIf="a.tags">
-          <span class="tag-pill"
-            *ngFor="let tag of
-              a.tags?.split(',')?.slice(0,3)">
-            {{ tag.trim() }}
-          </span>
-        </div>
-
-        <div class="card-footer">
-          <span class="views-count">
-            👁 {{ a.viewCount || 0 }} views
-          </span>
-          <span class="card-date">
-            {{ a.createdAt | date:'dd MMM yyyy' }}
-          </span>
-        </div>
-
-        <div class="card-actions"
-          *ngIf="canManage()"
-          (click)="$event.stopPropagation()">
-          <button class="edit-btn"
-            (click)="router.navigate(
-              ['/kb/edit', a.id])">
-            Edit
-          </button>
-          <button class="del-btn"
-            (click)="deleteArticle(a.id)">
-            Delete
-          </button>
-        </div>
-
+        <!-- end post-card -->
       </div>
+
     </div>
+    <!-- end feed-main -->
 
   </div>
 </app-layout>

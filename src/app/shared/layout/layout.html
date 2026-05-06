@@ -64,10 +64,28 @@
           routerLinkActive="active">
           <span class="nav-icon">💬</span>
           <span>Chat</span>
+
+          <!-- Sirf chat unread -->
           <span class="badge"
-            *ngIf="chatUnreadCount > 0">
-            {{ chatUnreadCount }}
+            *ngIf="chatUnreadCount > 0 && missedCallCount === 0">
+            {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
           </span>
+
+          <!-- Sirf missed calls — red badge with 📞 -->
+          <span class="badge badge-call"
+            *ngIf="missedCallCount > 0 && chatUnreadCount === 0">
+            {{ missedCallCount > 99 ? '99+' : missedCallCount }}
+          </span>
+
+          <!-- Dono hain — alag alag dikhao -->
+          <ng-container *ngIf="chatUnreadCount > 0 && missedCallCount > 0">
+            <span class="badge">
+              {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
+            </span>
+            <span class="badge badge-call">
+              {{ missedCallCount > 99 ? '99+' : missedCallCount }}
+            </span>
+          </ng-container>
         </a>
 
         <a class="nav-item"
@@ -103,7 +121,7 @@
           routerLink="/agents"
           routerLinkActive="active">
           <span class="nav-icon">👥</span>
-          <span>Agents</span>
+          <span>Team</span>
         </a>
 
         <a class="nav-item"

@@ -113,6 +113,16 @@
   text-align: center;
 }
 
+/* Missed call badge — orange */
+.badge-call {
+  background: #f97316 !important;
+}
+
+/* Combined chat + missed calls badge — red */
+.badge-combined {
+  background: #ef4444 !important;
+}
+
 /* ===== SIDEBAR USER ===== */
 .sidebar-user {
   display: flex;

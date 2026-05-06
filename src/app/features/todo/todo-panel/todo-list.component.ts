@@ -12,6 +12,15 @@ import { AuthService }
 import { LayoutComponent }
   from '../../../shared/layout/layout';
 
+export type Priority = 'high' | 'medium' | 'low';
+
+export interface SubTask {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  createdAt: string;
+}
+
 @Component({
   selector: 'app-todo-list',
   standalone: true,
@@ -35,25 +44,35 @@ export class TodoListComponent implements OnInit {
   filteredTodos: any[] = [];
   loading = true;
   newTitle = '';
-  filterStatus: 'all' | 'pending' | 'done' = 'all';
+  newPriority: Priority = 'medium';
+
+  // ⭐ Default is PENDING — not all
+  filterStatus: 'all' | 'pending' | 'done' = 'pending';
+  filterPriority: 'all' | 'high' | 'medium' | 'low' = 'all';
+
   searchQuery = '';
   sortField: 'createdAt' | 'title' = 'createdAt';
   sortDir: 'asc' | 'desc' = 'desc';
 
+  // Drag & Drop
+  dragIndex: number | null = null;
+  dragOverIndex: number | null = null;
+
+  // Subtask state
+  expandedTodoId: string | null = null;
+  newSubTaskTitles: Record<string, string> = {};
+
   get pendingCount() {
-    return this.todos.filter(
-      t => !t.isCompleted).length;
+    return this.todos.filter(t => !t.isCompleted).length;
   }
 
   get doneCount() {
-    return this.todos.filter(
-      t => t.isCompleted).length;
+    return this.todos.filter(t => t.isCompleted).length;
   }
 
   private getHeaders(): HttpHeaders {
     return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
+      'Authorization': `Bearer ${this.authService.getToken()}`
     });
   }
 
@@ -68,7 +87,13 @@ export class TodoListComponent implements OnInit {
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
-        this.todos = data;
+        const savedPriorities = this.loadPriorityMap();
+        const savedSubtasks = this.loadSubtaskMap();
+        this.todos = data.map(t => ({
+          ...t,
+          priority: savedPriorities[t.id] ?? 'medium',
+          subTasks: savedSubtasks[t.id] ?? []
+        }));
         this.applyFilter();
         this.loading = false;
         this.cdr.detectChanges();
@@ -83,14 +108,16 @@ export class TodoListComponent implements OnInit {
   applyFilter() {
     let result = [...this.todos];
 
-    // Status filter
     if (this.filterStatus === 'pending')
-      result = result.filter(
-        t => !t.isCompleted);
+      result = result.filter(t => !t.isCompleted);
     else if (this.filterStatus === 'done')
       result = result.filter(t => t.isCompleted);
 
-    // Search
+    // Priority filter
+    if (this.filterPriority !== 'all')
+      result = result.filter(
+        t => (t.priority || 'medium') === this.filterPriority);
+
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       result = result.filter(t =>
@@ -99,7 +126,6 @@ export class TodoListComponent implements OnInit {
       );
     }
 
-    // Sort
     result.sort((a, b) => {
       const va = a[this.sortField];
       const vb = b[this.sortField];
@@ -118,10 +144,14 @@ export class TodoListComponent implements OnInit {
     this.applyFilter();
   }
 
+  setPriorityFilter(p: 'all' | 'high' | 'medium' | 'low') {
+    this.filterPriority = p;
+    this.applyFilter();
+  }
+
   toggleSort(field: 'createdAt' | 'title') {
     if (this.sortField === field)
-      this.sortDir =
-        this.sortDir === 'asc' ? 'desc' : 'asc';
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
     else {
       this.sortField = field;
       this.sortDir = 'asc';
@@ -138,8 +168,12 @@ export class TodoListComponent implements OnInit {
       { headers: this.getHeaders() }
     ).subscribe({
       next: (todo) => {
+        todo.priority = this.newPriority;
+        todo.subTasks = [];
         this.todos.unshift(todo);
+        this.savePriorityMap();
         this.newTitle = '';
+        this.newPriority = 'medium';
         this.applyFilter();
         this.cdr.detectChanges();
       },
@@ -153,8 +187,7 @@ export class TodoListComponent implements OnInit {
 
   toggleTodo(todo: any) {
     this.http.put<any>(
-      `https://localhost:7071/api/Todo` +
-      `/${todo.id}/toggle`,
+      `https://localhost:7071/api/Todo/${todo.id}/toggle`,
       {},
       { headers: this.getHeaders() }
     ).subscribe({
@@ -177,8 +210,11 @@ export class TodoListComponent implements OnInit {
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
-        this.todos =
-          this.todos.filter(t => t.id !== id);
+        this.todos = this.todos.filter(t => t.id !== id);
+        if (this.expandedTodoId === id)
+          this.expandedTodoId = null;
+        this.savePriorityMap();
+        this.saveSubtaskMap();
         this.applyFilter();
         this.cdr.detectChanges();
         Promise.resolve().then(() =>
@@ -189,8 +225,7 @@ export class TodoListComponent implements OnInit {
   }
 
   clearAllDone() {
-    const done =
-      this.todos.filter(t => t.isCompleted);
+    const done = this.todos.filter(t => t.isCompleted);
     if (!done.length) return;
 
     Promise.all(
@@ -201,8 +236,9 @@ export class TodoListComponent implements OnInit {
         ).toPromise()
       )
     ).then(() => {
-      this.todos =
-        this.todos.filter(t => !t.isCompleted);
+      this.todos = this.todos.filter(t => !t.isCompleted);
+      this.savePriorityMap();
+      this.saveSubtaskMap();
       this.applyFilter();
       this.cdr.detectChanges();
       Promise.resolve().then(() =>
@@ -212,16 +248,163 @@ export class TodoListComponent implements OnInit {
     });
   }
 
-  goToTicket(todo: any) {
+  setPriority(todo: any, priority: Priority, event: Event) {
+    event.stopPropagation();
+    todo.priority = priority;
+    this.savePriorityMap();
+    this.cdr.detectChanges();
+  }
+
+  goToTicket(todo: any, event: Event) {
+    event.stopPropagation();
     if (todo.ticketId)
-      this.router.navigate(
-        ['/tickets', todo.ticketId]);
+      this.router.navigate(['/tickets', todo.ticketId]);
+  }
+
+  // ─── Sub-tasks ───────────────────────────────
+
+  toggleExpand(todoId: string) {
+    this.expandedTodoId =
+      this.expandedTodoId === todoId ? null : todoId;
+    this.cdr.detectChanges();
+  }
+
+  isExpanded(todoId: string): boolean {
+    return this.expandedTodoId === todoId;
+  }
+
+  addSubTask(todo: any) {
+    const title =
+      (this.newSubTaskTitles[todo.id] || '').trim();
+    if (!title) return;
+
+    const sub: SubTask = {
+      id: crypto.randomUUID(),
+      title,
+      isCompleted: false,
+      createdAt: new Date().toISOString()
+    };
+
+    if (!todo.subTasks) todo.subTasks = [];
+    todo.subTasks.push(sub);
+    this.newSubTaskTitles[todo.id] = '';
+    this.saveSubtaskMap();
+    this.cdr.detectChanges();
+  }
+
+  toggleSubTask(todo: any, sub: SubTask) {
+    sub.isCompleted = !sub.isCompleted;
+    this.saveSubtaskMap();
+    this.cdr.detectChanges();
+  }
+
+  deleteSubTask(
+    todo: any, subId: string, event: Event) {
+    event.stopPropagation();
+    todo.subTasks = todo.subTasks.filter(
+      (s: SubTask) => s.id !== subId);
+    this.saveSubtaskMap();
+    this.cdr.detectChanges();
+  }
+
+  getSubTaskProgress(
+    todo: any): { done: number; total: number } {
+    const subs: SubTask[] = todo.subTasks ?? [];
+    return {
+      done: subs.filter(s => s.isCompleted).length,
+      total: subs.length
+    };
+  }
+
+  // ─── Drag & Drop ─────────────────────────────
+
+  onDragStart(event: DragEvent, index: number) {
+    this.dragIndex = index;
+    if (event.dataTransfer)
+      event.dataTransfer.effectAllowed = 'move';
+  }
+
+  onDragOver(event: DragEvent, index: number) {
+    event.preventDefault();
+    if (event.dataTransfer)
+      event.dataTransfer.dropEffect = 'move';
+    this.dragOverIndex = index;
+  }
+
+  onDragLeave() {
+    this.dragOverIndex = null;
+  }
+
+  onDrop(event: DragEvent, dropIndex: number) {
+    event.preventDefault();
+    if (this.dragIndex === null ||
+      this.dragIndex === dropIndex) {
+      this.dragIndex = null;
+      this.dragOverIndex = null;
+      return;
+    }
+
+    const dragged = this.filteredTodos[this.dragIndex];
+    this.filteredTodos.splice(this.dragIndex, 1);
+    this.filteredTodos.splice(dropIndex, 0, dragged);
+
+    const filtered = new Set(
+      this.filteredTodos.map(t => t.id));
+    const rest = this.todos.filter(
+      t => !filtered.has(t.id));
+    this.todos = [...this.filteredTodos, ...rest];
+
+    this.dragIndex = null;
+    this.dragOverIndex = null;
+    this.cdr.detectChanges();
+  }
+
+  onDragEnd() {
+    this.dragIndex = null;
+    this.dragOverIndex = null;
+  }
+
+  // ─── Persistence ─────────────────────────────
+
+  private savePriorityMap() {
+    const map: Record<string, Priority> = {};
+    this.todos.forEach(t => {
+      if (t.priority) map[t.id] = t.priority;
+    });
+    try {
+      localStorage.setItem(
+        'todo_priorities', JSON.stringify(map));
+    } catch (_) {}
+  }
+
+  private loadPriorityMap(): Record<string, Priority> {
+    try {
+      const raw = localStorage.getItem('todo_priorities');
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) { return {}; }
+  }
+
+  private saveSubtaskMap() {
+    const map: Record<string, SubTask[]> = {};
+    this.todos.forEach(t => {
+      if (t.subTasks?.length) map[t.id] = t.subTasks;
+    });
+    try {
+      localStorage.setItem(
+        'todo_subtasks', JSON.stringify(map));
+    } catch (_) {}
+  }
+
+  private loadSubtaskMap(): Record<string, SubTask[]> {
+    try {
+      const raw = localStorage.getItem('todo_subtasks');
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) { return {}; }
   }
 
   getTimeAgo(dateStr: string): string {
     if (!dateStr) return '';
-    const diff =
-      Date.now() - new Date(dateStr).getTime();
+    const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'just now';
     if (mins < 60) return `${mins}m ago`;

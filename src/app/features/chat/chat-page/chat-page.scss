@@ -1442,3 +1442,37 @@
     transform: none;
   }
 }
+
+/* ── Missed Call Tab Badge ── */
+.cs-main-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.cs-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 9px;
+  line-height: 1;
+}
+
+.cs-main-tab.active .cs-tab-badge {
+  background: rgba(255,255,255,0.35);
+}
+
+/* ── Layout sidebar missed call badge ── */
+.badge-call {
+  background: #f97316 !important;
+  font-size: 10px;
+}

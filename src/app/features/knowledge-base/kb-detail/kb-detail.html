@@ -1,144 +1,226 @@
 <app-layout>
-  <div class="kb-detail-page">
+  <div class="detail-page">
 
     <!-- Loading -->
-    <div *ngIf="loading" class="loading-center">
+    <div *ngIf="loading" class="loading-wrap">
       <div class="spinner"></div>
     </div>
 
-    <!-- Article Content -->
-    <div *ngIf="!loading && article"
-      class="article-wrap">
+    <!-- Full Post -->
+    <div *ngIf="!loading && article" class="post-full">
 
-      <!-- Back Button -->
-      <div class="breadcrumb">
-        <button class="back-btn"
-          (click)="router.navigate([getBackRoute()])">
-          ← Knowledge Base
-        </button>
-      </div>
+      <!-- Back -->
+      <button class="back-btn"
+        (click)="router.navigate([getBackRoute()])">
+        ← Knowledge Base
+      </button>
 
-      <!-- Article Card -->
-      <div class="article-card">
+      <!-- Post Card -->
+      <div class="full-card">
 
-        <!-- Header -->
-        <div class="article-header">
-          <div class="article-badges">
-            <span class="cat-badge">
-              {{ article.category }}
-            </span>
-            <span class="draft-badge"
-              *ngIf="!article.isPublished">
-              Draft
-            </span>
+        <!-- ── Header ── -->
+        <div class="post-header">
+          <div class="post-author">
+            <div class="author-av"
+              [style.background]="getAvatarColor(article.createdBy)">
+              {{ getInitials(article.createdBy) }}
+            </div>
+            <div class="author-info">
+              <div class="author-name">{{ article.createdBy }}</div>
+              <div class="post-meta">
+                <span class="cat-chip">{{ article.category }}</span>
+                <span class="post-time">
+                  {{ article.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+                </span>
+                <span class="draft-chip" *ngIf="!article.isPublished">Draft</span>
+                <span class="edited-chip" *ngIf="article.updatedAt">Edited</span>
+              </div>
+            </div>
           </div>
 
-          <!-- ✅ Eye Icon + Viewers -->
-          <div class="viewers-section">
-            <button class="eye-btn"
-              (click)="toggleViewers()"
+          <!-- Viewers button -->
+          <div class="viewers-wrap">
+            <button class="viewers-btn"
               [class.active]="showViewers"
-              title="See who viewed">
-              <span class="eye-icon">👁</span>
-              <span class="view-num">
-                {{ viewCount }}
-              </span>
+              (click)="toggleViewers()"
+              title="Who viewed this post">
+              👁 {{ viewCount }}
             </button>
 
-            <!-- Viewers Dropdown -->
-            <div class="viewers-dropdown"
-              *ngIf="showViewers">
-              <div class="vd-header">
-                <span>Who viewed this article</span>
-                <button (click)="showViewers = false">
-                  ✕
-                </button>
+            <!-- Viewers dropdown -->
+            <div class="viewers-dropdown" *ngIf="showViewers">
+              <div class="vd-head">
+                <span>Who viewed this post</span>
+                <button (click)="showViewers = false">✕</button>
               </div>
-
-              <div *ngIf="articleViewers.length === 0"
-                class="vd-empty">
+              <div class="vd-empty" *ngIf="articleViewers.length === 0">
                 No views recorded yet
               </div>
-
-              <div class="viewer-item"
-                *ngFor="let v of articleViewers">
-                <div class="viewer-av"
-                  [style.background]="
-                    getAvatarColor(v.user)">
-                  {{ v.user?.charAt(0)
-                    ?.toUpperCase() }}
+              <div class="viewer-row" *ngFor="let v of articleViewers">
+                <div class="viewer-av" [style.background]="getAvatarColor(v.user)">
+                  {{ getInitials(v.user) }}
                 </div>
                 <div class="viewer-info">
-                  <div class="viewer-name">
-                    {{ v.user }}
-                  </div>
+                  <div class="viewer-name">{{ v.user }}</div>
                   <div class="viewer-time">
-                    {{ v.createdAt
-                      | date:'dd MMM, hh:mm a' }}
+                    {{ v.lastViewed | date:'dd MMM, hh:mm a' }}
                   </div>
                 </div>
+                <div class="viewer-count">{{ v.viewCount }}x</div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Title -->
-        <h1 class="article-title">
-          {{ article.title }}
-        </h1>
+        <!-- ── Title ── -->
+        <h1 class="post-title">{{ article.title }}</h1>
 
-        <!-- Meta -->
-        <div class="article-meta">
-          <span class="meta-item">
-            👁 {{ viewCount }} views
-          </span>
-          <span class="meta-item">
-            📅 {{ article.createdAt
-              | date:'dd MMM yyyy' }}
-          </span>
-          <span class="meta-item"
-            *ngIf="article.createdBy">
-            ✍ {{ article.createdBy }}
-          </span>
-        </div>
-
-        <!-- Tags -->
-        <div class="article-tags"
-          *ngIf="article.tags">
+        <!-- ── Tags ── -->
+        <div class="post-tags" *ngIf="article.tags">
           <span class="tag-pill"
-            *ngFor="let tag of
-              article.tags?.split(',')">
-            {{ tag.trim() }}
+            *ngFor="let tag of article.tags?.split(',')">
+            #{{ tag.trim() }}
           </span>
         </div>
 
-        <div class="article-divider"></div>
-
-        <!-- Content -->
-        <div class="article-content">
-          {{ article.content }}
+        <!-- ── Media ── -->
+        <div class="post-media"
+          *ngIf="article.mediaUrl && article.mediaType !== 'none'">
+          <img *ngIf="article.mediaType === 'image'"
+            [src]="'https://localhost:7071' + article.mediaUrl"
+            alt="Post image"
+            class="media-image"/>
+          <video *ngIf="article.mediaType === 'video'"
+            class="media-video"
+            controls>
+            <source [src]="'https://localhost:7071' + article.mediaUrl"/>
+          </video>
         </div>
 
-        <!-- Actions (agents only) -->
-        <div class="article-actions"
-          *ngIf="canManage()">
+        <!-- ── Content ── -->
+        <div class="post-content">{{ article.content }}</div>
+
+        <!-- ── Stats Row ── -->
+        <div class="stats-row">
+          <span>👁 {{ viewCount }} views</span>
+          <span *ngIf="likeCount > 0">👍 {{ likeCount }}</span>
+          <span *ngIf="dislikeCount > 0">👎 {{ dislikeCount }}</span>
+          <span>💬 {{ comments.length }} comments</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ── Reaction Buttons ── -->
+        <div class="action-row">
+          <button class="react-btn"
+            [class.active-like]="myReaction === 'like'"
+            (click)="react('like')">
+            👍 Like
+            <span *ngIf="likeCount > 0">{{ likeCount }}</span>
+          </button>
+
+          <button class="react-btn"
+            [class.active-dislike]="myReaction === 'dislike'"
+            (click)="react('dislike')">
+            👎 Dislike
+            <span *ngIf="dislikeCount > 0">{{ dislikeCount }}</span>
+          </button>
+        </div>
+
+        <!-- ── Owner Actions ── -->
+        <div class="owner-actions" *ngIf="article.isOwner">
           <button class="edit-btn"
-            (click)="router.navigate(
-              ['/kb/edit', article.id])">
-            ✏ Edit Article
+            (click)="router.navigate(['/kb/edit', article.id])">
+            ✏ Edit Post
+          </button>
+          <button class="del-btn" (click)="deletePost()">
+            🗑 Delete Post
           </button>
         </div>
 
       </div>
+      <!-- end full-card -->
+
+      <!-- ── Comments Section ── -->
+      <div class="comments-card">
+        <h3 class="comments-title">
+          💬 Comments
+          <span class="comment-badge">{{ comments.length }}</span>
+        </h3>
+
+        <!-- Comment List -->
+        <div class="comment-list">
+          <div class="comment-item" *ngFor="let c of comments">
+            <div class="comment-av"
+              [style.background]="getAvatarColor(c.userName)">
+              {{ getInitials(c.userName) }}
+            </div>
+            <div class="comment-body">
+              <div class="comment-header">
+                <span class="comment-author">{{ c.userName }}</span>
+                <span class="comment-time">
+                  {{ c.createdAt | date:'dd MMM, hh:mm a' }}
+                </span>
+                <span class="edited-label" *ngIf="c.updatedAt">edited</span>
+                <!-- Owner can edit/delete their comment -->
+                <ng-container *ngIf="c.isOwner">
+                  <button class="cmt-action-btn"
+                    (click)="startEditComment(c)">✏</button>
+                  <button class="cmt-action-btn del"
+                    (click)="deleteComment(c.id)">🗑</button>
+                </ng-container>
+              </div>
+
+              <!-- View mode -->
+              <p class="comment-text"
+                *ngIf="editingCommentId !== c.id">
+                {{ c.text }}
+              </p>
+
+              <!-- Edit mode -->
+              <div class="edit-comment-row"
+                *ngIf="editingCommentId === c.id">
+                <input class="edit-input"
+                  [(ngModel)]="editingCommentText"
+                  (keyup.enter)="saveEditComment(c)"
+                  (keyup.escape)="cancelEdit()"/>
+                <button class="save-btn" (click)="saveEditComment(c)">Save</button>
+                <button class="cancel-btn" (click)="cancelEdit()">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="no-comments" *ngIf="comments.length === 0">
+            No comments yet. Be the first to comment!
+          </div>
+        </div>
+
+        <!-- ── Add Comment ── -->
+        <div class="add-comment">
+          <div class="comment-av-me">💬</div>
+          <input class="comment-input"
+            [(ngModel)]="commentText"
+            placeholder="Write a comment..."
+            (keyup.enter)="addComment()"/>
+          <button class="send-btn"
+            (click)="addComment()"
+            [disabled]="!commentText.trim()">
+            Post
+          </button>
+        </div>
+
+      </div>
+      <!-- end comments-card -->
+
     </div>
 
     <!-- Not Found -->
-    <div *ngIf="!loading && !article"
-      class="not-found">
-      <h3>Article not found</h3>
+    <div *ngIf="!loading && !article" class="not-found">
+      <div class="nf-icon">🔍</div>
+      <h3>Post not found</h3>
       <button class="back-btn"
         (click)="router.navigate(['/kb'])">
-        Back to KB
+        ← Back to Feed
       </button>
     </div>
 

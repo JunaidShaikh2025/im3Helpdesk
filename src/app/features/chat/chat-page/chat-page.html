@@ -57,6 +57,11 @@
         </video>
       </div>
 
+      <!-- ✅ Hidden audio element for remote stream — REQUIRED for audio calls -->
+      <audio #remoteAudio autoplay playsinline
+        style="display:none">
+      </audio>
+
       <!-- Audio UI -->
       <ng-container
         *ngIf="callType === 'audio'">

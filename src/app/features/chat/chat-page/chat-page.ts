@@ -47,6 +47,12 @@ export class ChatPageComponent
     localVideoRef!: ElementRef;
   @ViewChild('remoteVideo')
     remoteVideoRef!: ElementRef;
+  @ViewChild('remoteAudio')
+    remoteAudioRef!: ElementRef;
+
+  // ── Ringtone / ring audio ──────────────
+  private ringtoneAudio: HTMLAudioElement | null = null;
+  private outgoingRingAudio: HTMLAudioElement | null = null;
 
   // ── State ──────────────────────────────
   users:         any[]     = [];
@@ -251,6 +257,7 @@ export class ChatPageComponent
           this.callState  = 'receiving';
           this.callType   =
             d.callType || 'audio';
+          this.playRingtone(); // ✅ play incoming ring
           this.cdr.detectChanges();
         })
     );
@@ -271,6 +278,7 @@ export class ChatPageComponent
             await this.pc.setRemoteDescription(
               new RTCSessionDescription(ans));
             await this.flushIceCandidates();
+            this.stopOutgoingRing(); // ✅ stop outgoing ring
             this.callState = 'active';
             this.startCallTimer();
           } catch (e) {
@@ -695,6 +703,86 @@ export class ChatPageComponent
     });
   }
 
+  // ── Ringtone helpers ────────────────────
+  private playRingtone() {
+    // Incoming call ring — uses Web Audio API beep loop (no file needed)
+    try {
+      this.stopRingtone();
+      const ctx = new AudioContext();
+      let stopped = false;
+
+      const playBeep = () => {
+        if (stopped) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 440;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+        if (!stopped) setTimeout(playBeep, 1200);
+      };
+
+      playBeep();
+
+      // Store stop function
+      (this as any)._stopRingFn = () => {
+        stopped = true;
+        try { ctx.close(); } catch {}
+      };
+    } catch (e) {
+      console.warn('Ringtone error:', e);
+    }
+  }
+
+  private playOutgoingRing() {
+    // Outgoing ring — slow beep
+    try {
+      this.stopOutgoingRing();
+      const ctx = new AudioContext();
+      let stopped = false;
+
+      const playBeep = () => {
+        if (stopped) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 480;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+        if (!stopped) setTimeout(playBeep, 2000);
+      };
+
+      playBeep();
+
+      (this as any)._stopOutRingFn = () => {
+        stopped = true;
+        try { ctx.close(); } catch {}
+      };
+    } catch (e) {}
+  }
+
+  private stopRingtone() {
+    if ((this as any)._stopRingFn) {
+      (this as any)._stopRingFn();
+      (this as any)._stopRingFn = null;
+    }
+  }
+
+  private stopOutgoingRing() {
+    if ((this as any)._stopOutRingFn) {
+      (this as any)._stopOutRingFn();
+      (this as any)._stopOutRingFn = null;
+    }
+  }
+
   // ── Calls (WebRTC) ──────────────────────
   async startCall(type: 'audio' | 'video') {
     if (!this.selectedUser) return;
@@ -706,6 +794,7 @@ export class ChatPageComponent
     this.isSettingRemoteAnswer = false;
     this.iceCandidateQueue     = [];
     this.cdr.detectChanges();
+    this.playOutgoingRing(); // ✅ play outgoing ring
 
     try {
       this.localStream =
@@ -827,6 +916,8 @@ export class ChatPageComponent
   }
 
   endCallLocal() {
+    this.stopRingtone();     // ✅ stop incoming ring
+    this.stopOutgoingRing(); // ✅ stop outgoing ring
     clearInterval(this.callTimer);
     this.callDuration  = 0;
     this.isMuted       = false;
@@ -878,9 +969,18 @@ export class ChatPageComponent
     pc.ontrack = (e) => {
       const remoteStream = e.streams[0];
       setTimeout(() => {
+        // ✅ Video call: set video element
         if (this.remoteVideoRef?.nativeElement)
           this.remoteVideoRef.nativeElement
             .srcObject = remoteStream;
+        // ✅ Audio call: set hidden audio element — THIS is why no sound!
+        if (this.remoteAudioRef?.nativeElement) {
+          this.remoteAudioRef.nativeElement
+            .srcObject = remoteStream;
+          this.remoteAudioRef.nativeElement
+            .play().catch((err: any) =>
+              console.warn('audio play blocked:', err));
+        }
       }, 100);
       this.cdr.detectChanges();
     };

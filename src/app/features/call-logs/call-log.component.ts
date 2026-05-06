@@ -76,13 +76,13 @@ type LogFilter =
       <div class="cl-av-wrap">
         <div class="cl-av"
           [style.background]="
-            getAvatarColor(log.otherUser?.name)">
+            getAvatarColor(log.otherUserName)">
           <img
-            *ngIf="log.otherUser?.photo"
-            [src]="log.otherUser.photo"
-            [alt]="log.otherUser?.name" />
-          <span *ngIf="!log.otherUser?.photo">
-            {{ getInitials(log.otherUser?.name) }}
+            *ngIf="log.otherUserPhoto"
+            [src]="log.otherUserPhoto"
+            [alt]="log.otherUserName" />
+          <span *ngIf="!log.otherUserPhoto">
+            {{ getInitials(log.otherUserName) }}
           </span>
         </div>
         <span class="cl-type-badge"
@@ -94,8 +94,7 @@ type LogFilter =
       <!-- Info -->
       <div class="cl-info">
         <div class="cl-name">
-          {{ log.otherUser?.name ||
-             log.otherUser?.email }}
+          {{ log.otherUserName || 'Unknown' }}
         </div>
         <div class="cl-status"
           [ngClass]="getStatusClass(log)">
@@ -104,11 +103,9 @@ type LogFilter =
           </span>
           {{ getStatusLabel(log) }}
           <span
-            *ngIf="getDurationStr(
-              log.durationSeconds)"
+            *ngIf="getDurationStr(log.durationSeconds)"
             class="cl-duration">
-            &middot; {{ getDurationStr(
-              log.durationSeconds) }}
+            &middot; {{ getDurationStr(log.durationSeconds) }}
           </span>
         </div>
       </div>
@@ -187,22 +184,23 @@ type LogFilter =
     }
     .cl-filter-bar {
       display: flex;
-      gap: 4px;
+      gap: 3px;
       align-items: center;
       overflow-x: auto;
       scrollbar-width: none;
+      flex-wrap: nowrap;
     }
     .cl-filter-bar::-webkit-scrollbar {
       display: none;
     }
     .cl-filter-btn {
       position: relative;
-      padding: 7px 14px;
+      padding: 6px 10px;
       background: #f3f4f6;
       border: 1px solid var(--border);
       border-radius: 20px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       color: var(--sub);
       font-family: inherit;
@@ -210,8 +208,9 @@ type LogFilter =
       transition: all 0.15s;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       margin-bottom: 12px;
+      flex-shrink: 0;
     }
     .cl-filter-btn:hover {
       background: #e5e7eb;
@@ -386,14 +385,8 @@ type LogFilter =
       animation: fadeIn 0.15s ease;
     }
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateX(4px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+      from { opacity: 0; transform: translateX(4px); }
+      to   { opacity: 1; transform: translateX(0);   }
     }
     .cl-act-btn {
       width: 32px;
@@ -438,10 +431,8 @@ type LogFilter =
 export class CallLogComponent
   implements OnInit, OnDestroy {
 
-  private chatService =
-    inject(ChatService);
-  private cdr =
-    inject(ChangeDetectorRef);
+  private chatService = inject(ChatService);
+  private cdr         = inject(ChangeDetectorRef);
 
   logs:         any[]      = [];
   loading                  = false;
@@ -449,9 +440,7 @@ export class CallLogComponent
   missedCount              = 0;
   hoveredId: string | null = null;
 
-  readonly filters: {
-    key: LogFilter; label: string
-  }[] = [
+  readonly filters: { key: LogFilter; label: string }[] = [
     { key: 'all',      label: 'All'      },
     { key: 'missed',   label: 'Missed'   },
     { key: 'incoming', label: 'Incoming' },
@@ -465,25 +454,23 @@ export class CallLogComponent
     this.loadMissedCount();
 
     this.subs.push(
-      this.chatService.callEnded$
-        .subscribe((d: any) => {
-          if (!d) return;
-          setTimeout(() => {
-            this.loadLogs();
-            this.loadMissedCount();
-          }, 800);
-        })
+      this.chatService.callEnded$.subscribe((d: any) => {
+        if (!d) return;
+        setTimeout(() => {
+          this.loadLogs();
+          this.loadMissedCount();
+        }, 800);
+      })
     );
 
     this.subs.push(
-      this.chatService.callRejected$
-        .subscribe((d: any) => {
-          if (!d) return;
-          setTimeout(() => {
-            this.loadLogs();
-            this.loadMissedCount();
-          }, 800);
-        })
+      this.chatService.callRejected$.subscribe((d: any) => {
+        if (!d) return;
+        setTimeout(() => {
+          this.loadLogs();
+          this.loadMissedCount();
+        }, 800);
+      })
     );
   }
 
@@ -491,6 +478,11 @@ export class CallLogComponent
     this.subs.forEach(s => s.unsubscribe());
   }
 
+  // ─── BUG FIX 1 ────────────────────────────────────────────
+  // API returns plain array directly (not {data: []})
+  // Old: this.logs = res.data || [];   ← WRONG, always empty
+  // New: Array.isArray(res) check      ← CORRECT
+  // ──────────────────────────────────────────────────────────
   loadLogs() {
     this.loading = true;
     this.cdr.detectChanges();
@@ -499,7 +491,7 @@ export class CallLogComponent
       .getCallLogs(this.activeFilter)
       .subscribe({
         next: (res: any) => {
-          this.logs    = res.data || [];
+          this.logs    = Array.isArray(res) ? res : (res.data || []);
           this.loading = false;
           this.cdr.detectChanges();
         },
@@ -526,9 +518,13 @@ export class CallLogComponent
     this.loadLogs();
   }
 
+  // ─── BUG FIX 3 ────────────────────────────────────────────
+  // Old: log.otherUser.id   ← CRASH, otherUser object doesn't exist
+  // New: log.otherUserId    ← correct flat field from API
+  // ──────────────────────────────────────────────────────────
   callBack(log: any, type: 'audio' | 'video') {
     this.chatService.startCallFromLog(
-      log.otherUser.id, type);
+      log.otherUserId, type);
   }
 
   getStatusLabel(log: any): string {
@@ -548,8 +544,7 @@ export class CallLogComponent
 
   getStatusClass(log: any): string {
     if (log.isOutgoing) return 'outgoing';
-    if (log.status === 'answered')
-      return 'incoming';
+    if (log.status === 'answered') return 'incoming';
     return 'missed';
   }
 
@@ -560,8 +555,7 @@ export class CallLogComponent
   }
 
   getCallTypeIcon(log: any): string {
-    return log.callType === 'video'
-      ? '📹' : '📞';
+    return log.callType === 'video' ? '📹' : '📞';
   }
 
   getDurationStr(secs: number): string {
@@ -577,20 +571,16 @@ export class CallLogComponent
     const d    = new Date(dateStr);
     const now  = new Date();
     const diff = now.getTime() - d.getTime();
-    const days = Math.floor(
-      diff / (1000 * 60 * 60 * 24));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     if (days === 0)
       return d.toLocaleTimeString('en-US', {
         hour: '2-digit', minute: '2-digit'
       });
     if (days === 1) return 'Yesterday';
     if (days < 7)
-      return d.toLocaleDateString('en-US', {
-        weekday: 'long'
-      });
+      return d.toLocaleDateString('en-US', { weekday: 'long' });
     return d.toLocaleDateString('en-GB', {
-      day: '2-digit', month: '2-digit',
-      year: 'numeric'
+      day: '2-digit', month: '2-digit', year: 'numeric'
     });
   }
 
@@ -610,7 +600,7 @@ export class CallLogComponent
       '#8b5cf6', '#ec4899'
     ];
     return colors[
-      (name?.charCodeAt(0) || 0) %
-      colors.length];
+      (name?.charCodeAt(0) || 0) % colors.length
+    ];
   }
 }

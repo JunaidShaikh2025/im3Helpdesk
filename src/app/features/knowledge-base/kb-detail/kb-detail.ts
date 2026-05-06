@@ -3,68 +3,69 @@ import {
   ChangeDetectorRef, inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinnerModule }
-  from '@angular/material/progress-spinner';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { KnowledgeBaseService }
-  from '../../../services/knowledge-base';
-import { AuthService }
-  from '../../../services/auth.service';
-import { LayoutComponent }
-  from '../../../shared/layout/layout';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { KnowledgeBaseService } from '../../../services/knowledge-base';
+import { AuthService } from '../../../services/auth.service';
+import { LayoutComponent } from '../../../shared/layout/layout';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-kb-detail',
   standalone: true,
   imports: [
-    CommonModule, RouterModule,
-    MatButtonModule, MatCardModule,
-    MatProgressSpinnerModule, LayoutComponent
+    CommonModule, FormsModule, RouterModule,
+    MatButtonModule, MatProgressSpinnerModule, LayoutComponent
   ],
   templateUrl: './kb-detail.html',
   styleUrls: ['./kb-detail.scss']
 })
 export class KbDetailComponent implements OnInit {
-  private kbService = inject(KnowledgeBaseService);
+  private kbService   = inject(KnowledgeBaseService);
   private authService = inject(AuthService);
-  private route = inject(ActivatedRoute);
-  public router = inject(Router);
-  private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef);
+  private route       = inject(ActivatedRoute);
+  public  router      = inject(Router);
+  private cdr         = inject(ChangeDetectorRef);
+  private toastr      = inject(ToastrService);
 
-  article: any = null;
-  loading = true;
-  userRole = '';
-  articleId = '';
+  article:   any  = null;
+  loading        = true;
+  userRole       = '';
+  articleId      = '';
 
-  // ✅ Viewers
+  // Reactions
+  likeCount    = 0;
+  dislikeCount = 0;
+  myReaction   = '';
+
+  // Comments
+  comments:    any[]  = [];
+  commentText          = '';
+  editingCommentId:  string | null = null;
+  editingCommentText = '';
+
+  // Viewers
   articleViewers: any[] = [];
-  viewCount = 0;
+  viewCount  = 0;
   showViewers = false;
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
-    this.userRole = this.authService.getUserRole();
-    this.articleId =
-      this.route.snapshot.paramMap.get('id') || '';
+    this.userRole  = this.authService.getUserRole();
+    this.articleId = this.route.snapshot.paramMap.get('id') || '';
 
     this.kbService.getById(this.articleId).subscribe({
       next: (data: any) => {
-        this.article = data;
-        this.viewCount = data.viewCount || 0;
-        this.loading = false;
+        this.article     = data;
+        this.viewCount   = data.viewCount || 0;
+        this.likeCount   = data.likeCount || 0;
+        this.dislikeCount = data.dislikeCount || 0;
+        this.myReaction  = data.myReaction || '';
+        this.comments    = data.comments || [];
+        this.loading     = false;
         this.cdr.detectChanges();
-        // Record view
-        this.recordView();
+        this.kbService.recordView(this.articleId).subscribe();
       },
       error: () => {
         this.loading = false;
@@ -73,54 +74,118 @@ export class KbDetailComponent implements OnInit {
     });
   }
 
-  // ✅ Record that user viewed this article
-  recordView() {
-    this.http.post(
-      `https://localhost:7071/api/KnowledgeBase` +
-      `/${this.articleId}/view`,
-      {},
-      { headers: this.getHeaders() }
-    ).subscribe();
+  // ── Reactions ──────────────────────────────
+  react(type: 'like' | 'dislike') {
+    this.kbService.react(this.articleId, type).subscribe({
+      next: (res: any) => {
+        this.likeCount    = res.likeCount;
+        this.dislikeCount = res.dislikeCount;
+        this.myReaction   = res.myReaction;
+        this.cdr.detectChanges();
+      },
+      error: () => this.toastr.error('Failed to react')
+    });
   }
 
-  // ✅ Load list of who viewed
-  loadViewers() {
-    this.http.get<any>(
-      `https://localhost:7071/api/KnowledgeBase` +
-      `/${this.articleId}/viewers`,
-      { headers: this.getHeaders() }
-    ).subscribe({
-      next: (data) => {
-        this.articleViewers = data.viewers || [];
-        this.viewCount = data.viewCount || 0;
+  // ── Comments ───────────────────────────────
+  addComment() {
+    const text = this.commentText.trim();
+    if (!text) return;
+
+    this.kbService.addComment(this.articleId, text).subscribe({
+      next: (c: any) => {
+        this.comments.push(c);
+        this.commentText = '';
         this.cdr.detectChanges();
+      },
+      error: () => this.toastr.error('Failed to add comment')
+    });
+  }
+
+  startEditComment(c: any) {
+    this.editingCommentId   = c.id;
+    this.editingCommentText = c.text;
+    this.cdr.detectChanges();
+  }
+
+  saveEditComment(c: any) {
+    const text = this.editingCommentText.trim();
+    if (!text) return;
+    this.kbService.updateComment(c.id, text).subscribe({
+      next: (res: any) => {
+        c.text = res.text;
+        c.updatedAt = new Date().toISOString();
+        this.editingCommentId = null;
+        this.cdr.detectChanges();
+      },
+      error: () => this.toastr.error('Failed to update')
+    });
+  }
+
+  cancelEdit() {
+    this.editingCommentId = null;
+    this.cdr.detectChanges();
+  }
+
+  deleteComment(commentId: string) {
+    if (!confirm('Delete this comment?')) return;
+    this.kbService.deleteComment(commentId).subscribe({
+      next: () => {
+        this.comments = this.comments.filter(c => c.id !== commentId);
+        this.cdr.detectChanges();
+      },
+      error: () => this.toastr.error('Failed to delete')
+    });
+  }
+
+  // ── Viewers ────────────────────────────────
+  toggleViewers() {
+    this.showViewers = !this.showViewers;
+    if (this.showViewers) {
+      this.kbService.getViewers(this.articleId).subscribe({
+        next: (data: any) => {
+          this.articleViewers = data.viewers || [];
+          this.viewCount = data.viewCount || 0;
+          this.cdr.detectChanges();
+        }
+      });
+    }
+    this.cdr.detectChanges();
+  }
+
+  // ── Delete Post ────────────────────────────
+  deletePost() {
+    if (!confirm('Delete this post permanently?')) return;
+    this.kbService.delete(this.articleId).subscribe({
+      next: () => {
+        this.toastr.success('Post deleted');
+        this.router.navigate([this.getBackRoute()]);
+      },
+      error: (err: any) => {
+        if (err.status === 403)
+          this.toastr.error('You can only delete your own posts');
+        else
+          this.toastr.error('Failed to delete');
       }
     });
   }
 
-  // ✅ Toggle viewers panel
-  toggleViewers() {
-    this.showViewers = !this.showViewers;
-    if (this.showViewers) this.loadViewers();
-    this.cdr.detectChanges();
-  }
-
+  // ── Helpers ────────────────────────────────
   getAvatarColor(name: string): string {
     const colors = [
       '#ef4444','#f97316','#22c55e',
       '#3b82f6','#8b5cf6','#ec4899'
     ];
-    return colors[
-      (name?.charCodeAt(0) || 0) % colors.length];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
   }
 
-  canManage(): boolean {
-    return this.userRole === 'CompanyAdmin' ||
-      this.userRole === 'Agent';
+  getInitials(name: string): string {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0] || '')
+      .join('').toUpperCase().slice(0, 2);
   }
 
   getBackRoute(): string {
-    return this.userRole === 'Customer'
-      ? '/customer' : '/kb';
+    return this.userRole === 'Customer' ? '/customer' : '/kb';
   }
 }

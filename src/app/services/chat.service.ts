@@ -1,3 +1,6 @@
+// ✅ FILE: src/app/services/chat.service.ts
+// NOTE: Purani chat.ts file DELETE karo — sirf ye file rakho
+
 import {
   Injectable, inject
 } from '@angular/core';
@@ -8,8 +11,7 @@ import {
   BehaviorSubject, Observable
 } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
-import { AuthService }
-  from './auth.service';
+import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -21,35 +23,28 @@ export class ChatService {
   private hub!: signalR.HubConnection;
 
   // ── Reactive streams ──────────────────
-  // Single new message — real-time only
-  newMessage$ =
-    new BehaviorSubject<any>(null);
-  typing$ =
-    new BehaviorSubject<any>(null);
-  userStatus$ =
-    new BehaviorSubject<any>(null);
-  unreadCount$ =
-    new BehaviorSubject<number>(0);
-  isConnected$ =
-    new BehaviorSubject<boolean>(false);
+  newMessage$    = new BehaviorSubject<any>(null);
+  typing$        = new BehaviorSubject<any>(null);
+  userStatus$    = new BehaviorSubject<any>(null);
+  unreadCount$   = new BehaviorSubject<number>(0);
+  isConnected$   = new BehaviorSubject<boolean>(false);
 
-  // Call streams
-  incomingCall$ =
-    new BehaviorSubject<any>(null);
-  callAccepted$ =
-    new BehaviorSubject<any>(null);
-  callRejected$ =
-    new BehaviorSubject<any>(null);
-  callEnded$ =
-    new BehaviorSubject<any>(null);
-  iceCandidate$ =
-    new BehaviorSubject<any>(null);
+  // ✅ Call streams — ye sab hone chahiye
+  incomingCall$  = new BehaviorSubject<any>(null);
+  callAccepted$  = new BehaviorSubject<any>(null);
+  callRejected$  = new BehaviorSubject<any>(null);
+  callEnded$     = new BehaviorSubject<any>(null);
+  iceCandidate$  = new BehaviorSubject<any>(null);
 
   // ✅ Call-back request from call log
   startCallRequest$ = new BehaviorSubject<{
     userId: string;
     type: 'audio' | 'video'
   } | null>(null);
+
+  // ✅ Ticket SignalR (purani chat.ts ki functionality)
+  messages$      = new BehaviorSubject<any[]>([]);
+  newTicket$     = new BehaviorSubject<any>(null);
 
   // ── Connection state check ─────────────
   get isConnected(): boolean {
@@ -148,6 +143,8 @@ export class ChatService {
 
   clearMessages() {
     this.newMessage$.next(null);
+    // ✅ Ticket messages bhi clear
+    this.messages$.next([]);
   }
 
   // ── Call Log API ───────────────────────
@@ -169,21 +166,41 @@ export class ChatService {
       { headers: this.getHeaders() });
   }
 
-  // ✅ Trigger call-back from call log UI
+  markCallsRead(): Observable<any> {
+    return this.http.post<any>(
+      `${this.BASE}/api/CallLog/mark-read`,
+      {},
+      { headers: this.getHeaders() });
+  }
+
   startCallFromLog(
     userId: string,
     type: 'audio' | 'video'
   ): void {
-    this.startCallRequest$.next(
-      { userId, type });
+    this.startCallRequest$.next({ userId, type });
+  }
+
+  // ── Ticket room methods (purani chat.ts se) ──
+  joinTicketRoom(ticketId: string): Promise<void> {
+    if (!this.isConnected) return Promise.resolve();
+    return this.hub.invoke('JoinTicketRoom', ticketId);
+  }
+
+  leaveTicketRoom(ticketId: string): Promise<void> {
+    if (!this.isConnected) return Promise.resolve();
+    return this.hub.invoke('LeaveTicketRoom', ticketId);
+  }
+
+  joinOrgRoom(orgId: string): Promise<void> {
+    if (!this.isConnected) return Promise.resolve();
+    return this.hub.invoke('JoinOrgRoom', orgId);
   }
 
   // ── SignalR ────────────────────────────
   connect() {
     if (this.isConnected) return;
 
-    this.hub = new signalR
-      .HubConnectionBuilder()
+    this.hub = new signalR.HubConnectionBuilder()
       .withUrl(`${this.BASE}/hubs/chat`, {
         accessTokenFactory: () =>
           this.authService.getToken() || ''
@@ -193,10 +210,18 @@ export class ChatService {
       ])
       .build();
 
-    // Single new message — real-time only
+    // ── Chat messages ──
     this.hub.on('ReceiveMessage', (msg) => {
       this.newMessage$.next(msg);
       this.loadUnreadCount();
+
+      // ✅ Ticket messages bhi update karo
+      const current = this.messages$.getValue();
+      this.messages$.next([...current, msg]);
+    });
+
+    this.hub.on('NewTicket', (ticket) => {
+      this.newTicket$.next(ticket);
     });
 
     this.hub.on('UserTyping', (d) => {
@@ -206,27 +231,20 @@ export class ChatService {
     });
 
     this.hub.on('UserOnline', (d) =>
-      this.userStatus$.next(
-        { ...d, isOnline: true }));
+      this.userStatus$.next({ ...d, isOnline: true }));
 
     this.hub.on('UserOffline', (d) =>
-      this.userStatus$.next(
-        { ...d, isOnline: false }));
+      this.userStatus$.next({ ...d, isOnline: false }));
 
     this.hub.on('MessagesRead', () =>
       this.loadUnreadCount());
 
-    // Call signals
-    this.hub.on('IncomingCall', (d) =>
-      this.incomingCall$.next(d));
-    this.hub.on('CallAccepted', (d) =>
-      this.callAccepted$.next(d));
-    this.hub.on('CallRejected', (d) =>
-      this.callRejected$.next(d));
-    this.hub.on('CallEnded', (d) =>
-      this.callEnded$.next(d));
-    this.hub.on('IceCandidate', (d) =>
-      this.iceCandidate$.next(d));
+    // ✅ Call signals — ye zaroor hone chahiye
+    this.hub.on('IncomingCall',  (d) => this.incomingCall$.next(d));
+    this.hub.on('CallAccepted',  (d) => this.callAccepted$.next(d));
+    this.hub.on('CallRejected',  (d) => this.callRejected$.next(d));
+    this.hub.on('CallEnded',     (d) => this.callEnded$.next(d));
+    this.hub.on('IceCandidate',  (d) => this.iceCandidate$.next(d));
 
     this.hub.onreconnecting(() =>
       this.isConnected$.next(false));
@@ -263,12 +281,11 @@ export class ChatService {
       .catch(e => {
         if (!e?.message?.includes(
             'not in the \'Connected\''))
-          console.error(
-            `Hub.${method} error:`, e);
+          console.error(`Hub.${method} error:`, e);
       });
   }
 
-  // ── Hub methods ────────────────────────
+  // ── Hub send methods ───────────────────
   sendMessage(
     receiverId: string,
     content: string,
@@ -301,9 +318,20 @@ export class ChatService {
       attachmentType ?? null);
   }
 
-  markRead(senderId: string): Promise<void> {
+  // ✅ Ticket send message (purani chat.ts se)
+  sendTicketMessage(
+    ticketId: string,
+    message: string,
+    senderName: string,
+    isAgent: boolean
+  ): Promise<void> {
     return this.safeInvoke(
-      'MarkRead', senderId);
+      'SendMessage', ticketId, message,
+      senderName, isAgent);
+  }
+
+  markRead(senderId: string): Promise<void> {
+    return this.safeInvoke('MarkRead', senderId);
   }
 
   sendTyping(
@@ -320,8 +348,7 @@ export class ChatService {
     offer: string
   ): Promise<void> {
     return this.safeInvoke(
-      'InitiateCall',
-      receiverId, callType, offer);
+      'InitiateCall', receiverId, callType, offer);
   }
 
   acceptCall(
@@ -333,13 +360,11 @@ export class ChatService {
   }
 
   rejectCall(callerId: string): Promise<void> {
-    return this.safeInvoke(
-      'RejectCall', callerId);
+    return this.safeInvoke('RejectCall', callerId);
   }
 
   endCall(userId: string): Promise<void> {
-    return this.safeInvoke(
-      'EndCall', userId);
+    return this.safeInvoke('EndCall', userId);
   }
 
   sendIceCandidate(

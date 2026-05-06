@@ -4,10 +4,10 @@
     <!-- Header -->
     <div class="page-header">
       <div class="header-left">
-        <h1>Agents</h1>
+        <h1>Users</h1>
         <div class="seats-info">
           <span class="seats-badge">
-            {{ agents.length }} agents
+            {{ agents.length }} Users
           </span>
         </div>
       </div>
@@ -17,7 +17,7 @@
           <input class="search-input"
             [(ngModel)]="searchQuery"
             (ngModelChange)="filterAgents()"
-            placeholder="Search agents..."/>
+            placeholder="Search Users..."/>
         </div>
         <button class="export-btn"
           (click)="exportCsv()">
