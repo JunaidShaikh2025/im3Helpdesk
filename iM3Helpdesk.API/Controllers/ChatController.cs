@@ -1,4 +1,5 @@
 using iM3Helpdesk.Domain.Entities;
+using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -67,7 +68,8 @@ public class ChatController : ControllerBase
           .AsNoTracking()
           .Where(u =>
               u.OrganizationId == orgId &&
-              u.Id != myId)
+              u.Id != myId &&
+              u.Role != UserRole.Customer) 
           .Select(u => new
           {
             u.Id,
@@ -496,7 +498,7 @@ public class ChatController : ControllerBase
 
   [HttpPost("groups")]
   public async Task<IActionResult> CreateGroup(
-      [FromBody] ChatCreateGroupDto dto)  
+      [FromBody] ChatCreateGroupDto dto)
   {
     var myId = GetUserId();
     var orgId = _tenant.OrganizationId!.Value;
@@ -638,4 +640,3 @@ public class ChatController : ControllerBase
     });
   }
 }
-

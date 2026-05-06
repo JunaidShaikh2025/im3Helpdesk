@@ -1,4 +1,7 @@
+using iM3Helpdesk.Domain.Entities;
+using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
+using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,41 +30,45 @@ public class CallLogController : ControllerBase
     Guid.TryParse(c, out var id);
     return id;
   }
+
+  // ─────────────────────────────────────────
+  // GET /api/CallLog
+  // ─────────────────────────────────────────
   [HttpGet]
-  public async Task<IActionResult>
-      GetHistory(
-          [FromQuery] string filter = "all",
-          [FromQuery] int page = 1,
-          [FromQuery] int size = 100)
+  public async Task<IActionResult> GetCallLogs(
+      [FromQuery] string filter = "all",
+      [FromQuery] int page = 1,
+      [FromQuery] int size = 50)
   {
     var myId = GetUserId();
+    if (myId == Guid.Empty)
+      return Ok(new List<object>());
 
     var query = _context.CallLogs
+        .AsNoTracking()
+        .IgnoreQueryFilters()
         .Where(c =>
             c.CallerId == myId ||
-            c.ReceiverId == myId)
-        .AsQueryable();
+            c.ReceiverId == myId);
 
+    // Apply filter
     query = filter switch
     {
       "missed" => query.Where(c =>
-          c.ReceiverId == myId &&
-          c.Status == "missed"),
+                      c.ReceiverId == myId &&
+                      c.Status == "missed"),
       "incoming" => query.Where(c =>
-          c.ReceiverId == myId),
+                      c.ReceiverId == myId &&
+                      c.Status != "missed"),
       "outgoing" => query.Where(c =>
-          c.CallerId == myId),
+                      c.CallerId == myId),
       _ => query
     };
 
-    var total = await query.CountAsync();
-
-    var logs = await query
+    var rawLogs = await query
         .OrderByDescending(c => c.StartedAt)
         .Skip((page - 1) * size)
         .Take(size)
-        .Include(c => c.Caller)
-        .Include(c => c.Receiver)
         .Select(c => new
         {
           c.Id,
@@ -70,42 +77,143 @@ public class CallLogController : ControllerBase
           c.DurationSeconds,
           c.StartedAt,
           c.EndedAt,
-          IsOutgoing = c.CallerId == myId,
-          OtherUser = c.CallerId == myId
-              ? new
-              {
-                Id = c.Receiver.Id,
-                Name = c.Receiver.FullName,
-                Email = c.Receiver.Email,
-                Photo = c.Receiver.PhotoUrl
-              }
-              : new
-              {
-                Id = c.Caller.Id,
-                Name = c.Caller.FullName,
-                Email = c.Caller.Email,
-                Photo = c.Caller.PhotoUrl
-              }
+          c.CallerId,
+          c.ReceiverId,
+          c.IsRead
         })
         .ToListAsync();
 
-    return Ok(new
-    {
-      total,
-      page,
-      size,
-      data = logs
-    });
+    if (!rawLogs.Any())
+      return Ok(new List<object>());
+
+    var userIds = rawLogs
+        .SelectMany(l => new[] { l.CallerId, l.ReceiverId })
+        .Distinct()
+        .ToList();
+
+    // ✅ Customer role wale users filter out — sirf agents/staff dikhenge
+    var users = await _context.Users
+        .AsNoTracking()
+        .IgnoreQueryFilters()
+        .Where(u =>
+            userIds.Contains(u.Id) &&
+            u.Role != UserRole.Customer)
+        .Select(u => new
+        {
+          u.Id,
+          u.FullName,
+          u.PhotoUrl
+        })
+        .ToDictionaryAsync(u => u.Id);
+
+    // ✅ Agar otherUser Customer nikla toh wo log skip karo
+    var result = rawLogs
+        .Select(c =>
+        {
+          var isOutgoing = c.CallerId == myId;
+          var otherId = isOutgoing ? c.ReceiverId : c.CallerId;
+
+          // otherUser Customer hai toh dictionary mein nahi milega — skip
+          if (!users.TryGetValue(otherId, out var otherUser))
+            return null;
+
+          return (object)new
+          {
+            c.Id,
+            c.CallType,
+            c.Status,
+            c.DurationSeconds,
+            c.StartedAt,
+            c.EndedAt,
+            c.IsRead,
+            IsOutgoing = isOutgoing,
+            OtherUserId = otherId,
+            OtherUserName = otherUser.FullName,
+            OtherUserPhoto = otherUser.PhotoUrl
+          };
+        })
+        .Where(x => x != null)   // null = Customer wale logs hatao
+        .ToList();
+
+    return Ok(result);
   }
+
+  // ─────────────────────────────────────────
+  // GET /api/CallLog/unread-missed
+  // ─────────────────────────────────────────
   [HttpGet("unread-missed")]
-  public async Task<IActionResult>
-      UnreadMissed()
+  public async Task<IActionResult> GetUnreadMissed()
   {
     var myId = GetUserId();
+    if (myId == Guid.Empty)
+      return Ok(new { count = 0 });
+
+    // ✅ Sirf non-Customer callers ki missed calls count karo
     var count = await _context.CallLogs
+        .AsNoTracking()
+        .IgnoreQueryFilters()
         .CountAsync(c =>
             c.ReceiverId == myId &&
-            c.Status == "missed");
+            c.Status == "missed" &&
+            !c.IsRead &&
+            c.Caller.Role != UserRole.Customer);
+
     return Ok(new { count });
+  }
+
+  // ─────────────────────────────────────────
+  // POST /api/CallLog/mark-read
+  // ─────────────────────────────────────────
+  [HttpPost("mark-read")]
+  public async Task<IActionResult> MarkAllRead()
+  {
+    var myId = GetUserId();
+
+    var unread = await _context.CallLogs
+        .IgnoreQueryFilters()
+        .Where(c =>
+            c.ReceiverId == myId &&
+            c.Status == "missed" &&
+            !c.IsRead)
+        .ToListAsync();
+
+    if (unread.Any())
+    {
+      unread.ForEach(c => c.IsRead = true);
+      await _context.SaveChangesAsync();
+    }
+
+    return Ok(new { marked = unread.Count, count = 0 });
+  }
+
+  // ─────────────────────────────────────────
+  // POST /api/CallLog/{id}/read
+  // ─────────────────────────────────────────
+  [HttpPost("{id}/read")]
+  public async Task<IActionResult> MarkOneRead(Guid id)
+  {
+    var myId = GetUserId();
+
+    var log = await _context.CallLogs
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(c =>
+            c.Id == id &&
+            c.ReceiverId == myId);
+
+    if (log == null) return NotFound();
+
+    log.IsRead = true;
+    await _context.SaveChangesAsync();
+
+    var remaining = await _context.CallLogs
+        .AsNoTracking()
+        .IgnoreQueryFilters()
+        .CountAsync(c =>
+            c.ReceiverId == myId &&
+            c.Status == "missed" &&
+            !c.IsRead &&
+            c.Caller.Role != UserRole.Customer);
+
+    return Ok(new { count = remaining });
   }
 }

@@ -39,6 +39,10 @@ public class ApplicationDbContext : DbContext
       => Set<ActivityLog>();
   public DbSet<KbArticle> KbArticles
       => Set<KbArticle>();
+  public DbSet<KbReaction> KbReactions
+      => Set<KbReaction>();
+  public DbSet<KbComment> KbComments
+      => Set<KbComment>();
   public DbSet<TicketTemplate> TicketTemplates
       => Set<TicketTemplate>();
   public DbSet<EmailQueue> EmailQueues
@@ -267,12 +271,60 @@ public class ApplicationDbContext : DbContext
           _isSuperAdmin ||
           a.OrganizationId ==
               _currentTenantId);
+      e.Property(x => x.MediaUrl)
+          .HasMaxLength(500)
+          .HasDefaultValue("");
+      e.Property(x => x.MediaType)
+          .HasMaxLength(20)
+          .HasDefaultValue("none");
       e.HasOne(a => a.CreatedBy)
           .WithMany()
           .HasForeignKey(a =>
               a.CreatedByUserId)
           .OnDelete(
               DeleteBehavior.Restrict);
+    });
+
+    // ── KbReaction ────────────────
+    modelBuilder.Entity<KbReaction>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.HasIndex(x => new { x.ArticleId, x.UserId })
+          .IsUnique();
+      e.Property(x => x.ReactionType)
+          .HasMaxLength(20)
+          .HasDefaultValue("like");
+      e.HasQueryFilter(r =>
+          _isSuperAdmin ||
+          r.OrganizationId == _currentTenantId);
+      e.HasOne(r => r.Article)
+          .WithMany(a => a.Reactions)
+          .HasForeignKey(r => r.ArticleId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasOne(r => r.User)
+          .WithMany()
+          .HasForeignKey(r => r.UserId)
+          .OnDelete(DeleteBehavior.Restrict);
+    });
+
+    // ── KbComment ─────────────────
+    modelBuilder.Entity<KbComment>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Text)
+          .HasColumnType("nvarchar(max)")
+          .IsRequired();
+      e.HasQueryFilter(c =>
+          _isSuperAdmin ||
+          c.OrganizationId == _currentTenantId);
+      e.HasOne(c => c.Article)
+          .WithMany(a => a.Comments)
+          .HasForeignKey(c => c.ArticleId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasOne(c => c.User)
+          .WithMany()
+          .HasForeignKey(c => c.UserId)
+          .OnDelete(DeleteBehavior.Restrict);
     });
 
     // ── TicketTemplate ────────────
@@ -580,6 +632,9 @@ public class ApplicationDbContext : DbContext
       e.Property(x => x.Status)
           .HasMaxLength(20)
           .HasDefaultValue("missed");
+      // ✅ IsRead — for missed call badge tracking
+      e.Property(x => x.IsRead)
+          .HasDefaultValue(false);
       // Caller FK
       e.HasOne(x => x.Caller)
           .WithMany()

@@ -3,6 +3,7 @@ using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -35,6 +36,14 @@ builder.Services.AddCors(options =>
         .AllowCredentials(); // ✅ Required for SignalR
   });
 });
+
+builder.Services.Configure<FormOptions>(x => {
+  x.MultipartBodyLengthLimit = 104857600; // 100MB
+});
+builder.WebHost.ConfigureKestrel(o => {
+  o.Limits.MaxRequestBodySize = 104857600;
+});
+
 
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 builder.Services.AddScoped<ISlaService, SlaService>();

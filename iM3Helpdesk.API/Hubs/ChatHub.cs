@@ -3,6 +3,7 @@ using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 using System.Security.Claims;
 
 namespace iM3Helpdesk.API.Hubs;
@@ -10,35 +11,50 @@ namespace iM3Helpdesk.API.Hubs;
 [Authorize]
 public class ChatHub : Hub
 {
-  private readonly ApplicationDbContext _context;
+  private readonly ApplicationDbContext _db;
 
-  private static readonly
-      Dictionary<string, Guid> _connections
-      = new();
+  // Track active calls: callerId -> receiverId
+  private static readonly ConcurrentDictionary<string, string>
+      _activeCalls = new();
 
-  // ✅ NEW — tracks active call log IDs
-  // key = "callerId_receiverId"
-  // value = CallLog.Id
-  private static readonly
-      Dictionary<string, Guid> _activeCalls
-      = new();
-
-  public ChatHub(ApplicationDbContext context)
+  public ChatHub(ApplicationDbContext db)
   {
-    _context = context;
+    _db = db;
   }
 
+  // ─────────────────────────────────────────────
+  // Helper: get current userId from JWT claims
+  // ─────────────────────────────────────────────
   private Guid GetUserId()
   {
-    var claim = Context.User?
-        .FindFirst(ClaimTypes.NameIdentifier)
-        ?.Value
-        ?? Context.User?
-            .FindFirst("sub")?.Value;
+    var claim =
+        Context.User?.FindFirst(
+            ClaimTypes.NameIdentifier)?.Value
+        ?? Context.User?.FindFirst("sub")?.Value;
     Guid.TryParse(claim, out var id);
     return id;
   }
 
+  // ─────────────────────────────────────────────
+  // ✅ KEY FIX: Get OrganizationId from DB
+  // SignalR hubs don't have HTTP headers so
+  // ICurrentTenantService returns null.
+  // We get it directly from the Users table.
+  // ─────────────────────────────────────────────
+  private async Task<Guid> GetOrgIdAsync(Guid userId)
+  {
+    var user = await _db.Users
+        .AsNoTracking()
+        .IgnoreQueryFilters()
+        .Where(u => u.Id == userId)
+        .Select(u => new { u.OrganizationId })
+        .FirstOrDefaultAsync();
+    return user?.OrganizationId ?? Guid.Empty;
+  }
+
+  // ─────────────────────────────────────────────
+  // OnConnected: mark user online
+  // ─────────────────────────────────────────────
   public override async Task OnConnectedAsync()
   {
     var userId = GetUserId();
@@ -48,120 +64,71 @@ public class ChatHub : Hub
       return;
     }
 
-    _connections[Context.ConnectionId] = userId;
-
+    // Add to personal group for targeted messages
     await Groups.AddToGroupAsync(
         Context.ConnectionId,
-        $"user-{userId}");
+        userId.ToString());
 
-    var status = await _context
-        .UserOnlineStatuses
-        .FirstOrDefaultAsync(s =>
-            s.UserId == userId);
+    // Mark online
+    await SetOnlineStatus(userId, true);
 
-    if (status == null)
+    var orgId = await GetOrgIdAsync(userId);
+    if (orgId != Guid.Empty)
     {
-      _context.UserOnlineStatuses.Add(
-          new UserOnlineStatus
-          {
-            UserId = userId,
-            IsOnline = true,
-            LastSeen = DateTime.UtcNow,
-            ConnectionId = Context.ConnectionId
-          });
-    }
-    else
-    {
-      status.IsOnline = true;
-      status.LastSeen = DateTime.UtcNow;
-      status.ConnectionId = Context.ConnectionId;
-    }
-
-    await _context.SaveChangesAsync();
-
-    var user = await _context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.Id == userId);
-
-    if (user?.OrganizationId != null)
-    {
-      await Groups.AddToGroupAsync(
-          Context.ConnectionId,
-          $"org-{user.OrganizationId}");
-
+      // Notify org members this user is online
       await Clients
-          .Group($"org-{user.OrganizationId}")
-          .SendAsync("UserOnline", new
-          {
-            userId,
-            isOnline = true
-          });
-    }
+          .GroupExcept(orgId.ToString(),
+              Context.ConnectionId)
+          .SendAsync("UserOnline",
+              new { UserId = userId });
 
-    var groupIds = await _context
-        .ChatGroupMembers
-        .Where(m => m.UserId == userId)
-        .Select(m => m.GroupId)
-        .ToListAsync();
-
-    foreach (var gId in groupIds)
-    {
       await Groups.AddToGroupAsync(
           Context.ConnectionId,
-          $"group-{gId}");
+          orgId.ToString());
     }
 
     await base.OnConnectedAsync();
   }
 
+  // ─────────────────────────────────────────────
+  // OnDisconnected: mark user offline
+  // ─────────────────────────────────────────────
   public override async Task OnDisconnectedAsync(
       Exception? exception)
   {
     var userId = GetUserId();
     if (userId != Guid.Empty)
     {
-      _connections.Remove(Context.ConnectionId);
+      await SetOnlineStatus(userId, false);
 
-      var status = await _context
-          .UserOnlineStatuses
-          .FirstOrDefaultAsync(s =>
-              s.UserId == userId);
-
-      if (status != null)
-      {
-        status.IsOnline = false;
-        status.LastSeen = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
-      }
-
-      var user = await _context.Users
-          .IgnoreQueryFilters()
-          .FirstOrDefaultAsync(u =>
-              u.Id == userId);
-
-      if (user?.OrganizationId != null)
+      var orgId = await GetOrgIdAsync(userId);
+      if (orgId != Guid.Empty)
       {
         await Clients
-            .Group($"org-{user.OrganizationId}")
-            .SendAsync("UserOffline", new
-            {
-              userId,
-              lastSeen = DateTime.UtcNow
-            });
+            .Group(orgId.ToString())
+            .SendAsync("UserOffline",
+                new { UserId = userId });
       }
 
-      // ✅ Auto-close any open calls
-      await AutoCloseCallsOnDisconnect(userId);
+      // If user disconnects mid-call, end it
+      if (_activeCalls.TryRemove(
+              userId.ToString(), out var otherId))
+      {
+        await Clients
+            .Group(otherId)
+            .SendAsync("CallEnded",
+                new { UserId = userId });
+      }
     }
 
     await base.OnDisconnectedAsync(exception);
   }
 
-  // ── Messaging ─────────────────────────────
-
+  // ─────────────────────────────────────────────
+  // SendMessage: direct message
+  // ─────────────────────────────────────────────
   public async Task SendMessage(
-      string receiverIdStr,
+      string receiverId,
       string content,
       string messageType = "text",
       string? attachmentUrl = null,
@@ -170,50 +137,75 @@ public class ChatHub : Hub
   {
     var senderId = GetUserId();
     if (senderId == Guid.Empty) return;
-    if (!Guid.TryParse(
-        receiverIdStr, out var receiverId))
-      return;
 
-    var sender = await _context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.Id == senderId);
-    if (sender == null) return;
+    var orgId = await GetOrgIdAsync(senderId);
 
-    var ids = new[] { senderId, receiverId }
-        .OrderBy(x => x).ToArray();
-    var convoId = GuidCombine(ids[0], ids[1]);
+    var convoId = GuidCombine(
+        senderId,
+        Guid.Parse(receiverId));
 
     var msg = new ChatMessage
     {
       Content = content?.Trim() ?? "",
       SenderId = senderId,
-      ReceiverId = receiverId,
+      ReceiverId = Guid.Parse(receiverId),
       ConversationId = convoId,
       MessageType = messageType,
       AttachmentUrl = attachmentUrl,
       AttachmentName = attachmentName,
       AttachmentType = attachmentType,
-      OrganizationId =
-          sender.OrganizationId ?? Guid.Empty
+      OrganizationId = orgId
     };
 
-    _context.ChatMessages.Add(msg);
-    await _context.SaveChangesAsync();
+    _db.ChatMessages.Add(msg);
+    await _db.SaveChangesAsync();
 
-    var dto = BuildMessageDto(msg, sender, false);
+    var senderUser = await _db.Users
+        .AsNoTracking()
+        .IgnoreQueryFilters()
+        .Where(u => u.Id == senderId)
+        .Select(u => new
+        {
+          u.FullName,
+          u.PhotoUrl
+        })
+        .FirstOrDefaultAsync();
 
+    var payload = new
+    {
+      msg.Id,
+      msg.Content,
+      msg.SenderId,
+      msg.ReceiverId,
+      msg.CreatedAt,
+      msg.MessageType,
+      msg.AttachmentUrl,
+      msg.AttachmentName,
+      msg.AttachmentType,
+      IsFromMe = false,
+      SenderName = senderUser?.FullName ?? "",
+      SenderPhoto = senderUser?.PhotoUrl
+    };
+
+    // Send to receiver
     await Clients
-        .Group($"user-{receiverId}")
-        .SendAsync("ReceiveMessage", dto);
+        .Group(receiverId)
+        .SendAsync("ReceiveMessage", payload);
 
+    // Echo back to sender (other tabs)
     await Clients
-        .Group($"user-{senderId}")
-        .SendAsync("ReceiveMessage", dto);
+        .GroupExcept(
+            senderId.ToString(),
+            Context.ConnectionId)
+        .SendAsync("ReceiveMessage",
+            payload with { IsFromMe = true });
   }
 
+  // ─────────────────────────────────────────────
+  // SendGroupMessage
+  // ─────────────────────────────────────────────
   public async Task SendGroupMessage(
-      string groupIdStr,
+      string groupId,
       string content,
       string messageType = "text",
       string? attachmentUrl = null,
@@ -222,61 +214,68 @@ public class ChatHub : Hub
   {
     var senderId = GetUserId();
     if (senderId == Guid.Empty) return;
-    if (!Guid.TryParse(
-        groupIdStr, out var groupId))
-      return;
 
-    var isMember = await _context
-        .ChatGroupMembers
-        .AnyAsync(m =>
-            m.GroupId == groupId &&
-            m.UserId == senderId);
-    if (!isMember) return;
-
-    var sender = await _context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.Id == senderId);
-    if (sender == null) return;
+    var orgId = await GetOrgIdAsync(senderId);
 
     var msg = new ChatMessage
     {
       Content = content?.Trim() ?? "",
       SenderId = senderId,
-      GroupId = groupId,
-      ConversationId = groupId,
+      GroupId = Guid.Parse(groupId),
+      ConversationId = Guid.Parse(groupId),
       MessageType = messageType,
       AttachmentUrl = attachmentUrl,
       AttachmentName = attachmentName,
       AttachmentType = attachmentType,
-      OrganizationId =
-          sender.OrganizationId ?? Guid.Empty
+      OrganizationId = orgId
     };
 
-    _context.ChatMessages.Add(msg);
-    await _context.SaveChangesAsync();
+    _db.ChatMessages.Add(msg);
+    await _db.SaveChangesAsync();
 
-    var dto = BuildMessageDto(msg, sender, true);
+    var senderUser = await _db.Users
+        .AsNoTracking()
+        .IgnoreQueryFilters()
+        .Where(u => u.Id == senderId)
+        .Select(u => new { u.FullName, u.PhotoUrl })
+        .FirstOrDefaultAsync();
+
+    var payload = new
+    {
+      msg.Id,
+      msg.Content,
+      msg.SenderId,
+      msg.GroupId,
+      msg.CreatedAt,
+      msg.MessageType,
+      msg.AttachmentUrl,
+      msg.AttachmentName,
+      IsFromMe = false,
+      SenderName = senderUser?.FullName ?? "",
+      SenderPhoto = senderUser?.PhotoUrl
+    };
 
     await Clients
-        .Group($"group-{groupId}")
-        .SendAsync("ReceiveMessage", dto);
+        .Group(groupId)
+        .SendAsync("ReceiveMessage", payload);
   }
 
-  public async Task MarkRead(string senderIdStr)
+  // ─────────────────────────────────────────────
+  // MarkRead
+  // ─────────────────────────────────────────────
+  public async Task MarkRead(string senderId)
   {
     var myId = GetUserId();
     if (myId == Guid.Empty) return;
-    if (!Guid.TryParse(
-        senderIdStr, out var senderId))
-      return;
 
-    var unread = await _context.ChatMessages
+    var unread = await _db.ChatMessages
         .Where(m =>
-            m.SenderId == senderId &&
+            m.SenderId == Guid.Parse(senderId) &&
             m.ReceiverId == myId &&
             !m.IsRead)
         .ToListAsync();
+
+    if (!unread.Any()) return;
 
     unread.ForEach(m =>
     {
@@ -284,328 +283,280 @@ public class ChatHub : Hub
       m.ReadAt = DateTime.UtcNow;
     });
 
-    if (unread.Any())
-      await _context.SaveChangesAsync();
+    await _db.SaveChangesAsync();
 
     await Clients
-        .Group($"user-{senderId}")
-        .SendAsync("MessagesRead", new
-        {
-          byUserId = myId
-        });
+        .Group(senderId)
+        .SendAsync("MessagesRead",
+            new { ReadBy = myId });
   }
 
+  // ─────────────────────────────────────────────
+  // Typing indicator
+  // ─────────────────────────────────────────────
   public async Task Typing(
-      string receiverIdStr, bool isTyping)
+      string receiverId, bool isTyping)
   {
-    var myId = GetUserId();
-    if (!Guid.TryParse(
-        receiverIdStr, out var receiverId))
-      return;
-
+    var senderId = GetUserId();
     await Clients
-        .Group($"user-{receiverId}")
+        .Group(receiverId)
         .SendAsync("UserTyping", new
         {
-          userId = myId,
+          SenderId = senderId,
           isTyping
         });
   }
 
-  // ── CALLS WITH LOGGING ────────────────────
+  // ═══════════════════════════════════════════════
+  // ── CALL METHODS ─────────────────────────────
+  // ═══════════════════════════════════════════════
 
+  // ─────────────────────────────────────────────
+  // InitiateCall
+  // ─────────────────────────────────────────────
   public async Task InitiateCall(
-      string receiverIdStr,
+      string receiverId,
       string callType,
       string offer)
   {
     var callerId = GetUserId();
     if (callerId == Guid.Empty) return;
-    if (!Guid.TryParse(
-        receiverIdStr, out var receiverId))
-      return;
 
-    var caller = await _context.Users
+    // ✅ Get orgId from DB — NOT from tenant service
+    var orgId = await GetOrgIdAsync(callerId);
+
+    var callerUser = await _db.Users
+        .AsNoTracking()
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.Id == callerId);
-    if (caller == null) return;
+        .Where(u => u.Id == callerId)
+        .Select(u => new { u.FullName })
+        .FirstOrDefaultAsync();
 
-    // ── Create call log (safe — won't break
-    //    the call even if DB save fails) ──
-    Guid logId = Guid.Empty;
-    try
+    // Save call log as "ringing"
+    var callLog = new CallLog
     {
-      var log = new CallLog
-      {
-        CallerId = callerId,
-        ReceiverId = receiverId,
-        CallType = callType,
-        Status = "ringing",
-        // Only set OrgId if valid
-        OrganizationId =
-            caller.OrganizationId
-            ?? Guid.Empty,
-        StartedAt = DateTime.UtcNow
-      };
-      _context.CallLogs.Add(log);
-      await _context.SaveChangesAsync();
-      logId = log.Id;
-      _activeCalls[
-          CallKey(callerId, receiverId)]
-          = log.Id;
-    }
-    catch (Exception ex)
-    {
-      // Log but don't crash the call
-      Console.WriteLine(
-          $"CallLog save failed: {ex.Message}");
-    }
+      CallerId = callerId,
+      ReceiverId = Guid.Parse(receiverId),
+      CallType = callType,
+      Status = "ringing",
+      OrganizationId = orgId,          // ✅ from DB
+      StartedAt = DateTime.UtcNow
+    };
 
+    _db.CallLogs.Add(callLog);
+    await _db.SaveChangesAsync();
+
+    // Track active call
+    _activeCalls[callerId.ToString()] = receiverId;
+
+    // Send to receiver
     await Clients
-        .Group($"user-{receiverId}")
+        .Group(receiverId)
         .SendAsync("IncomingCall", new
         {
-          callLogId = logId,
-          callerId,
-          callerName = caller.FullName,
-          callerPhoto = caller.PhotoUrl,
-          callType,
-          offer
+          CallLogId = callLog.Id,
+          CallerId = callerId,
+          CallerName = callerUser?.FullName ?? "",
+          CallType = callType,
+          Offer = offer
         });
   }
 
+  // ─────────────────────────────────────────────
+  // AcceptCall
+  // ─────────────────────────────────────────────
   public async Task AcceptCall(
-      string callerIdStr, string answer)
+      string callerId, string answer)
   {
-    var myId = GetUserId();
-    if (!Guid.TryParse(
-        callerIdStr, out var callerId))
-      return;
+    var receiverId = GetUserId();
+    if (receiverId == Guid.Empty) return;
 
-    // ✅ Update log: ringing → answered
-    await UpdateCallStatusAsync(
-        callerId, myId, "answered");
+    // Update call log status to "answered"
+    var log = await _db.CallLogs
+        .Where(c =>
+            c.CallerId == Guid.Parse(callerId) &&
+            c.ReceiverId == receiverId &&
+            c.Status == "ringing")
+        .OrderByDescending(c => c.StartedAt)
+        .FirstOrDefaultAsync();
+
+    if (log != null)
+    {
+      log.Status = "answered";
+      await _db.SaveChangesAsync();
+    }
 
     await Clients
-        .Group($"user-{callerId}")
+        .Group(callerId)
         .SendAsync("CallAccepted", new
         {
-          byUserId = myId,
-          answer
+          ReceiverId = receiverId,
+          Answer = answer
         });
   }
 
-  public async Task RejectCall(
-      string callerIdStr)
+  // ─────────────────────────────────────────────
+  // RejectCall
+  // ─────────────────────────────────────────────
+  public async Task RejectCall(string callerId)
   {
-    var myId = GetUserId();
-    if (!Guid.TryParse(
-        callerIdStr, out var callerId))
-      return;
+    var receiverId = GetUserId();
+    if (receiverId == Guid.Empty) return;
 
-    // ✅ Receiver rejected → missed
-    await FinaliseCallAsync(
-        callerId, myId, "missed");
+    // Update call log status to "missed"
+    var log = await _db.CallLogs
+        .Where(c =>
+            c.CallerId == Guid.Parse(callerId) &&
+            c.ReceiverId == receiverId &&
+            c.Status == "ringing")
+        .OrderByDescending(c => c.StartedAt)
+        .FirstOrDefaultAsync();
+
+    if (log != null)
+    {
+      log.Status = "missed";
+      log.EndedAt = DateTime.UtcNow;
+      await _db.SaveChangesAsync();
+    }
+
+    _activeCalls.TryRemove(callerId, out _);
 
     await Clients
-        .Group($"user-{callerId}")
+        .Group(callerId)
         .SendAsync("CallRejected", new
         {
-          byUserId = myId
+          ReceiverId = receiverId
         });
   }
 
-  public async Task EndCall(
-      string otherUserIdStr)
+  // ─────────────────────────────────────────────
+  // EndCall
+  // ─────────────────────────────────────────────
+  public async Task EndCall(string otherUserId)
   {
     var myId = GetUserId();
-    if (!Guid.TryParse(
-        otherUserIdStr, out var otherUserId))
-      return;
+    if (myId == Guid.Empty) return;
 
-    // ✅ null = auto-detect final status
-    await FinaliseCallAsync(
-        myId, otherUserId, null);
+    // Find and finalize call log
+    var otherGuid = Guid.Parse(otherUserId);
+    var log = await _db.CallLogs
+        .Where(c =>
+            (c.CallerId == myId &&
+             c.ReceiverId == otherGuid) ||
+            (c.CallerId == otherGuid &&
+             c.ReceiverId == myId))
+        .Where(c =>
+            c.Status == "ringing" ||
+            c.Status == "answered")
+        .OrderByDescending(c => c.StartedAt)
+        .FirstOrDefaultAsync();
 
-    await Clients
-        .Group($"user-{otherUserId}")
-        .SendAsync("CallEnded", new
-        {
-          byUserId = myId
-        });
-  }
-
-  public async Task SendIceCandidate(
-      string targetIdStr, string candidate)
-  {
-    var myId = GetUserId();
-    if (!Guid.TryParse(
-        targetIdStr, out var targetId))
-      return;
-
-    await Clients
-        .Group($"user-{targetId}")
-        .SendAsync("IceCandidate", new
-        {
-          fromUserId = myId,
-          candidate
-        });
-  }
-
-  // ── Call log private helpers ──────────────
-
-  private async Task UpdateCallStatusAsync(
-      Guid callerId,
-      Guid receiverId,
-      string status)
-  {
-    try
+    if (log != null)
     {
-      var key = CallKey(callerId, receiverId);
-      if (!_activeCalls.TryGetValue(key,
-          out var logId)) return;
-
-      var log = await _context.CallLogs
-          .FirstOrDefaultAsync(l =>
-              l.Id == logId);
-      if (log == null) return;
-
-      log.Status = status;
-      await _context.SaveChangesAsync();
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine(
-          $"UpdateCallStatus failed: " +
-          $"{ex.Message}");
-    }
-  }
-
-  private async Task FinaliseCallAsync(
-      Guid callerId,
-      Guid receiverId,
-      string? status)
-  {
-    try
-    {
-      var key1 = CallKey(callerId, receiverId);
-      var key2 = CallKey(receiverId, callerId);
-
-      Guid logId = Guid.Empty;
-      string? usedKey = null;
-
-      if (_activeCalls.TryGetValue(
-          key1, out var id1))
-      { logId = id1; usedKey = key1; }
-      else if (_activeCalls.TryGetValue(
-          key2, out var id2))
-      { logId = id2; usedKey = key2; }
-
-      if (logId == Guid.Empty) return;
-      if (usedKey != null)
-        _activeCalls.Remove(usedKey);
-
-      var log = await _context.CallLogs
-          .FirstOrDefaultAsync(l =>
-              l.Id == logId);
-      if (log == null) return;
-
-      var now = DateTime.UtcNow;
-
-      log.Status = status ??
-          (log.Status == "answered"
-              ? "answered"
-              : "cancelled");
-
-      log.EndedAt = now;
-
+      // Only update if was answered
       if (log.Status == "answered")
-        log.DurationSeconds = (int)(
-            now - log.StartedAt).TotalSeconds;
-
-      await _context.SaveChangesAsync();
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine(
-          $"FinaliseCall failed: " +
-          $"{ex.Message}");
-    }
-  }
-
-  private async Task AutoCloseCallsOnDisconnect(
-      Guid userId)
-  {
-    var toClose = _activeCalls
-        .Where(kv =>
-        {
-          var p = kv.Key.Split('_');
-          return p.Length >= 2 &&
-              ((Guid.TryParse(p[0], out var a)
-                && a == userId) ||
-               (Guid.TryParse(p[1], out var b)
-                && b == userId));
-        })
-        .ToList();
-
-    foreach (var kv in toClose)
-    {
-      var log = await _context.CallLogs
-          .FirstOrDefaultAsync(l =>
-              l.Id == kv.Value);
-
-      if (log != null)
       {
         log.EndedAt = DateTime.UtcNow;
-        log.Status =
-            log.Status == "answered"
-                ? "answered" : "missed";
-
-        if (log.Status == "answered")
-          log.DurationSeconds = (int)(
-              log.EndedAt.Value -
-              log.StartedAt).TotalSeconds;
+        log.DurationSeconds = (int)(
+            log.EndedAt.Value - log.StartedAt
+        ).TotalSeconds;
+      }
+      else
+      {
+        // Caller hung up before answer = cancelled
+        log.Status = "cancelled";
+        log.EndedAt = DateTime.UtcNow;
       }
 
-      _activeCalls.Remove(kv.Key);
+      await _db.SaveChangesAsync();
     }
 
-    if (toClose.Any())
-      await _context.SaveChangesAsync();
+    _activeCalls.TryRemove(myId.ToString(), out _);
+    _activeCalls.TryRemove(otherUserId, out _);
+
+    await Clients
+        .Group(otherUserId)
+        .SendAsync("CallEnded", new
+        {
+          UserId = myId
+        });
   }
 
-  private static string CallKey(
-      Guid a, Guid b) => $"{a}_{b}";
-
-  private static object BuildMessageDto(
-      ChatMessage msg,
-      User sender,
-      bool isGroup)
+  // ─────────────────────────────────────────────
+  // SendIceCandidate
+  // ─────────────────────────────────────────────
+  public async Task SendIceCandidate(
+      string targetId, string candidate)
   {
-    return new
-    {
-      id = msg.Id,
-      content = msg.Content,
-      senderId = msg.SenderId,
-      receiverId = msg.ReceiverId,
-      groupId = msg.GroupId,
-      conversationId = msg.ConversationId,
-      createdAt = msg.CreatedAt,
-      isRead = msg.IsRead,
-      messageType = msg.MessageType,
-      attachmentUrl = msg.AttachmentUrl,
-      attachmentName = msg.AttachmentName,
-      attachmentType = msg.AttachmentType,
-      attachmentSize = msg.AttachmentSize,
-      senderName = sender.FullName,
-      senderPhoto = sender.PhotoUrl,
-      isGroup
-    };
+    var fromId = GetUserId();
+    await Clients
+        .Group(targetId)
+        .SendAsync("IceCandidate", new
+        {
+          FromId = fromId,
+          Candidate = candidate
+        });
   }
 
-  private static Guid GuidCombine(
-      Guid a, Guid b)
+  // ─────────────────────────────────────────────
+  // Ticket rooms (existing functionality)
+  // ─────────────────────────────────────────────
+  public async Task JoinTicketRoom(string ticketId)
+  {
+    await Groups.AddToGroupAsync(
+        Context.ConnectionId,
+        $"ticket-{ticketId}");
+  }
+
+  public async Task LeaveTicketRoom(string ticketId)
+  {
+    await Groups.RemoveFromGroupAsync(
+        Context.ConnectionId,
+        $"ticket-{ticketId}");
+  }
+
+  public async Task JoinOrgRoom(string orgId)
+  {
+    await Groups.AddToGroupAsync(
+        Context.ConnectionId,
+        orgId);
+  }
+
+  // ─────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────
+  private async Task SetOnlineStatus(
+      Guid userId, bool isOnline)
+  {
+    try
+    {
+      var status = await _db.UserOnlineStatuses
+          .IgnoreQueryFilters()
+          .FirstOrDefaultAsync(s =>
+              s.UserId == userId);
+
+      if (status == null)
+      {
+        _db.UserOnlineStatuses.Add(
+            new UserOnlineStatus
+            {
+              UserId = userId,
+              IsOnline = isOnline,
+              LastSeen = DateTime.UtcNow
+            });
+      }
+      else
+      {
+        status.IsOnline = isOnline;
+        status.LastSeen = DateTime.UtcNow;
+      }
+
+      await _db.SaveChangesAsync();
+    }
+    catch { /* don't crash the hub */ }
+  }
+
+  private static Guid GuidCombine(Guid a, Guid b)
   {
     var ba = a.ToByteArray();
     var bb = b.ToByteArray();
