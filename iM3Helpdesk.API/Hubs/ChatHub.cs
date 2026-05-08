@@ -261,7 +261,7 @@ public class ChatHub : Hub
   }
 
   // ─────────────────────────────────────────────
-  // MarkRead
+  // MarkRead — UPDATED VERSION
   // ─────────────────────────────────────────────
   public async Task MarkRead(string senderId)
   {
@@ -285,10 +285,15 @@ public class ChatHub : Hub
 
     await _db.SaveChangesAsync();
 
+    // ✅ FIX: camelCase property taaki JS mein d.readBy kaam kare
     await Clients
         .Group(senderId)
         .SendAsync("MessagesRead",
-            new { ReadBy = myId });
+            new
+            {
+              readBy = myId,      // camelCase ✅
+              ReadBy = myId       // PascalCase bhi raho for safety ✅
+            });
   }
 
   // ─────────────────────────────────────────────
