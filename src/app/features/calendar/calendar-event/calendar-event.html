@@ -532,6 +532,36 @@
           placeholder="Optional notes..."></textarea>
       </div>
 
+
+      <!-- Attendees -->
+      <div class="em-field">
+        <label>👥 Attendees</label>
+        <div class="attendees-box">
+          <!-- Chips -->
+          <div class="attendee-chips" *ngIf="getAttendeesArray().length > 0">
+            <span class="att-chip" *ngFor="let email of getAttendeesArray()">
+              <span class="att-av">{{ email[0].toUpperCase() }}</span>
+              {{ email }}
+              <button type="button" class="att-remove"
+                (click)="removeAttendee(email)">×</button>
+            </span>
+          </div>
+          <!-- Input row -->
+          <div class="att-input-row">
+            <input type="email"
+              [(ngModel)]="attendeeInput"
+              (keydown)="onAttendeeKeydown($event)"
+              placeholder="Add email (press Enter or comma)"
+              class="em-input att-input"/>
+            <button type="button" class="att-add-btn"
+              (click)="addAttendee()">Add</button>
+          </div>
+          <div class="att-hint">
+            Attendees will receive an email invite when event is saved.
+          </div>
+        </div>
+      </div>
+
       <!-- Color -->
       <div class="em-field">
         <label>Color</label>
@@ -552,6 +582,13 @@
         *ngIf="isEditMode"
         (click)="deleteEventFromModal()">
         Delete
+      </button>
+      <button class="em-remind-btn"
+        *ngIf="isEditMode && newEvent.reminderMinutes"
+        [disabled]="sendingReminder"
+        (click)="sendReminderNow($any(newEvent))"
+        title="Send reminder email to attendees now">
+        {{ sendingReminder ? '⏳ Sending...' : '📧 Send Reminder' }}
       </button>
       <button class="em-cancel" (click)="closeModals()">Cancel</button>
       <button class="em-save" (click)="saveEvent()">

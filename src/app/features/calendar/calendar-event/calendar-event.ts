@@ -28,6 +28,8 @@ export interface CalendarEvent {
   isCompleted: boolean;
   reminderMinutes?: number;  // 0=no reminder, 15,30,60,1440 etc
   color?: string;
+  attendeeEmails?: string;   // comma-separated: "a@b.com,c@d.com"
+  reminderSent?: boolean;
   createdAt: string;
 }
 
@@ -93,6 +95,8 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // ── New event form ────────────────────────────────
   newEvent: Partial<CalendarEvent> = {};
   isEditMode = false;
+  attendeeInput = '';          // current input field value
+  sendingReminder = false;     // loading state for send-reminder btn
 
   readonly eventTypes = [
     { value: 'reminder', label: 'Reminder', icon: '🔔' },
@@ -381,7 +385,8 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       type: 'event',
       priority: 'medium',
       isCompleted: false,
-      reminderMinutes: 30
+      reminderMinutes: 30,
+      attendeeEmails: ''
     };
     this.isEditMode = false;
     this.showEventModal = true;
@@ -602,6 +607,77 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
   navigateToTicket(ticketId: string) {
     this.router.navigate(['/tickets', ticketId]);
+  }
+
+  // ── Attendee helpers ──────────────────────────────
+  getAttendeesArray(): string[] {
+    if (!this.newEvent.attendeeEmails?.trim()) return [];
+    return this.newEvent.attendeeEmails
+      .split(',')
+      .map(e => e.trim())
+      .filter(e => e.includes('@'));
+  }
+
+  addAttendee() {
+    const email = this.attendeeInput.trim().toLowerCase();
+    if (!email || !email.includes('@')) return;
+    const existing = this.getAttendeesArray();
+    if (existing.includes(email)) {
+      this.attendeeInput = '';
+      return;
+    }
+    const updated = [...existing, email].join(',');
+    this.newEvent = { ...this.newEvent, attendeeEmails: updated };
+    this.attendeeInput = '';
+    this.cdr.detectChanges();
+  }
+
+  removeAttendee(email: string) {
+    const updated = this.getAttendeesArray()
+      .filter(e => e !== email)
+      .join(',');
+    this.newEvent = { ...this.newEvent, attendeeEmails: updated };
+    this.cdr.detectChanges();
+  }
+
+  onAttendeeKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      this.addAttendee();
+    }
+  }
+
+  // ── Send reminder manually ─────────────────────────
+  async sendReminderNow(ev: CalendarEvent) {
+    if (this.sendingReminder) return;
+    this.sendingReminder = true;
+    this.cdr.detectChanges();
+
+    const h = { headers: this.getHeaders() };
+    this.http.post(
+      `https://localhost:7071/api/CalendarEvents/${ev.id}/send-reminder`,
+      {}, h
+    ).subscribe({
+      next: (res: any) => {
+        this.sendingReminder = false;
+        this.toastr.success(
+          `Reminder sent to ${res.sentTo} people!`);
+        // Update local event
+        const idx = this.allEvents.findIndex(e => e.id === ev.id);
+        if (idx > -1) this.allEvents[idx].reminderSent = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.sendingReminder = false;
+        this.toastr.error('Failed to send reminder');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  getAttendeesFromEvent(ev: CalendarEvent): string[] {
+    if (!ev.attendeeEmails?.trim()) return [];
+    return ev.attendeeEmails.split(',').map(e => e.trim()).filter(e => e);
   }
 
   // Called from modal delete button — works with Partial<CalendarEvent>

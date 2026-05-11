@@ -1050,16 +1050,6 @@ $radius-sm: 8px;
   }
 }
 
-// ── Routes issue note ─────────────────────────────────
-// App routes mein add karna hoga:
-// {
-//   path: 'calendar',
-//   loadComponent: () =>
-//     import('./features/calendar/calendar-event/calendar-event')
-//       .then(m => m.CalendarEventComponent),
-//   canActivate: [authGuard]
-// }
-
 // ── Responsive ───────────────────────────────────────
 @media (max-width: 768px) {
   .cal-page { flex-direction: column; height: auto; overflow: auto; }
@@ -1077,4 +1067,101 @@ $radius-sm: 8px;
 }
 .ticket-bar {
   background: var(--accent) !important;
+}
+
+// ── Attendees UI ─────────────────────────────────────
+.attendees-box {
+  border: 1px solid var(--border-color);
+  border-radius: $radius-sm;
+  padding: 10px;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attendee-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.att-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-light);
+  color: var(--text-primary);
+  border-radius: 20px;
+  padding: 4px 10px 4px 6px;
+  font-size: 12px;
+  font-weight: 500;
+
+  .att-av {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .att-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 2px;
+    &:hover { color: #ef4444; }
+  }
+}
+
+.att-input-row {
+  display: flex;
+  gap: 8px;
+  .att-input { flex: 1; margin: 0; }
+}
+
+.att-add-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: $radius-sm;
+  padding: 0 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .15s;
+  &:hover { opacity: .88; }
+}
+
+.att-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+// ── Send Reminder button ──────────────────────────────
+.em-remind-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: $radius-sm;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-light);
+  }
+  &:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
 }
