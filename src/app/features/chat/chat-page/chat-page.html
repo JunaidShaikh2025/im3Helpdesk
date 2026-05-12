@@ -468,7 +468,7 @@
                 ? 'transparent'
                 : getAvatarColor(item.fullName)">
             <img *ngIf="item.photoUrl"
-              [src]="'https://localhost:7071'
+              [src]="baseUrl
                 + item.photoUrl"
               [alt]="item.fullName"/>
             <span *ngIf="!item.photoUrl">
@@ -573,7 +573,7 @@
                 : getAvatarColor(
                     selectedUser.fullName)">
             <img *ngIf="selectedUser.photoUrl"
-              [src]="'https://localhost:7071'
+              [src]="baseUrl
                 + selectedUser.photoUrl"
               [alt]="selectedUser.fullName"/>
             <span
@@ -699,12 +699,12 @@
                 *ngIf="m.messageType==='image'
                   && m.attachmentUrl">
                 <img class="cm-img"
-                  [src]="'https://localhost:7071'
+                  [src]="baseUrl
                     + m.attachmentUrl"
                   [alt]="m.attachmentName
                     || 'Image'"
                   (click)="openImage(
-                    'https://localhost:7071'
+                    baseUrl
                     + m.attachmentUrl)"/>
               </div>
 
@@ -712,7 +712,7 @@
               <a class="cm-file"
                 *ngIf="m.messageType==='file'
                   && m.attachmentUrl"
-                [href]="'https://localhost:7071'
+                [href]="baseUrl
                   + m.attachmentUrl"
                 target="_blank"
                 [download]="m.attachmentName">

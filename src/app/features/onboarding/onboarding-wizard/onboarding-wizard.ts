@@ -10,6 +10,7 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { MatIconModule } from '@angular/material/icon';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-onboarding-wizard',
@@ -91,7 +92,7 @@ export class OnboardingWizardComponent {
     };
 
     this.http.put(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       payload, { headers }
     ).subscribe({
       next: () => {

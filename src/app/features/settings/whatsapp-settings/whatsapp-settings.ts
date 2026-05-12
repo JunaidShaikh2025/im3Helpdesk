@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-whatsapp-settings',
@@ -24,7 +25,7 @@ export class WhatsappSettingsComponent implements OnInit {
     twilioAuthToken: ''
   };
   saving = false;
-  webhookUrl = 'https://localhost:7071/api/WhatsApp/webhook';
+  webhookUrl = `${environment.apiUrl}/WhatsApp/webhook`;
 
   private getHeaders() {
     return new HttpHeaders({
@@ -34,7 +35,7 @@ export class WhatsappSettingsComponent implements OnInit {
 
   ngOnInit() {
     this.http.get<any>(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -48,7 +49,7 @@ export class WhatsappSettingsComponent implements OnInit {
   save() {
     this.saving = true;
     this.http.put(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       {
         whatsAppNumber: this.config.whatsAppNumber,
         twilioAccountSid: this.config.twilioAccountSid,

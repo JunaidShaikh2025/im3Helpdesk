@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class CustomFieldService {
-  private apiUrl = 'https://localhost:7071/api/CustomFields';
+  private readonly apiUrl = `${environment.apiUrl}/CustomFields`;
 
   constructor(
     private http: HttpClient,

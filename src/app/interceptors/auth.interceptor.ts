@@ -7,6 +7,7 @@ import {
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -17,7 +18,7 @@ export const authInterceptor: HttpInterceptorFn = (
 
   // Add token to all API requests
   let authReq = req;
-  if (token && req.url.includes('localhost:7071')) {
+  if (token && req.url.startsWith(environment.apiUrl)) {
     authReq = req.clone({
       setHeaders: {
         'Authorization': `Bearer ${token}`

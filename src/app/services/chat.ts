@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -16,7 +17,7 @@ export class ChatService {
 
   connect(): Promise<void> {
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl('https://localhost:7071/hubs/chat', {
+      .withUrl(`${environment.baseUrl}/hubs/chat`, {
         accessTokenFactory: () =>
           this.authService.getToken() || ''
       })

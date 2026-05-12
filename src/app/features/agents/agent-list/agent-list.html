@@ -75,7 +75,7 @@
                     : getAvatarColor(a.fullName)"
                   style="overflow:hidden">
                   <img *ngIf="a.photoUrl"
-                    [src]="'https://localhost:7071' + a.photoUrl"
+                    [src]="baseUrl + a.photoUrl"
                     style="width:100%;height:100%;
                       object-fit:cover;border-radius:50%"/>
                   <span *ngIf="!a.photoUrl">

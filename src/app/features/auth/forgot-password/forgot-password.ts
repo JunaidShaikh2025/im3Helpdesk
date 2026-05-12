@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-forgot-password',
@@ -31,7 +32,7 @@ export class ForgotPasswordComponent {
     this.cdr.detectChanges();
 
     this.http.post(
-      'https://localhost:7071/api/Auth/forgot-password',
+      `${environment.apiUrl}/Auth/forgot-password`,
       { email: this.email }
     ).subscribe({
       next: () => {

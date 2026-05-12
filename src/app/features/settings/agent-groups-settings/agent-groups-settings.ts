@@ -10,6 +10,7 @@ import {
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-agent-groups-settings',
@@ -51,7 +52,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
 
   loadGroups() {
     this.http.get<any[]>(
-      'https://localhost:7071/api/AgentGroups',
+      `${environment.apiUrl}/AgentGroups`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -63,7 +64,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
 
   loadAgents() {
     this.http.get<any[]>(
-      'https://localhost:7071/api/Agents',
+      `${environment.apiUrl}/Agents`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -100,11 +101,11 @@ export class AgentGroupsSettingsComponent implements OnInit {
 
     const req = this.editingId
       ? this.http.put(
-          `https://localhost:7071/api/AgentGroups/${this.editingId}`,
+          `${environment.apiUrl}/AgentGroups/${this.editingId}`,
           payload,
           { headers: this.getHeaders() })
       : this.http.post(
-          'https://localhost:7071/api/AgentGroups',
+          `${environment.apiUrl}/AgentGroups`,
           payload,
           { headers: this.getHeaders() });
 
@@ -152,7 +153,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
   deleteGroup(id: string) {
     if (!confirm('Delete this group? All members will be removed.')) return;
     this.http.delete(
-      `https://localhost:7071/api/AgentGroups/${id}`,
+      `${environment.apiUrl}/AgentGroups/${id}`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {

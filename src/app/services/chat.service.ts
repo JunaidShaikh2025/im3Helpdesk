@@ -15,6 +15,7 @@ import {
 } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -22,7 +23,7 @@ export class ChatService {
   private http        = inject(HttpClient);
   private authService = inject(AuthService);
 
-  readonly BASE = 'https://localhost:7071';
+  readonly BASE = environment.baseUrl;
   private hub!: signalR.HubConnection;
 
   // ── Reactive streams ──────────────────

@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-audit-log',
@@ -51,7 +52,7 @@ export class AuditLogComponent implements OnInit {
 loadLogs() {
   this.loading = true;
 
-  let url = `https://localhost:7071/api/Audit?page=${this.page}&pageSize=${this.pageSize}`;
+  let url = `${environment.apiUrl}/Audit?page=${this.page}&pageSize=${this.pageSize}`;
   if (this.selectedType) {
     url += `&entityType=${this.selectedType}`;
   }
