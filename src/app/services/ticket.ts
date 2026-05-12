@@ -2,10 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, interval, switchMap } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class TicketService {
-  private apiUrl = 'https://localhost:7071/api/Tickets';
+  private apiUrl = `${environment.apiUrl}/Tickets`;
   private http = inject(HttpClient);
   private authService = inject(AuthService);
 
@@ -26,7 +27,7 @@ export class TicketService {
 
   getById(id: string): Observable<any> {
     return this.http.get<any>(
-      `https://localhost:7071/api/Tickets/${id}`,
+      `${environment.apiUrl}/Tickets/${id}`,
       { headers: this.getHeaders() }
     );
   }

@@ -13,8 +13,9 @@ import { catchError } from 'rxjs/operators';
 import { DashboardChartsComponent } from '../dashboard-charts/dashboard-charts';
 import { DashboardTrendComponent } from '../dashboard-trend/dashboard-trend';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
-const API_BASE = 'https://localhost:7071/api';
+const API_BASE = environment.apiUrl;
 const REFRESH_INTERVAL_MS = 60_000;
 
 @Component({

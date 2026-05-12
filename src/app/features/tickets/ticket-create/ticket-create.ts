@@ -10,6 +10,7 @@ import { AgentService } from '../../../services/agent';
 import { AgentGroupService } from '../../../services/agent-group';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-ticket-create',
@@ -105,7 +106,7 @@ export class TicketCreateComponent implements OnInit {
       'Authorization': `Bearer ${this.authService.getToken()}`
     });
     this.http.get<any[]>(
-      'https://localhost:7071/api/TicketTemplates', { headers }
+      `${environment.apiUrl}/TicketTemplates`, { headers }
     ).subscribe({
       next: (data) => {
         this.templates = data;
@@ -119,7 +120,7 @@ export class TicketCreateComponent implements OnInit {
       'Authorization': `Bearer ${this.authService.getToken()}`
     });
     this.http.get<any[]>(
-      'https://localhost:7071/api/CustomFields', { headers }
+      `${environment.apiUrl}/CustomFields`, { headers }
     ).subscribe({
       next: (data) => {
         this.customFields = data;
@@ -229,7 +230,7 @@ export class TicketCreateComponent implements OnInit {
           }));
         if (cfValues.length > 0) {
           await this.http.post(
-            `https://localhost:7071/api/CustomFields/ticket/${ticketId}/values`,
+            `${environment.apiUrl}/CustomFields/ticket/${ticketId}/values`,
             cfValues, { headers }
           ).toPromise();
         }
@@ -239,7 +240,7 @@ export class TicketCreateComponent implements OnInit {
           const formData = new FormData();
           formData.append('file', file);
           await this.http.post(
-            `https://localhost:7071/api/Attachments/upload/${ticketId}`,
+            `${environment.apiUrl}/Attachments/upload/${ticketId}`,
             formData, { headers }
           ).toPromise();
         }

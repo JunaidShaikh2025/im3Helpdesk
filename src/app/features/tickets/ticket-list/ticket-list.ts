@@ -15,8 +15,9 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LayoutComponent }
   from '../../../shared/layout/layout';
-import { AuthService }
-  from '../../../services/auth.service';
+import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
+
 
 @Component({
   selector: 'app-ticket-list',
@@ -115,7 +116,7 @@ export class TicketListComponent
     this.cdr.markForCheck();
 
     this.http.get<any[]>(
-      'https://localhost:7071/api/Tickets',
+      `${environment.apiUrl}/Tickets`,
       { headers: this.getHeaders() }
     ).pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -360,7 +361,7 @@ export class TicketListComponent
 
     const promises = selected.map(t =>
       this.http.post(
-        'https://localhost:7071/api/Todo',
+        `${environment.apiUrl}/Todo`,
         {
           title: t.title,
           ticketNumber:
@@ -418,7 +419,7 @@ export class TicketListComponent
     for (const dupId of duplicateIds) {
       try {
         await this.http.post(
-          `https://localhost:7071/api/Tickets` +
+          `${environment.apiUrl}/Tickets` +
           `/${ids[0]}/merge`,
           { duplicateTicketId: dupId },
           { headers: this.getHeaders() }

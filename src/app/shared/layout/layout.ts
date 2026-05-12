@@ -1,5 +1,3 @@
-// ✅ FILE: src/app/layout/layout/layout.ts
-
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, inject
@@ -14,6 +12,7 @@ import { AuthService } from '../../services/auth.service';
 import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
 import { ChatService } from '../../services/chat.service';
 import { TranslationService } from '../../services/translation'; // ✅ ADD
+import { environment } from '../../../environments/environment';
 
 import { GlobalCallNotificationService }
   from '../../services/global-call-notification.service';
@@ -76,7 +75,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   loadTodoCount() {
     this.http.get<any[]>(
-      'https://localhost:7071/api/Todo',
+      `${environment.apiUrl}/Todo`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -106,7 +105,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   loadKbUnread() {
     this.http.get<any>(
-      'https://localhost:7071/api/KnowledgeBase/unread-count',
+      `${environment.apiUrl}/KnowledgeBase/unread-count`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -134,7 +133,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   loadMissedCallCount() {
     this.http.get<any>(
-      'https://localhost:7071/api/CallLog/unread-missed',
+      `${environment.apiUrl}/CallLog/unread-missed`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -174,7 +173,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     if (savedEmail && savedEmail === this.userEmail) {
       const saved = localStorage.getItem('im3_photo');
       if (saved) {
-        this.userPhotoUrl = saved.startsWith('http') ? saved : 'https://localhost:7071' + saved;
+        this.userPhotoUrl = saved.startsWith('http') ? saved : environment.apiUrl.replace('/api','') + saved;
       }
     } else {
       localStorage.removeItem('im3_photo');
@@ -227,10 +226,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Profile
   // ──────────────────────────────────────────────
   loadProfile() {
-    this.http.get<any>('https://localhost:7071/api/Profile', { headers: this.getHeaders() }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Profile`, { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         if (data.photoUrl) {
-          this.userPhotoUrl = 'https://localhost:7071' + data.photoUrl;
+          this.userPhotoUrl = environment.apiUrl.replace('/api','') + data.photoUrl;
           localStorage.setItem('im3_photo', data.photoUrl);
         }
         if (data.fullName) this.userName = data.fullName;
@@ -247,7 +246,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Notifications
   // ──────────────────────────────────────────────
   loadNotifications() {
-    this.http.get<any[]>('https://localhost:7071/api/Notifications', { headers: this.getHeaders() }).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Notifications`, { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         this.notifications = data;
         this.unreadCount   = data.filter(n => !n.isRead).length;
@@ -257,7 +256,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   loadUnreadCount() {
-    this.http.get<any>('https://localhost:7071/api/Notifications/unread-count', { headers: this.getHeaders() }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Notifications/unread-count`, { headers: this.getHeaders() }).subscribe({
       next: (data) => { this.unreadCount = data.count || 0; this.cdr.detectChanges(); },
       error: () => {}
     });
@@ -274,7 +273,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   markAllRead() {
-    this.http.put('https://localhost:7071/api/Notifications/mark-all-read', {}, { headers: this.getHeaders() }).subscribe({
+    this.http.put(`${environment.apiUrl}/Notifications/mark-all-read`, {}, { headers: this.getHeaders() }).subscribe({
       next: () => {
         this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;
@@ -285,7 +284,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   goToNotification(n: any) {
     this.showNotifDropdown = false;
-    this.http.put(`https://localhost:7071/api/Notifications/${n.id}/read`, {}, { headers: this.getHeaders() }).subscribe({
+    this.http.put(`${environment.apiUrl}/Notifications/${n.id}/read`, {}, { headers: this.getHeaders() }).subscribe({
       next: () => {
         const notif = this.notifications.find(x => x.id === n.id);
         if (notif) notif.isRead = true;
@@ -307,7 +306,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   onSearch() {
     if (!this.searchQuery.trim()) { this.searchResults = []; this.cdr.detectChanges(); return; }
-    this.http.get<any>(`https://localhost:7071/api/Search?q=${this.searchQuery}`, { headers: this.getHeaders() }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Search?q=${this.searchQuery}`, { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         this.searchResults = [
           ...(data.tickets  || []).map((t: any) => ({ ...t, type: 'ticket', title: `#TN${t.ticketNumber} ${t.title}` })),

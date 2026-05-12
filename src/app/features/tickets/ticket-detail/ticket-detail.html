@@ -100,7 +100,7 @@
               <span class="ec-date">
                 {{ ticket.createdAt
                   | date:'EEE, dd MMM yyyy,
-                    hh:mm a' }}
+                    hh:mm a':'Asia/Kolkata' }}
               </span>
             </div>
           </div>
@@ -174,7 +174,7 @@
                 <span class="fr-time">
                   {{ c.createdAt
                     | date:'EEE, dd MMM yyyy,
-                      hh:mm a' }}
+                      hh:mm a':'Asia/Kolkata' }}
                 </span>
               </div>
               <div class="fr-body"
@@ -233,7 +233,7 @@
                 <span class="fn-time">
                   {{ c.createdAt
                     | date:'EEE, dd MMM yyyy,
-                      hh:mm a' }}
+                      hh:mm a':'Asia/Kolkata' }}
                 </span>
               </div>
               <div class="fn-body"
@@ -563,7 +563,7 @@
               </div>
               <div class="fds-sla-val">
                 {{ ticket.slaDeadline
-                  | date:'EEE, dd MMM, hh:mm a' }}
+                  | date:'EEE, dd MMM, hh:mm a':'Asia/Kolkata' }}
               </div>
             </div>
           </div>
@@ -777,7 +777,7 @@
                 </div>
                 <div class="fds-tl-time">
                   {{ t.createdAt
-                    | date:'dd MMM, hh:mm a' }}
+                    | date:'dd MMM, hh:mm a':'Asia/Kolkata' }}
                 </div>
               </div>
             </div>

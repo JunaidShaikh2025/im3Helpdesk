@@ -88,11 +88,6 @@
           <span class="nav-icon">📈</span>
           <span>{{ tr.t('reports') }}</span>
         </a>
-        <a class="nav-item" routerLink="/calendar" routerLinkActive="active">
-          <span class="nav-icon">📆</span>
-          <span>Calendar</span>
-        </a>
-
       </div>
 
       <div class="nav-section">
@@ -217,7 +212,6 @@
           </div>
         </div>
 
-
         <!-- Calendar Icon -->
         <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="router.navigate(['/calendar'])">
           <span class="bell-icon" title="Calendar">📆</span>
@@ -240,7 +234,7 @@
                 <div class="nd-content">
                   <div class="nd-title">{{ a.title }}</div>
                   <div class="nd-msg">{{ a.category }}</div>
-                  <div class="nd-time">{{ a.createdAt | date:'dd MMM, hh:mm a' }}</div>
+                  <div class="nd-time">{{ a.createdAt | date:'dd MMM, hh:mm a':'Asia/Kolkata' }}</div>
                 </div>
               </div>
             </div>
@@ -271,7 +265,7 @@
                 <div class="nd-content">
                   <div class="nd-title">{{ n.title }}</div>
                   <div class="nd-msg">{{ n.message }}</div>
-                  <div class="nd-time">{{ n.createdAt | date:'dd MMM, hh:mm a' }}</div>
+                  <div class="nd-time">{{ n.createdAt | date:'dd MMM, hh:mm a':'Asia/Kolkata' }}</div>
                 </div>
               </div>
             </div>

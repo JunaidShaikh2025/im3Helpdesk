@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 interface NotifSetting {
   key: string;
@@ -114,7 +115,7 @@ export class EmailNotificationsComponent implements OnInit {
     }));
 
     this.http.post(
-      'https://localhost:7071/api/EmailNotificationSettings',
+      `${environment.apiUrl}/EmailNotificationSettings`,
       payload, { headers }
     ).subscribe({
       next: () =>
