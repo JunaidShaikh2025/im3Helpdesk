@@ -586,7 +586,7 @@
       <button class="em-remind-btn"
         *ngIf="isEditMode && newEvent.reminderMinutes"
         [disabled]="sendingReminder"
-        (click)="sendReminderNow($any(newEvent))"
+        (click)="sendReminderFromModal()"
         title="Send reminder email to attendees now">
         {{ sendingReminder ? '⏳ Sending...' : '📧 Send Reminder' }}
       </button>

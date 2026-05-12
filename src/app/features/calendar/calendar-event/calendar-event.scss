@@ -311,7 +311,7 @@ $radius-sm: 8px;
   flex: 1;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(6, 1fr);
+  grid-template-rows: repeat(6, minmax(100px, 1fr));
   overflow-y: auto;
 }
 
@@ -321,9 +321,10 @@ $radius-sm: 8px;
   padding: 6px;
   cursor: pointer;
   transition: background .1s;
-  min-height: 90px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;   /* ← stops content spilling outside cell */
 
   &:nth-child(7n) { border-right: none; }
   &:hover { background: var(--hover-bg); }
@@ -353,6 +354,8 @@ $radius-sm: 8px;
   flex-direction: column;
   gap: 2px;
   flex: 1;
+  overflow: hidden;    /* ← clips events to cell boundary */
+  min-height: 0;       /* ← required for flex child to respect overflow */
 }
 
 .day-event {
@@ -386,9 +389,18 @@ $radius-sm: 8px;
 
 .more-indicator {
   font-size: 10px;
-  color: var(--text-primary)-3;
+  color: var(--text-secondary);
   padding: 2px 4px;
   cursor: pointer;
+  flex-shrink: 0;          /* ← never gets clipped */
+  margin-top: auto;        /* ← pushes to bottom of cell */
+  font-weight: 500;
+  border-radius: 4px;
+  transition: background .1s;
+  &:hover {
+    background: var(--hover-bg);
+    color: var(--accent);
+  }
 }
 
 // ══ WEEK VIEW ═══════════════════════════════════════
@@ -1049,6 +1061,16 @@ $radius-sm: 8px;
     font-size: 14px;
   }
 }
+
+// ── Routes issue note ─────────────────────────────────
+// App routes mein add karna hoga:
+// {
+//   path: 'calendar',
+//   loadComponent: () =>
+//     import('./features/calendar/calendar-event/calendar-event')
+//       .then(m => m.CalendarEventComponent),
+//   canActivate: [authGuard]
+// }
 
 // ── Responsive ───────────────────────────────────────
 @media (max-width: 768px) {

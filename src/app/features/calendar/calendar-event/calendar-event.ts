@@ -687,6 +687,13 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     if (ev) this.deleteEvent(ev);
   }
 
+  // Called from modal "Send Reminder" button — avoids 'as any' cast
+  sendReminderFromModal() {
+    if (!this.newEvent.id) return;
+    const ev = this.allEvents.find(e => e.id === this.newEvent.id);
+    if (ev) this.sendReminderNow(ev);
+  }
+
   closeModals() {
     this.showEventModal = false;
     this.showDetailModal = false;
