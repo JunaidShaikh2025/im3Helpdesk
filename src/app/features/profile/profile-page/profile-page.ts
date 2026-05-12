@@ -6,6 +6,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-profile-page',
@@ -65,13 +66,13 @@ export class ProfilePageComponent implements OnInit {
 
   loadProfile() {
     this.http.get<any>(
-      'https://localhost:7071/api/Profile',
+      `${environment.apiUrl}/Profile`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
         this.profileForm.patchValue(data);
         if (data.photoUrl) {
-          this.photoUrl = 'https://localhost:7071' + data.photoUrl;
+          this.photoUrl = environment.baseUrl + data.photoUrl;
           localStorage.setItem('im3_photo', data.photoUrl);
         }
         this.cdr.detectChanges();
@@ -81,7 +82,7 @@ export class ProfilePageComponent implements OnInit {
 
   loadOrg() {
     this.http.get<any>(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -108,13 +109,13 @@ onPhotoSelect(event: any) {
   formData.append('file', file);
 
   this.http.post<any>(
-    'https://localhost:7071/api/Profile/upload-photo',
+    `${environment.apiUrl}/Profile/upload-photo`,
     formData,
     { headers: this.getHeaders() }
   ).subscribe({
     next: (res) => {
       const fullUrl =
-        'https://localhost:7071' + res.photoUrl;
+        environment.baseUrl + res.photoUrl;
       this.photoUrl = fullUrl;
       this.photoPreview = '';
 
@@ -152,7 +153,7 @@ onPhotoSelect(event: any) {
     this.cdr.detectChanges();
 
     this.http.put(
-      'https://localhost:7071/api/Profile',
+      `${environment.apiUrl}/Profile`,
       this.profileForm.value,
       { headers: this.getHeaders() }
     ).subscribe({
@@ -186,7 +187,7 @@ onPhotoSelect(event: any) {
     this.cdr.detectChanges();
 
     this.http.put(
-      'https://localhost:7071/api/Profile/change-password',
+      `${environment.apiUrl}/Profile/change-password`,
       this.passwordForm.value,
       { headers: this.getHeaders() }
     ).subscribe({
@@ -213,7 +214,7 @@ onPhotoSelect(event: any) {
     this.cdr.detectChanges();
 
     this.http.put(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       this.orgForm.value,
       { headers: this.getHeaders() }
     ).subscribe({

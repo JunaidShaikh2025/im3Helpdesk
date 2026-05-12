@@ -24,8 +24,8 @@ import { AgentGroupService }
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent }
   from '../../../shared/layout/layout';
-import { DomSanitizer, SafeHtml }
-  from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -47,6 +47,7 @@ export class TicketDetailComponent
   public router = inject(Router);
   private ticketService = inject(TicketService);
   private agentService = inject(AgentService);
+  readonly baseUrl = environment.baseUrl;
   private agentGroupService =
     inject(AgentGroupService);
   private authService = inject(AuthService);
@@ -284,7 +285,7 @@ loadTicket() {
 
   loadAttachments() {
     this.http.get<any[]>(
-      `https://localhost:7071/api/Attachments` +
+      `${environment.apiUrl}/Attachments` +
       `/ticket/${this.ticketId}`,
       { headers: this.getHeaders() }
     ).subscribe({
@@ -310,7 +311,7 @@ loadTicket() {
 
   loadTimeline() {
     this.http.get<any[]>(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/timeline`,
       { headers: this.getHeaders() }
     ).subscribe({
@@ -320,7 +321,7 @@ loadTicket() {
 
   recordView() {
     this.http.post(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/view`,
       {},
       { headers: this.getHeaders() }
@@ -329,7 +330,7 @@ loadTicket() {
 
   loadViewers() {
     this.http.get<any[]>(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/viewers`,
       { headers: this.getHeaders() }
     ).subscribe({
@@ -339,7 +340,7 @@ loadTicket() {
 
   loadOrgInfo() {
     this.http.get<any>(
-      'https://localhost:7071/api/Organizations' +
+      `${environment.apiUrl}/Organizations` +
       '/current',
       { headers: this.getHeaders() }
     ).subscribe({
@@ -362,7 +363,7 @@ loadTicket() {
       if (!userId) return;
 
       this.http.get<any>(
-        `https://localhost:7071/api/Agents` +
+        `${environment.apiUrl}/Agents` +
         `/${userId}`,
         { headers: this.getHeaders() }
       ).subscribe({
@@ -375,7 +376,7 @@ loadTicket() {
 
   loadCustomFieldValues() {
     this.http.get<any[]>(
-      'https://localhost:7071/api/CustomFields',
+      `${environment.apiUrl}/CustomFields`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (fields) => {
@@ -383,7 +384,7 @@ loadTicket() {
         if (!fields.length) return;
 
         this.http.get<any[]>(
-          `https://localhost:7071/api/CustomFields` +
+          `${environment.apiUrl}/CustomFields` +
           `/ticket/${this.ticketId}/values`,
           { headers: this.getHeaders() }
         ).subscribe({
@@ -411,7 +412,7 @@ loadTicket() {
       }));
 
     this.http.post(
-      `https://localhost:7071/api/CustomFields` +
+      `${environment.apiUrl}/CustomFields` +
       `/ticket/${this.ticketId}/values`,
       values,
       { headers: this.getHeaders() }
@@ -427,7 +428,7 @@ loadTicket() {
   // ─────────────────────────────────────
   updateStatus(status: string) {
     this.http.put(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/status`,
       { status: status },
       { headers: this.getHeaders() }
@@ -448,7 +449,7 @@ loadTicket() {
 
   updatePriority(priority: string) {
     this.http.put(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/priority`,
       { priority },
       { headers: this.getHeaders() }
@@ -462,7 +463,7 @@ loadTicket() {
 
   updateTicketType() {
     this.http.put(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/type`,
       { ticketType: this.ticket.ticketType },
       { headers: this.getHeaders() }
@@ -501,7 +502,7 @@ loadTicket() {
       'Delete this ticket permanently?')) return;
 
     this.http.delete(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}`,
       { headers: this.getHeaders() }
     ).subscribe({
@@ -598,7 +599,7 @@ async sendReply() {
     });
 
     const res: any = await this.http.post(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/comments`,
       { comment: content, isInternal: false },
       { headers: this.getHeaders() }
@@ -612,7 +613,7 @@ async sendReply() {
         const fd = new FormData();
         fd.append('file', file);
         await this.http.post(
-          `https://localhost:7071` +
+          environment.baseUrl +
           `/api/Attachments/upload` +
           `/${this.ticketId}` +
           `?commentId=${commentId}`,
@@ -657,7 +658,7 @@ async sendNote() {
     });
 
     const res: any = await this.http.post(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/comments`,
       {
         comment: content,
@@ -674,7 +675,7 @@ async sendNote() {
         const fd = new FormData();
         fd.append('file', file);
         await this.http.post(
-          `https://localhost:7071` +
+          environment.baseUrl +
           `/api/Attachments/upload` +
           `/${this.ticketId}` +
           `?commentId=${commentId}`,
@@ -712,14 +713,14 @@ updateAllProps() {
   setTimeout(() => { this.updating = true; }, 0);
 
   const p1 = this.http.put(
-    `https://localhost:7071/api/Tickets` +
+    `${environment.apiUrl}/Tickets` +
     `/${this.ticketId}/assign`,
     { agentId: this.selectedAgentId || null },
     { headers: this.getHeaders() }
   ).toPromise();
 
   const p2 = this.http.put(
-    `https://localhost:7071/api/Tickets` +
+    `${environment.apiUrl}/Tickets` +
     `/${this.ticketId}/group`,
     { agentGroupId:
         this.selectedGroupId || null },
@@ -757,7 +758,7 @@ updateAllProps() {
 
     // Forward via API email
     this.http.post(
-      `https://localhost:7071/api/Tickets` +
+      `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/forward`,
       {
         toEmail: this.forwardEmail,

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-register-customer',
@@ -50,7 +51,7 @@ export class RegisterCustomerComponent {
     this.cdr.detectChanges();
 
     this.http.post(
-      'https://localhost:7071/api/Auth/register-customer',
+      `${environment.apiUrl}/Auth/register-customer`,
       this.form.value
     ).subscribe({
       next: () => {

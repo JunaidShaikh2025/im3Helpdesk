@@ -8,6 +8,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService }
   from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-todo-panel',
@@ -51,7 +52,7 @@ export class TodoPanelComponent implements OnInit {
 
   loadTodos() {
     this.http.get<any[]>(
-      'https://localhost:7071/api/Todo',
+      `${environment.apiUrl}/Todo`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -65,7 +66,7 @@ export class TodoPanelComponent implements OnInit {
     if (!this.newTitle.trim()) return;
 
     this.http.post<any>(
-      'https://localhost:7071/api/Todo',
+      `${environment.apiUrl}/Todo`,
       { title: this.newTitle.trim() },
       { headers: this.getHeaders() }
     ).subscribe({
@@ -79,7 +80,7 @@ export class TodoPanelComponent implements OnInit {
 
   toggleTodo(todo: any) {
     this.http.put<any>(
-      `https://localhost:7071/api/Todo` +
+      `${environment.apiUrl}/Todo` +
       `/${todo.id}/toggle`,
       {},
       { headers: this.getHeaders() }
@@ -93,7 +94,7 @@ export class TodoPanelComponent implements OnInit {
 
   deleteTodo(id: string) {
     this.http.delete(
-      `https://localhost:7071/api/Todo/${id}`,
+      `${environment.apiUrl}/Todo/${id}`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
@@ -110,7 +111,7 @@ export class TodoPanelComponent implements OnInit {
     Promise.all(
       done.map(t =>
         this.http.delete(
-          `https://localhost:7071/api/Todo/${t.id}`,
+          `${environment.apiUrl}/Todo/${t.id}`,
           { headers: this.getHeaders() }
         ).toPromise()
       )

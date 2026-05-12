@@ -14,6 +14,7 @@ import { LayoutComponent } from '../../../shared/layout/layout';
 import { CallLogComponent } from '../../call-logs/call-log.component';
 import { GlobalCallNotificationService }
   from '../../../services/global-call-notification.service';
+import { environment } from '../../../../environments/environment';
 
 type FilterType = 'all' | 'unread' | 'online' | 'groups';
 
@@ -31,6 +32,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   public  router      = inject(Router);
   private cdr         = inject(ChangeDetectorRef);
   public  callSvc     = inject(GlobalCallNotificationService);
+  readonly baseUrl = environment.baseUrl;
 
   @ViewChild('messagesContainer') msgContainer!: ElementRef;
   @ViewChild('localVideo')        localVideoRef!: ElementRef;

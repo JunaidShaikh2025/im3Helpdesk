@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { KnowledgeBaseService } from '../../../services/knowledge-base';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
@@ -28,6 +29,7 @@ export class KbDetailComponent implements OnInit {
   private route       = inject(ActivatedRoute);
   public  router      = inject(Router);
   private cdr         = inject(ChangeDetectorRef);
+  readonly baseUrl = environment.baseUrl;
   private toastr      = inject(ToastrService);
 
   article:   any  = null;

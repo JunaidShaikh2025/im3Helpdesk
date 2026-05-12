@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as signalR from '@microsoft/signalr';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-live-chat',
@@ -95,7 +96,7 @@ export class LiveChatComponent
 
   connectHub() {
     this.hub = new signalR.HubConnectionBuilder()
-      .withUrl('https://localhost:7071/hubs/chat', {
+      .withUrl(`${environment.baseUrl}/hubs/chat`, {
         accessTokenFactory: () =>
           this.authService.getToken() || ''
       })

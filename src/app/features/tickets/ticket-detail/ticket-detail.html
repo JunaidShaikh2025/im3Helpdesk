@@ -65,7 +65,7 @@
                       ticket.createdBy?.fullName)">
               <img
                 *ngIf="ticket.createdBy?.photoUrl"
-                [src]="'https://localhost:7071'
+                [src]="baseUrl
                   + ticket.createdBy.photoUrl"/>
               <span
                 *ngIf="!ticket.createdBy?.photoUrl">
@@ -116,7 +116,7 @@
               <a class="att-chip"
                 *ngFor="let a of
                   getTicketAttachments()"
-                [href]="'https://localhost:7071'
+                [href]="baseUrl
                   + a.fileUrl"
                 target="_blank">
                 <span class="att-ic">
@@ -188,7 +188,7 @@
                   <a class="att-chip"
                     *ngFor="let a of
                       getCommentAttachments(c.id)"
-                    [href]="'https://localhost:7071'
+                    [href]="baseUrl
                       + a.fileUrl"
                     target="_blank">
                     <span class="att-ic">

@@ -12,6 +12,7 @@ import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 // ── Interfaces ──────────────────────────────────────
 export interface CalendarEvent {
@@ -168,7 +169,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
     // Load events from backend
     this.http.get<CalendarEvent[]>(
-      'https://localhost:7071/api/CalendarEvents', h
+      `${environment.apiUrl}/CalendarEvents`, h
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (events) => {
         this.allEvents = events || [];
@@ -190,7 +191,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
     // Load tickets for calendar
     this.http.get<any[]>(
-      'https://localhost:7071/api/Tickets', h
+      `${environment.apiUrl}/Tickets`, h
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (tickets) => {
         this.allTickets = tickets || [];
@@ -419,7 +420,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
     if (this.isEditMode && payload.id) {
       this.http.put<CalendarEvent>(
-        `https://localhost:7071/api/CalendarEvents/${payload.id}`,
+        `${environment.apiUrl}/CalendarEvents/${payload.id}`,
         payload, h
       ).subscribe({
         next: (updated) => {
@@ -450,7 +451,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       } as CalendarEvent;
 
       this.http.post<CalendarEvent>(
-        'https://localhost:7071/api/CalendarEvents', newEv, h
+        `${environment.apiUrl}/CalendarEvents`, newEv, h
       ).subscribe({
         next: (created) => {
           this.allEvents.push(created);
@@ -476,7 +477,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     if (!confirm(`Delete "${event.title}"?`)) return;
     const h = { headers: this.getHeaders() };
     this.http.delete(
-      `https://localhost:7071/api/CalendarEvents/${event.id}`, h
+      `${environment.apiUrl}/CalendarEvents/${event.id}`, h
     ).subscribe({
       next: () => this.removeEventLocally(event.id),
       error: () => this.removeEventLocally(event.id)
@@ -497,7 +498,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     event.isCompleted = !event.isCompleted;
     const h = { headers: this.getHeaders() };
     this.http.put(
-      `https://localhost:7071/api/CalendarEvents/${event.id}`, event, h
+      `${environment.apiUrl}/CalendarEvents/${event.id}`, event, h
     ).subscribe({
       next: () => {},
       error: () => {}
@@ -655,7 +656,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
     const h = { headers: this.getHeaders() };
     this.http.post(
-      `https://localhost:7071/api/CalendarEvents/${ev.id}/send-reminder`,
+      `${environment.apiUrl}/CalendarEvents/${ev.id}/send-reminder`,
       {}, h
     ).subscribe({
       next: (res: any) => {

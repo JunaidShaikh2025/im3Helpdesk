@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 export interface TicketTemplate {
   id?: string;
@@ -19,7 +20,7 @@ export class TicketTemplateService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   
-  private apiUrl = 'https://localhost:7071/api/TicketTemplates';
+  private readonly apiUrl = `${environment.apiUrl}/TicketTemplates`;
 
   private getHeaders() {
     return new HttpHeaders({

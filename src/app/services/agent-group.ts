@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AgentGroupService {
-  private apiUrl = 'https://localhost:7071/api/AgentGroups';
+  private readonly apiUrl = `${environment.apiUrl}/AgentGroups`;
 
   constructor(
     private http: HttpClient,

@@ -11,6 +11,7 @@ import { AuthService }
   from '../../../services/auth.service';
 import { LayoutComponent }
   from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 export type Priority = 'high' | 'medium' | 'low';
 
@@ -83,7 +84,7 @@ export class TodoListComponent implements OnInit {
   loadTodos() {
     this.loading = true;
     this.http.get<any[]>(
-      'https://localhost:7071/api/Todo',
+      `${environment.apiUrl}/Todo`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -163,7 +164,7 @@ export class TodoListComponent implements OnInit {
     if (!this.newTitle.trim()) return;
 
     this.http.post<any>(
-      'https://localhost:7071/api/Todo',
+      `${environment.apiUrl}/Todo`,
       { title: this.newTitle.trim() },
       { headers: this.getHeaders() }
     ).subscribe({
@@ -187,7 +188,7 @@ export class TodoListComponent implements OnInit {
 
   toggleTodo(todo: any) {
     this.http.put<any>(
-      `https://localhost:7071/api/Todo/${todo.id}/toggle`,
+      `${environment.apiUrl}/Todo/${todo.id}/toggle`,
       {},
       { headers: this.getHeaders() }
     ).subscribe({
@@ -206,7 +207,7 @@ export class TodoListComponent implements OnInit {
     if (!confirm('Delete this task?')) return;
 
     this.http.delete(
-      `https://localhost:7071/api/Todo/${id}`,
+      `${environment.apiUrl}/Todo/${id}`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
@@ -231,7 +232,7 @@ export class TodoListComponent implements OnInit {
     Promise.all(
       done.map(t =>
         this.http.delete(
-          `https://localhost:7071/api/Todo/${t.id}`,
+          `${environment.apiUrl}/Todo/${t.id}`,
           { headers: this.getHeaders() }
         ).toPromise()
       )

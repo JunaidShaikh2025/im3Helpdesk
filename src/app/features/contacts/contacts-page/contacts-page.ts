@@ -9,6 +9,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-contacts-page',
@@ -64,7 +65,7 @@ export class ContactsPageComponent implements OnInit {
   loadContacts() {
     this.loading = true;
     this.http.get<any[]>(
-      'https://localhost:7071/api/Contacts',
+      `${environment.apiUrl}/Contacts`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -121,7 +122,7 @@ export class ContactsPageComponent implements OnInit {
 
   loadCompanies() {
     this.http.get<any[]>(
-      'https://localhost:7071/api/Contacts',
+      `${environment.apiUrl}/Contacts`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {

@@ -87,13 +87,13 @@
         <div class="post-media"
           *ngIf="article.mediaUrl && article.mediaType !== 'none'">
           <img *ngIf="article.mediaType === 'image'"
-            [src]="'https://localhost:7071' + article.mediaUrl"
+            [src]="baseUrl + article.mediaUrl"
             alt="Post image"
             class="media-image"/>
           <video *ngIf="article.mediaType === 'video'"
             class="media-video"
             controls>
-            <source [src]="'https://localhost:7071' + article.mediaUrl"/>
+            <source [src]="baseUrl + article.mediaUrl"/>
           </video>
         </div>
 

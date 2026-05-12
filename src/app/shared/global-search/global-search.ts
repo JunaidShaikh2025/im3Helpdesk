@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-global-search',
@@ -40,7 +41,7 @@ export class GlobalSearchComponent {
           'Authorization': `Bearer ${this.authService.getToken()}`
         });
         return this.http.get<any>(
-          `https://localhost:7071/api/Search?q=${q}`,
+          `${environment.apiUrl}/Search?q=${q}`,
           { headers }
         );
       })

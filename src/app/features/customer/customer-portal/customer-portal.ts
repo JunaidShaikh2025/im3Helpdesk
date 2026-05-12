@@ -11,8 +11,8 @@ import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
-import { LayoutComponent }
-  from '../../../shared/layout/layout';
+import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-customer-portal',
@@ -68,7 +68,7 @@ export class CustomerPortalComponent
   loadMyTickets() {
     this.loading = true;
     this.http.get<any[]>(
-      'https://localhost:7071/api/Customer/my-tickets',
+      `${environment.apiUrl}/Customer/my-tickets`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -92,7 +92,7 @@ export class CustomerPortalComponent
     this.cdr.detectChanges();
 
     this.http.post<any>(
-      'https://localhost:7071/api/Customer' +
+      `${environment.apiUrl}/Customer` +
       '/submit-ticket',
       this.createForm.value,
       { headers: this.getHeaders() }
