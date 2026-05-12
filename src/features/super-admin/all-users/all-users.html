@@ -1,82 +1,141 @@
-<mat-toolbar color="warn">
-  <button mat-button (click)="router.navigate(['/admin'])">← Dashboard</button>
-  <span>All Users</span>
-  <span class="spacer"></span>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<app-layout>
+  <div class="au-page">
 
-<div class="page-container">
-  <div class="search-bar">
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Search by name, email or company...</mat-label>
-      <input matInput [(ngModel)]="searchQuery"
-        (input)="search()"/>
-    </mat-form-field>
-    <span class="count">{{ filteredUsers.length }} users</span>
+    <!-- Header -->
+    <div class="au-header">
+      <div class="au-header-left">
+        <button class="au-back-btn"
+          (click)="router.navigate(['/admin'])">
+          ← Back
+        </button>
+        <div>
+          <h1 class="au-title">All Users</h1>
+          <p class="au-subtitle">Platform-wide user management</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Chips -->
+    <div class="au-summary" *ngIf="!loading">
+      <div class="au-chip total">
+        <span class="chip-num">{{ totalCount }}</span>
+        <span class="chip-label">Total</span>
+      </div>
+      <div class="au-chip admin">
+        <span class="chip-num">{{ getRoleCount('CompanyAdmin') }}</span>
+        <span class="chip-label">Admins</span>
+      </div>
+      <div class="au-chip agent">
+        <span class="chip-num">{{ getRoleCount('Agent') }}</span>
+        <span class="chip-label">Agents</span>
+      </div>
+      <div class="au-chip customer">
+        <span class="chip-num">{{ getRoleCount('Customer') }}</span>
+        <span class="chip-label">Customers</span>
+      </div>
+    </div>
+
+    <!-- Search + Filter -->
+    <div class="au-filter-row">
+      <div class="au-search">
+        <span class="au-s-icon">🔍</span>
+        <input
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="applyFilter()"
+          placeholder="Search by name, email or company..."
+          class="au-s-input"/>
+        <button class="au-s-clear"
+          *ngIf="searchQuery"
+          (click)="searchQuery=''; applyFilter()">✕</button>
+      </div>
+
+      <select class="au-role-filter"
+        [(ngModel)]="filterRole"
+        (ngModelChange)="applyFilter()">
+        <option value="">All Roles</option>
+        <option *ngFor="let r of roleOptions" [value]="r">{{ r }}</option>
+      </select>
+
+      <button class="au-clear-btn"
+        *ngIf="searchQuery || filterRole"
+        (click)="clearFilters()">✕ Clear</button>
+
+      <span class="au-count-label">
+        {{ filteredUsers.length }} users
+      </span>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="au-loading">
+      <div class="au-spinner"></div>
+      <p>Loading users...</p>
+    </div>
+
+    <!-- Table -->
+    <div class="au-table-wrap" *ngIf="!loading">
+
+      <div class="au-empty" *ngIf="filteredUsers.length === 0">
+        <div class="au-empty-icon">👤</div>
+        <p>No users match the current filter</p>
+        <button class="au-clear-btn"
+          *ngIf="searchQuery || filterRole"
+          (click)="clearFilters()">Clear Filters</button>
+      </div>
+
+      <table class="au-table" *ngIf="filteredUsers.length > 0">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Organization</th>
+            <th class="center">Verified</th>
+            <th>Last Login</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of filteredUsers" class="au-row">
+
+            <td>
+              <div class="au-user-cell">
+                <div class="au-av"
+                  [style.background]="getAvatarColor(u.fullName)">
+                  {{ getInitials(u.fullName) }}
+                </div>
+                <span class="au-user-name">{{ u.fullName || '—' }}</span>
+              </div>
+            </td>
+
+            <td class="au-email">{{ u.email }}</td>
+
+            <td>
+              <span class="au-role-pill"
+                [style.background]="getRoleStyle(u.role).bg"
+                [style.color]="getRoleStyle(u.role).color">
+                {{ u.role }}
+              </span>
+            </td>
+
+            <td class="au-org">
+              {{ u.organizationName || u.organization?.name || '—' }}
+            </td>
+
+            <td class="center">
+              <span class="au-verified"
+                [class.yes]="u.isEmailVerified"
+                [class.no]="!u.isEmailVerified">
+                {{ u.isEmailVerified ? 'Yes' : 'No' }}
+              </span>
+            </td>
+
+            <td class="au-date">
+              {{ u.lastLoginAt ? (u.lastLoginAt | date:'dd MMM yyyy') : 'Never' }}
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
-
-  <div *ngIf="loading" class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
-
-  <div *ngIf="!loading">
-    <table mat-table [dataSource]="filteredUsers" class="users-table">
-
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
-        <td mat-cell *matCellDef="let u">
-          <strong>{{ u.fullName }}</strong>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="email">
-        <th mat-header-cell *matHeaderCellDef>Email</th>
-        <td mat-cell *matCellDef="let u">{{ u.email }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="role">
-        <th mat-header-cell *matHeaderCellDef>Role</th>
-        <td mat-cell *matCellDef="let u">
-          <span class="role-badge"
-            [style.color]="getRoleColor(u.role)"
-            [style.background]="getRoleColor(u.role) + '20'">
-            {{ u.role }}
-          </span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="organization">
-        <th mat-header-cell *matHeaderCellDef>Organization</th>
-        <td mat-cell *matCellDef="let u">
-          <span *ngIf="u.organization">
-            {{ u.organization.name }}
-            <span class="org-status"
-              [class.inactive]="!u.organization.isActive">
-              {{ u.organization.isActive ? '' : '(Inactive)' }}
-            </span>
-          </span>
-          <span *ngIf="!u.organization" class="na">—</span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="verified">
-        <th mat-header-cell *matHeaderCellDef>Verified</th>
-        <td mat-cell *matCellDef="let u">
-          <span class="verified-badge" [class.yes]="u.isEmailVerified">
-            {{ u.isEmailVerified ? 'Yes' : 'No' }}
-          </span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="lastLogin">
-        <th mat-header-cell *matHeaderCellDef>Last Login</th>
-        <td mat-cell *matCellDef="let u">
-          {{ u.lastLoginAt ? (u.lastLoginAt | date:'dd MMM yyyy') : 'Never' }}
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-    </table>
-  </div>
-</div>
+</app-layout>

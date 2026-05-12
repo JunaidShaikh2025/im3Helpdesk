@@ -1,0 +1,66 @@
+<div class="chat-widget">
+  <div class="chat-header">
+    <div class="chat-status">
+      <span class="status-dot"
+        [class.connected]="connected"
+        [class.disconnected]="!connected">
+      </span>
+      <span>Live Chat</span>
+    </div>
+    <span class="chat-hint">
+      {{ connected ? 'Connected' : 'Local Mode' }}
+    </span>
+  </div>
+
+  <div class="chat-messages">
+    <div *ngIf="messages.length === 0"
+      class="no-messages">
+      No messages yet
+    </div>
+
+    <div *ngFor="let m of messages"
+      class="chat-msg"
+      [class.my-msg]="m.senderName === senderName"
+      [class.other-msg]="
+        m.senderName !== senderName">
+
+      <div class="msg-av"
+        *ngIf="m.senderName !== senderName"
+        [style.background]="
+          getAvatarColor(m.senderName)">
+        {{ m.senderName?.charAt(0)?.toUpperCase() }}
+      </div>
+
+      <div class="msg-content">
+        <div class="msg-name"
+          *ngIf="m.senderName !== senderName">
+          {{ m.senderName }}
+          <span class="agent-tag" *ngIf="m.isAgent">
+            Agent
+          </span>
+        </div>
+        <div class="msg-bubble"
+          [class.mine]="m.senderName === senderName"
+          [class.theirs]="
+            m.senderName !== senderName">
+          {{ m.message }}
+        </div>
+        <div class="msg-time">
+          {{ m.timestamp | date:'hh:mm a' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-input-area">
+    <input class="chat-input"
+      [(ngModel)]="newMessage"
+      placeholder="Type a message..."
+      (keyup.enter)="sendMessage()"/>
+    <button class="send-btn"
+      (click)="sendMessage()"
+      [disabled]="!newMessage.trim()">
+      ↑
+    </button>
+  </div>
+</div>

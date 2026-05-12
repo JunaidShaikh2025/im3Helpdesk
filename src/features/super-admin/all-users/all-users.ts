@@ -1,26 +1,18 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatTableModule } from '@angular/material/table';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../services/super-admin';
 import { AuthService } from '../../../app/services/auth.service';
-
+import { LayoutComponent } from '../../../app/shared/layout/layout';
 
 @Component({
   selector: 'app-all-users',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, FormsModule,
-    MatButtonModule, MatToolbarModule,
-    MatTableModule, MatProgressSpinnerModule,
-    MatFormFieldModule, MatInputModule
+    CommonModule, RouterModule,
+    FormsModule, LayoutComponent
   ],
   templateUrl: './all-users.html',
   styleUrls: ['./all-users.scss']
@@ -36,21 +28,23 @@ export class AllUsersComponent implements OnInit {
   filteredUsers: any[] = [];
   loading = true;
   searchQuery = '';
-  displayedColumns = [
-    'name', 'email', 'role',
-    'organization', 'verified', 'lastLogin'
-  ];
+  filterRole = '';
 
-  ngOnInit() {
-    this.loadUsers();
+  roleOptions = ['SuperAdmin', 'CompanyAdmin', 'Agent', 'Customer'];
+
+  get totalCount()    { return this.allUsers.length; }
+  getRoleCount(role: string) {
+    return this.allUsers.filter(u => u.role === role).length;
   }
+
+  ngOnInit() { this.loadUsers(); }
 
   loadUsers() {
     this.loading = true;
     this.superAdminService.getAllUsers().subscribe({
       next: (data: any[]) => {
         this.allUsers = data;
-        this.filteredUsers = data;
+        this.applyFilter();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -62,27 +56,52 @@ export class AllUsersComponent implements OnInit {
     });
   }
 
-  search() {
-    const q = this.searchQuery.toLowerCase();
-    this.filteredUsers = this.allUsers.filter(u =>
-      u.fullName.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      u.organization?.name?.toLowerCase().includes(q)
-    );
+  applyFilter() {
+    const q = this.searchQuery.toLowerCase().trim();
+    let result = [...this.allUsers];
+
+    if (q) {
+      result = result.filter(u =>
+        u.fullName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.organizationName?.toLowerCase().includes(q) ||
+        u.organization?.name?.toLowerCase().includes(q)
+      );
+    }
+
+    if (this.filterRole) {
+      result = result.filter(u => u.role === this.filterRole);
+    }
+
+    this.filteredUsers = result;
     this.cdr.detectChanges();
   }
 
-  getRoleColor(role: string): string {
-    const colors: any = {
-      'SuperAdmin': '#9c27b0',
-      'CompanyAdmin': '#1976d2',
-      'Agent': '#009688',
-      'Customer': '#666'
-    };
-    return colors[role] || '#666';
+  clearFilters() {
+    this.searchQuery = '';
+    this.filterRole = '';
+    this.applyFilter();
   }
 
-  logout() {
-    this.authService.logout();
+  getRoleStyle(role: string): { bg: string; color: string } {
+    const map: any = {
+      'SuperAdmin':   { bg: '#f3e8ff', color: '#7c3aed' },
+      'CompanyAdmin': { bg: '#e0f2fe', color: '#0369a1' },
+      'Agent':        { bg: '#dcfce7', color: '#15803d' },
+      'Customer':     { bg: '#f3f4f6', color: '#374151' }
+    };
+    return map[role] || { bg: '#f3f4f6', color: '#374151' };
   }
+
+  getAvatarColor(name: string): string {
+    const colors = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899'];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
+  }
+
+  getInitials(name: string): string {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2);
+  }
+
+  logout() { this.authService.logout(); }
 }

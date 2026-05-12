@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = 'https://localhost:7071/api/Auth';
+  private apiUrl = `${environment.apiUrl}/Auth`;
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -17,6 +18,20 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/login`, data);
   }
 
+verifyOtp(dto: { email: string; otp: string }) {
+  return this.http.post<any>(
+    `${this.apiUrl}/verify-otp`,   // ✅ sirf /verify-otp
+    dto
+  );
+}
+
+resendOtp(dto: { email: string }) {
+  return this.http.post<any>(
+    `${this.apiUrl}/resend-otp`,   // ✅ sirf /resend-otp
+    dto
+  );
+}
+
   forgotPassword(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/forgot-password`, data);
   }
@@ -24,6 +39,11 @@ export class AuthService {
   verifyEmail(token: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/verify-email?token=${token}`, {});
   }
+
+  registerCustomer(data: any): Observable<any> {
+  return this.http.post(
+    `${this.apiUrl}/register-customer`, data);
+}
 
   saveToken(token: string): void {
     localStorage.setItem('im3_token', token);
@@ -39,8 +59,8 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('im3_token');
-  }
+  return localStorage.getItem('im3_token');
+}
 
   getRefreshToken(): string | null {
     return localStorage.getItem('im3_refresh');
@@ -66,6 +86,21 @@ export class AuthService {
   getUserName(): string {
     return localStorage.getItem('im3_name') || '';
   }
+
+  isTokenValid(): boolean {
+  const token = this.getToken();
+  if (!token) return false;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp;
+    if (!exp) return false;
+    // Check if token expires in next 60 seconds
+    return (exp * 1000) > (Date.now() - 60000);
+  } catch {
+    return false;
+  }
+}
 
   logout(): void {
     localStorage.removeItem('im3_token');

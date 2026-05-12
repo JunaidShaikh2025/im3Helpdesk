@@ -2,61 +2,124 @@ import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
 import { ToastrService } from 'ngx-toastr';
 import { AgentService } from '../../../services/agent';
+import { AgentGroupService } from '../../../services/agent-group';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-agent-invite',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, RouterModule,
-    MatButtonModule, MatFormFieldModule, MatInputModule,
-    MatToolbarModule, MatProgressSpinnerModule, MatCardModule
+    CommonModule, RouterModule, ReactiveFormsModule,
+    MatProgressSpinnerModule, LayoutComponent
   ],
   templateUrl: './agent-invite.html',
   styleUrls: ['./agent-invite.scss']
 })
 export class AgentInviteComponent {
   private agentService = inject(AgentService);
+  private groupService = inject(AgentGroupService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
   loading = false;
-  success = false;
-  tempPassword = '';
+  uploading = false;
+  groups: any[] = [];
+  selectedGroups: string[] = [];
+  photoPreview = '';
+  inviteSuccess = false;
+  invitedTempPassword = '';
+
+  roles = [
+    { value: 'Administrator', label: 'Administrator' },
+    { value: 'Agent', label: 'Agent' }
+  ];
 
   form: FormGroup = this.fb.group({
-    fullName: ['', [Validators.required, Validators.minLength(3)]],
+    fullName: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
-    phoneNumber: ['']
+    phoneNumber: [''],
+    role: ['Agent', Validators.required],
+    signature: [''],
+    photoUrl: ['']
   });
 
-  onSubmit() {
-    if (this.form.invalid) return;
-    this.loading = true;
-    this.cdr.detectChanges();
-
-    this.agentService.invite(this.form.value).subscribe({
-      next: (res: any) => {
-        this.loading = false;
-        this.success = true;
-        this.tempPassword = res.tempPassword;
+  constructor() {
+    this.groupService.getAll().subscribe({
+      next: (data) => {
+        this.groups = data;
         this.cdr.detectChanges();
-        this.toastr.success('Agent invited successfully!');
-      },
-      error: (err: any) => {
-        this.loading = false;
-        this.cdr.detectChanges();
-        this.toastr.error(err.error?.message || 'Failed to invite agent');
       }
     });
   }
+
+  toggleGroup(groupId: string) {
+    const idx = this.selectedGroups.indexOf(groupId);
+    if (idx > -1) {
+      this.selectedGroups.splice(idx, 1);
+    } else {
+      this.selectedGroups.push(groupId);
+    }
+  }
+
+  isGroupSelected(groupId: string): boolean {
+    return this.selectedGroups.includes(groupId);
+  }
+
+  onPhotoSelect(event: any) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.photoPreview = e.target.result;
+      this.form.patchValue({ photoUrl: e.target.result });
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
+  }
+
+    copyPassword() {
+      navigator.clipboard.writeText(this.invitedTempPassword);
+      Promise.resolve().then(() =>
+        this.toastr.success('Password copied!')
+      );
+    }
+
+  onSubmit() {
+  if (this.form.invalid) return;
+  this.loading = true;
+  this.cdr.detectChanges();
+
+  const payload = {
+    fullName: this.form.value.fullName,
+    email: this.form.value.email,
+    phoneNumber: this.form.value.phoneNumber || '',
+    role: this.form.value.role,
+    signature: this.form.value.signature || '',
+    photoUrl: this.form.value.photoUrl || '',
+    // ✅ groupIds as string array — backend Guid.Parse karega
+    groupIds: this.selectedGroups
+  };
+
+  this.agentService.invite(payload).subscribe({
+    next: (res: any) => {
+      this.loading = false;
+      this.invitedTempPassword = res.tempPassword;
+      this.inviteSuccess = true;
+      this.cdr.detectChanges();
+    },
+    error: (err: any) => {
+      this.loading = false;
+      this.cdr.detectChanges();
+      Promise.resolve().then(() =>
+        this.toastr.error(err.error?.message || 'Failed')
+      );
+    }
+  });
+}
 }

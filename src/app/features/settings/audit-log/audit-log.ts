@@ -1,29 +1,28 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { AuthService } from '../../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-audit-log',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, FormsModule,
-    MatButtonModule, MatToolbarModule, MatCardModule,
-    MatProgressSpinnerModule, MatSelectModule, MatFormFieldModule
+    CommonModule, FormsModule, RouterModule,
+    MatProgressSpinnerModule, MatSelectModule,
+    MatFormFieldModule
   ],
   templateUrl: './audit-log.html',
   styleUrls: ['./audit-log.scss']
 })
 export class AuditLogComponent implements OnInit {
+  @Input() embedded = false;
+
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   public router = inject(Router);
@@ -37,7 +36,6 @@ export class AuditLogComponent implements OnInit {
   total = 0;
   totalPages = 0;
   selectedType = '';
-
   entityTypes = ['', 'Ticket', 'Agent', 'Profile'];
 
   private getHeaders() {
@@ -50,56 +48,46 @@ export class AuditLogComponent implements OnInit {
     this.loadLogs();
   }
 
-  loadLogs() {
-    this.loading = true;
-    const params = new URLSearchParams();
-    params.set('page', this.page.toString());
-    params.set('pageSize', this.pageSize.toString());
-    if (this.selectedType) params.set('entityType', this.selectedType);
+loadLogs() {
+  this.loading = true;
 
-    this.http.get<any>(
-      `https://localhost:7071/api/Audit?${params.toString()}`,
-      { headers: this.getHeaders() }
-    ).subscribe({
-      next: (data) => {
-        this.logs = data.logs;
-        this.total = data.total;
-        this.totalPages = data.totalPages;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
-    });
+  let url = `https://localhost:7071/api/Audit?page=${this.page}&pageSize=${this.pageSize}`;
+  if (this.selectedType) {
+    url += `&entityType=${this.selectedType}`;
   }
 
-  prevPage() {
-    if (this.page > 1) {
-      this.page--;
-      this.loadLogs();
+  this.http.get<any>(url, { headers: this.getHeaders() }).subscribe({
+    next: (res) => {
+      this.logs = res.logs;
+      this.total = res.total;
+      this.totalPages = res.totalPages;
+      this.loading = false;
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      this.toastr.error('Failed to load audit logs');
+      this.loading = false;
+      this.cdr.detectChanges();
     }
+  });
+}
+
+  prevPage() {
+    if (this.page > 1) { this.page--; this.loadLogs(); }
   }
 
   nextPage() {
-    if (this.page < this.totalPages) {
-      this.page++;
-      this.loadLogs();
-    }
+    if (this.page < this.totalPages) { this.page++; this.loadLogs(); }
   }
 
   getActionColor(action: string): string {
     const colors: any = {
-      'Created': '#4caf50', 'StatusChanged': '#ff9800',
-      'Commented': '#2196f3', 'Invited': '#9c27b0',
-      'Updated': '#009688', 'BulkUpdate': '#ff5722',
-      'Assigned': '#3f51b5', 'Deleted': '#f44336'
+      'Created': '#22c55e', 'StatusChanged': '#f59e0b',
+      'Commented': '#8b5cf6', 'Invited': '#3b82f6',
+      'Updated': '#06b6d4', 'BulkUpdate': '#f97316',
+      'Assigned': '#6366f1', 'Deleted': '#ef4444',
+      'TimeLogged': '#14b8a6'
     };
-    return colors[action] || '#666';
-  }
-
-  logout() {
-    this.authService.logout();
+    return colors[action] || '#6b7280';
   }
 }

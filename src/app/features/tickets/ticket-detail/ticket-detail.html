@@ -1,138 +1,801 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/tickets'])">← Back</button>
-  <span>Ticket Detail</span>
-  <span class="spacer"></span>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<app-layout>
+  <div class="td-page">
 
-<div class="page-container" *ngIf="loading">
-  <div class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
-</div>
+    <div class="fd-loading" *ngIf="loading">
+      <div class="fd-spinner"></div>
+    </div>
 
-<div class="page-container" *ngIf="!loading && ticket">
+    <div class="fd-layout" *ngIf="!loading && ticket">
 
-  <mat-card class="ticket-header-card">
-    <mat-card-content>
-      <div class="ticket-meta">
-        <span class="ticket-id">#{{ ticket.id?.substring(0,8) }}</span>
-        <span class="status-badge"
-          [style.background]="getStatusColor(ticket.status) + '20'"
-          [style.color]="getStatusColor(ticket.status)">
-          {{ ticket.status }}
-        </span>
-        <span class="priority-badge"
-          [style.background]="getPriorityColor(ticket.priority) + '20'"
-          [style.color]="getPriorityColor(ticket.priority)">
-          {{ ticket.priority }}
-        </span>
-      </div>
+      <!-- LEFT MAIN -->
+      <div class="fd-main">
 
-      <h2>{{ ticket.title }}</h2>
-      <p class="description">{{ ticket.description }}</p>
-
-      <div class="ticket-info-row">
-        <div class="info-item">
-          <span class="label">Category</span>
-          <span class="value">{{ ticket.category }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Created By</span>
-          <span class="value">{{ ticket.createdBy?.fullName }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Assigned To</span>
-          <span class="value">
-            {{ ticket.assignedTo?.fullName || 'Unassigned' }}
-          </span>
-        </div>
-        <div class="info-item">
-          <span class="label">Created At</span>
-          <span class="value">
-            {{ ticket.createdAt | date:'dd MMM yyyy, hh:mm a' }}
-          </span>
-        </div>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <mat-card class="status-card">
-    <mat-card-content>
-      <h3>Update Status</h3>
-      <div class="status-buttons">
-        <button *ngFor="let s of statuses"
-          mat-raised-button
-          [style.background]="ticket.status === s ? getStatusColor(s) : ''"
-          [style.color]="ticket.status === s ? 'white' : ''"
-          [disabled]="updating || ticket.status === s"
-          (click)="updateStatus(s)">
-          {{ s }}
-        </button>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <mat-card class="comments-card">
-    <mat-card-content>
-      <h3>Comments ({{ ticket.comments?.length || 0 }})</h3>
-      <mat-divider></mat-divider>
-
-      <div class="comments-list">
-        <div *ngIf="ticket.comments?.length === 0" class="no-comments">
-          No comments yet. Be the first to comment!
-        </div>
-
-        <div class="comment-item" *ngFor="let c of ticket.comments">
-          <div class="comment-header">
-            <span class="comment-author">{{ c.user?.fullName }}</span>
-            <span class="comment-date">
-              {{ c.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+        <!-- Action Bar -->
+        <div class="fd-action-bar">
+          <div class="ab-left">
+            <button class="ab-back"
+              (click)="router.navigate(['/tickets'])">
+              ← Back
+            </button>
+            <span class="fd-ticket-num">
+              #TN{{ ticket.ticketNumber }}
+            </span>
+            <span class="fd-status-badge"
+              [class]="'st-' +
+                ticket.status?.toLowerCase()">
+              {{ ticket.status }}
             </span>
           </div>
-          <p class="comment-text">{{ c.comment }}</p>
+          <div class="ab-right">
+            <div class="fd-viewers"
+              *ngIf="viewers.length > 0">
+              <span class="v-eye">👁</span>
+              <div class="v-stack">
+                <div class="v-av"
+                  *ngFor="let v of
+                    viewers.slice(0,3)"
+                  [title]="v.userName"
+                  [style.background]="
+                    getAvatarColor(v.userName)">
+                  {{ v.userName?.charAt(0)
+                    ?.toUpperCase() }}
+                </div>
+              </div>
+            </div>
+            <button class="ab-del"
+              *ngIf="isAgent"
+              type="button"
+              (click)="deleteTicket()">
+              🗑 Delete
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div class="quick-reply">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Quick reply...</mat-label>
-          <textarea matInput [(ngModel)]="newCommentText"
-            rows="2" placeholder="Type your reply here...">
-          </textarea>
-        </mat-form-field>
-        <div class="quick-actions">
-          <button mat-raised-button color="primary"
-            (click)="quickComment()"
-            [disabled]="!newCommentText.trim() || updating">
-            Send Reply
-          </button>
-          <span class="auto-refresh">Auto-refreshing every 15s</span>
+        <!-- Title -->
+        <h1 class="fd-title">{{ ticket.title }}</h1>
+
+        <!-- Original Email -->
+        <div class="fd-email-card">
+          <div class="ec-header">
+            <div class="ec-av"
+              [style.background]="
+                ticket.createdBy?.photoUrl
+                  ? 'transparent'
+                  : getAvatarColor(
+                      ticket.createdBy?.fullName)">
+              <img
+                *ngIf="ticket.createdBy?.photoUrl"
+                [src]="'https://localhost:7071'
+                  + ticket.createdBy.photoUrl"/>
+              <span
+                *ngIf="!ticket.createdBy?.photoUrl">
+                {{ ticket.createdBy?.fullName
+                  ?.charAt(0)?.toUpperCase() }}
+              </span>
+            </div>
+            <div class="ec-info">
+              <div class="ec-name">
+                {{ ticket.createdBy?.fullName }}
+              </div>
+              <div class="ec-sub">
+                {{ ticket.createdBy?.email }}
+                <span class="ec-via">
+                  · via helpdesk
+                  <span
+                    *ngIf="ticket.tags
+                      ?.includes('email')">
+                    · email
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div class="ec-right">
+              <span class="ec-type"
+                *ngIf="ticket.ticketType">
+                {{ ticket.ticketType }}
+              </span>
+              <span class="ec-cat">
+                {{ ticket.category }}
+              </span>
+              <span class="ec-date">
+                {{ ticket.createdAt
+                  | date:'EEE, dd MMM yyyy,
+                    hh:mm a':'Asia/Kolkata' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ec-body"
+            [innerHTML]="sanitizeHtml(
+              ticket.description)">
+          </div>
+
+          <div class="ec-attachments"
+            *ngIf="getTicketAttachments().length > 0">
+            <div class="att-row">
+              <a class="att-chip"
+                *ngFor="let a of
+                  getTicketAttachments()"
+                [href]="'https://localhost:7071'
+                  + a.fileUrl"
+                target="_blank">
+                <span class="att-ic">
+                  {{ getFileIcon(a.contentType) }}
+                </span>
+                <div>
+                  <div class="att-name">
+                    {{ a.fileName }}
+                  </div>
+                  <div class="att-sz">
+                    {{ a.sizeFormatted }}
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
+
+        <!-- ─── CONVERSATION ─── -->
+        <div class="fd-convo">
+
+          <ng-container
+            *ngFor="let c of ticket.comments">
+
+            <!-- Public Reply -->
+            <div class="fd-reply"
+              *ngIf="!c.isInternal">
+              <div class="fr-header">
+                <div class="fr-av"
+                  [style.background]="
+                    getAvatarColor(
+                      c.user?.fullName)">
+                  {{ c.user?.fullName?.charAt(0)
+                    ?.toUpperCase() }}
+                </div>
+                <div class="fr-info">
+                  <span class="fr-name">
+                    {{ c.user?.fullName }}
+                  </span>
+                  <span class="fr-agent"
+                    *ngIf="c.user?.isAgent">
+                    Support Agent
+                  </span>
+                  <span class="fr-via">
+                    <ng-container
+                      *ngIf="c.source === 'email'">
+                      · replied via email
+                    </ng-container>
+                    <ng-container
+                      *ngIf="c.source === 'forward'">
+                      · forwarded
+                    </ng-container>
+                  </span>
+                </div>
+                <span class="fr-time">
+                  {{ c.createdAt
+                    | date:'EEE, dd MMM yyyy,
+                      hh:mm a':'Asia/Kolkata' }}
+                </span>
+              </div>
+              <div class="fr-body"
+                [innerHTML]="
+                  sanitizeHtml(c.comment)">
+              </div>
+              <div class="ec-attachments"
+                *ngIf="getCommentAttachments(c.id)
+                  .length > 0">
+                <div class="att-row">
+                  <a class="att-chip"
+                    *ngFor="let a of
+                      getCommentAttachments(c.id)"
+                    [href]="'https://localhost:7071'
+                      + a.fileUrl"
+                    target="_blank">
+                    <span class="att-ic">
+                      {{ getFileIcon(
+                        a.contentType) }}
+                    </span>
+                    <div>
+                      <div class="att-name">
+                        {{ a.fileName }}
+                      </div>
+                      <div class="att-sz">
+                        {{ a.sizeFormatted }}
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Note -->
+            <div class="fd-note"
+              *ngIf="c.isInternal && isAgent">
+              <div class="fn-header">
+                <div class="fn-av"
+                  [style.background]="
+                    getAvatarColor(
+                      c.user?.fullName)">
+                  {{ c.user?.fullName?.charAt(0)
+                    ?.toUpperCase() }}
+                </div>
+                <div class="fn-info">
+                  <span class="fn-name">
+                    {{ c.user?.fullName }}
+                  </span>
+                  <span class="fn-label">
+                    added a
+                  </span>
+                  <span class="fn-badge">
+                    private note
+                  </span>
+                </div>
+                <span class="fn-time">
+                  {{ c.createdAt
+                    | date:'EEE, dd MMM yyyy,
+                      hh:mm a':'Asia/Kolkata' }}
+                </span>
+              </div>
+              <div class="fn-body"
+                [innerHTML]="
+                  sanitizeHtml(c.comment)">
+              </div>
+            </div>
+
+          </ng-container>
+
+          <div class="fd-empty-convo"
+            *ngIf="!ticket.comments?.length">
+            No replies yet
+          </div>
+        </div>
+
+        <!-- ─── COMPOSER ─── -->
+        <div class="fd-composer">
+
+          <!-- Tabs -->
+          <div class="fdc-tabs">
+            <button class="fdc-tab"
+              type="button"
+              [class.active-reply]="
+                activeComposerTab === 'reply'"
+              (click)="
+                activeComposerTab = 'reply'">
+              ✉ Reply
+            </button>
+            <button class="fdc-tab"
+              type="button"
+              *ngIf="isAgent"
+              [class.active-note]="
+                activeComposerTab === 'note'"
+              (click)="
+                activeComposerTab = 'note'">
+              📝 Note
+            </button>
+            <button class="fdc-tab"
+              type="button"
+              *ngIf="isAgent"
+              [class.active-fwd]="
+                activeComposerTab === 'forward'"
+              (click)="
+                activeComposerTab = 'forward'">
+              ↗ Forward
+            </button>
+
+            <!-- Note visibility -->
+            <div class="fdc-vis"
+              *ngIf="activeComposerTab === 'note'"
+              (click)="noteIsPrivate =
+                !noteIsPrivate">
+              🔒 {{ noteIsPrivate
+                ? 'Not visible to contact'
+                : 'Visible to contact' }}
+              <span>▾</span>
+            </div>
+          </div>
+
+          <!-- ── REPLY BODY ── -->
+          <ng-container
+            *ngIf="activeComposerTab === 'reply'">
+            <div class="fdc-to-row">
+              <span class="fdc-lbl">To:</span>
+              <span class="fdc-to-val">
+                {{ ticket.createdBy?.fullName }}
+                &lt;{{ ticket.createdBy?.email }}&gt;
+              </span>
+            </div>
+            <div class="fdc-toolbar">
+              <button type="button" class="fdc-tb"
+                (click)="execCmd('bold')">
+                <b>B</b>
+              </button>
+              <button type="button" class="fdc-tb"
+                (click)="execCmd('italic')">
+                <i>I</i>
+              </button>
+              <button type="button" class="fdc-tb"
+                (click)="execCmd('underline')">
+                <u>U</u>
+              </button>
+              <span class="fdc-sep">|</span>
+              <button type="button" class="fdc-tb"
+                (click)="execCmd(
+                  'insertUnorderedList')">
+                ≡
+              </button>
+              <button type="button" class="fdc-tb"
+                (click)="insertLink()">
+                🔗
+              </button>
+            </div>
+            <div class="fdc-editor"
+              contenteditable="true"
+              #replyEditor
+              (input)="onReplyInput($event)"
+              data-placeholder=
+                "Type your reply...">
+            </div>
+            <div class="fdc-signature"
+              *ngIf="agentSignature">
+              <span class="fdc-sig-sep">—</span>
+              <span [innerHTML]="agentSignature"
+                class="fdc-sig-text"></span>
+            </div>
+            <div class="fdc-pending"
+              *ngIf="pendingFiles.length > 0">
+              <div class="fdc-pf"
+                *ngFor="let f of pendingFiles;
+                  let i = index">
+                {{ getFileIcon(f.type) }}
+                <span>{{ f.name }}</span>
+                <span class="fdc-pf-sz">
+                  ({{ formatFileSize(f.size) }})
+                </span>
+                <button type="button"
+                  (click)="
+                    removePendingFile(i)">×</button>
+              </div>
+            </div>
+            <div class="fdc-footer">
+              <div class="fdc-fl">
+                <label class="fdc-attach"
+                  type="button">
+                  📎
+                  <input type="file" hidden
+                    multiple
+                    (change)="
+                      onFileSelect($event)"/>
+                </label>
+              </div>
+              <div class="fdc-fr">
+                <button type="button"
+                  class="fdc-cancel"
+                  (click)="clearReply()">
+                  Cancel
+                </button>
+                <button type="button"
+                  class="fdc-send reply-btn"
+                  [disabled]="updating"
+                  (click)="sendReply()">
+                  {{ updating
+                    ? 'Sending...'
+                    : 'Send Reply' }}
+                </button>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- ── NOTE BODY ── -->
+          <ng-container
+            *ngIf="activeComposerTab === 'note'
+              && isAgent">
+            <div class="fdc-note-vis-row">
+              <div class="fdc-nv"
+                [class.sel]="!noteIsPrivate"
+                (click)="noteIsPrivate = false">
+                <span>🌐</span>
+                <div>
+                  <strong>Public</strong>
+                  <small>Visible to contact</small>
+                </div>
+                <span class="fdc-nv-chk"
+                  *ngIf="!noteIsPrivate">✓</span>
+              </div>
+              <div class="fdc-nv"
+                [class.sel]="noteIsPrivate"
+                (click)="noteIsPrivate = true">
+                <span>🔒</span>
+                <div>
+                  <strong>Private</strong>
+                  <small>
+                    Not visible to contact
+                  </small>
+                </div>
+                <span class="fdc-nv-chk"
+                  *ngIf="noteIsPrivate">✓</span>
+              </div>
+            </div>
+            <div class="fdc-to-row">
+              <span class="fdc-lbl">Notify:</span>
+              <div class="fdc-notify-wrap">
+                <span class="fdc-ntag"
+                  *ngFor="let a of notifyAgents">
+                  {{ a.fullName }}
+                  <button type="button"
+                    (click)="removeNotify(a)">
+                    ×
+                  </button>
+                </span>
+                <input class="fdc-mention"
+                  [(ngModel)]="notifyTo"
+                  placeholder="@mention..."
+                  (input)="
+                    searchAgentsForMention(
+                      $event)"/>
+              </div>
+              <div class="fdc-mention-dd"
+                *ngIf="mentionResults.length > 0">
+                <div class="fdc-m-item"
+                  *ngFor="let a of mentionResults"
+                  (click)="addMention(a)">
+                  {{ a.fullName }}
+                </div>
+              </div>
+            </div>
+            <div class="fdc-editor"
+              [class.note-editor-bg]="noteIsPrivate"
+              contenteditable="true"
+              #noteEditor
+              (input)="onNoteInput($event)"
+              data-placeholder=
+                "Add a note, @mention...">
+            </div>
+            <div class="fdc-pending"
+              *ngIf="pendingFiles.length > 0">
+              <div class="fdc-pf"
+                *ngFor="let f of pendingFiles;
+                  let i = index">
+                {{ getFileIcon(f.type) }}
+                <span>{{ f.name }}</span>
+                <button type="button"
+                  (click)="
+                    removePendingFile(i)">×</button>
+              </div>
+            </div>
+            <div class="fdc-footer">
+              <div class="fdc-fl">
+                <label class="fdc-attach"
+                  type="button">
+                  📎
+                  <input type="file" hidden
+                    multiple
+                    (change)="
+                      onFileSelect($event)"/>
+                </label>
+              </div>
+              <div class="fdc-fr">
+                <button type="button"
+                  class="fdc-cancel"
+                  (click)="clearComposer()">
+                  Cancel
+                </button>
+                <button type="button"
+                  class="fdc-send note-btn"
+                  [disabled]="updating"
+                  (click)="sendNote()">
+                  {{ updating
+                    ? 'Adding...'
+                    : 'Add Note' }}
+                </button>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- ── FORWARD BODY ── -->
+          <ng-container
+            *ngIf="activeComposerTab === 'forward'
+              && isAgent">
+            <div class="fdc-to-row">
+              <span class="fdc-lbl">To:</span>
+              <input class="fdc-fwd-input"
+                [(ngModel)]="forwardEmail"
+                placeholder="Email address..."/>
+            </div>
+            <div class="fdc-editor"
+              contenteditable="true"
+              #forwardEditor
+              (input)="onForwardInput($event)"
+              data-placeholder="Add a message...">
+            </div>
+            <div class="fdc-footer">
+              <div class="fdc-fl"></div>
+              <div class="fdc-fr">
+                <button type="button"
+                  class="fdc-cancel"
+                  (click)="
+                    activeComposerTab='reply'">
+                  Cancel
+                </button>
+                <button type="button"
+                  class="fdc-send fwd-btn"
+                  [disabled]="updating"
+                  (click)="doForward()">
+                  {{ updating
+                    ? 'Forwarding...'
+                    : 'Forward' }}
+                </button>
+              </div>
+            </div>
+          </ng-container>
+
+        </div>
+
       </div>
+      <!-- end fd-main -->
 
-      <div class="add-comment">
-        <h4>Add Comment</h4>
-        <form [formGroup]="commentForm" (ngSubmit)="addComment()">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Your comment</mat-label>
-            <textarea matInput formControlName="comment"
-              rows="3" placeholder="Write your comment here...">
-            </textarea>
-            <mat-error *ngIf="commentForm.get('comment')?.hasError('required')">
-              Comment is required
-            </mat-error>
-          </mat-form-field>
+      <!-- RIGHT SIDEBAR -->
+      <div class="fd-sidebar">
 
-          <button mat-raised-button color="primary"
-            type="submit" [disabled]="updating || commentForm.invalid">
-            <mat-spinner *ngIf="updating" diameter="18"></mat-spinner>
-            <span *ngIf="!updating">Add Comment</span>
+        <!-- Status + SLA -->
+        <div class="fds-top-card">
+          <div class="fds-status-row">
+            <span class="fds-dot"
+              [class]="'dot-' +
+                ticket.status?.toLowerCase()">
+            </span>
+            <span class="fds-st-txt">
+              {{ ticket.status }}
+            </span>
+            <span class="fds-sla-chip"
+              *ngIf="ticket.slaStatus"
+              [class]="'sla-' +
+                (ticket.slaStatus
+                  ?.toLowerCase() || 'ontrack')">
+              {{ ticket.slaStatus }}
+            </span>
+          </div>
+          <div class="fds-sla-row"
+            *ngIf="ticket.slaDeadline">
+            <span class="fds-sla-ic">⏱</span>
+            <div>
+              <div class="fds-sla-lbl">
+                Response due
+              </div>
+              <div class="fds-sla-val">
+                {{ ticket.slaDeadline
+                  | date:'EEE, dd MMM, hh:mm a':'Asia/Kolkata' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Properties -->
+        <div class="fds-card">
+          <div class="fds-card-title">PROPERTIES</div>
+
+          <!-- Tags -->
+          <div class="fds-grp">
+            <div class="fds-lbl">TAGS</div>
+            <div class="fds-tags">
+              <span class="fds-tag"
+                *ngFor="let t of getTagsArray()">
+                @{{ t }}
+                <button type="button"
+                  (click)="removeTag(t)">×</button>
+              </span>
+            </div>
+            <div class="fds-tag-row">
+              <input class="fds-tag-in"
+                [(ngModel)]="newTag"
+                placeholder="Add tag..."
+                (keyup.enter)="addTag()"/>
+              <button type="button"
+                class="fds-tag-btn"
+                (click)="addTag()">+</button>
+            </div>
+          </div>
+
+          <!-- Type -->
+          <div class="fds-grp">
+            <div class="fds-lbl">
+              TYPE <span class="req">*</span>
+            </div>
+            <select class="fds-sel"
+              [(ngModel)]="ticket.ticketType"
+              (change)="updateTicketType()">
+              <option value="">-- Select --</option>
+              <option value="Question">Question</option>
+              <option value="Incident">Incident</option>
+              <option value="Problem">Problem</option>
+              <option value="Feature Request">
+                Feature Request
+              </option>
+              <option value="Request">Request</option>
+              <option value="Support">Support</option>
+              <option value="Data">Data</option>
+              <option value="Customer Training">
+                Customer Training
+              </option>
+              <option value="Backend Script">
+                Backend Script
+              </option>
+              <option value="System Gap">
+                System Gap
+              </option>
+              <option value="Release">Release</option>
+              <option value="Information Only">
+                Information Only
+              </option>
+              <option value="On Hold">On Hold</option>
+              <option value="Bug">Bug</option>
+              <option value="Billing">Billing</option>
+            </select>
+          </div>
+
+          <!-- Status -->
+          <div class="fds-grp">
+            <div class="fds-lbl">
+              STATUS <span class="req">*</span>
+            </div>
+            <select class="fds-sel"
+              [(ngModel)]="ticket.status"
+              (change)="
+                updateStatus(ticket.status)">
+              <option *ngFor="let s of statuses"
+                [value]="s">{{ s }}</option>
+            </select>
+          </div>
+
+          <!-- Priority -->
+          <div class="fds-grp">
+            <div class="fds-lbl">PRIORITY</div>
+            <select class="fds-sel"
+              [(ngModel)]="ticket.priority"
+              (change)="
+                updatePriority(ticket.priority)">
+              <option value="Low">● Low</option>
+              <option value="Medium">
+                ● Medium
+              </option>
+              <option value="High">● High</option>
+              <option value="Critical">
+                ● Critical
+              </option>
+            </select>
+          </div>
+
+          <!-- Group -->
+          <div class="fds-grp" *ngIf="isAgent">
+            <div class="fds-lbl">GROUP</div>
+            <select class="fds-sel"
+              [(ngModel)]="selectedGroupId">
+              <option value="">No Group</option>
+              <option *ngFor="let g of groups"
+                [value]="g.id">{{ g.name }}</option>
+            </select>
+          </div>
+
+          <!-- Assign To -->
+          <div class="fds-grp" *ngIf="isAgent">
+            <div class="fds-lbl">ASSIGN TO</div>
+            <select class="fds-sel"
+              [(ngModel)]="selectedAgentId">
+              <option value="">Unassigned</option>
+              <option *ngFor="let a of agents"
+                [value]="a.id">
+                {{ a.fullName }}
+              </option>
+            </select>
+          </div>
+
+          <!-- ✅ SINGLE Update button -->
+          <button type="button"
+            class="fds-update-btn"
+            [disabled]="updating"
+            (click)="updateAllProps()">
+            {{ updating
+              ? 'Updating...' : 'Update' }}
           </button>
-        </form>
+        </div>
+
+        <!-- Custom Fields -->
+        <div class="fds-card"
+          *ngIf="customFields.length > 0">
+          <div class="fds-card-title">
+            CUSTOM FIELDS
+          </div>
+          <div class="fds-grp"
+            *ngFor="let f of customFields">
+            <div class="fds-lbl">
+              {{ f.label | uppercase }}
+              <span *ngIf="f.isRequired"
+                class="req">*</span>
+            </div>
+            <ng-container [ngSwitch]="f.fieldType">
+              <input *ngSwitchCase="'text'"
+                type="text" class="fds-sel"
+                [(ngModel)]="
+                  customFieldValues[f.id]"/>
+              <input *ngSwitchCase="'number'"
+                type="number" class="fds-sel"
+                [(ngModel)]="
+                  customFieldValues[f.id]"/>
+              <input *ngSwitchCase="'date'"
+                type="date" class="fds-sel"
+                [(ngModel)]="
+                  customFieldValues[f.id]"/>
+              <textarea *ngSwitchCase="'textarea'"
+                class="fds-sel" rows="2"
+                [(ngModel)]="
+                  customFieldValues[f.id]">
+              </textarea>
+              <select *ngSwitchCase="'dropdown'"
+                class="fds-sel"
+                [(ngModel)]="
+                  customFieldValues[f.id]">
+                <option value="">Select...</option>
+                <option
+                  *ngFor="let o of
+                    (f.options||'').split(',')"
+                  [value]="o.trim()">
+                  {{ o.trim() }}
+                </option>
+              </select>
+              <input *ngSwitchDefault
+                type="text" class="fds-sel"
+                [(ngModel)]="
+                  customFieldValues[f.id]"/>
+            </ng-container>
+          </div>
+          <button type="button"
+            class="fds-update-btn secondary"
+            (click)="saveCustomFields()">
+            Save Fields
+          </button>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="fds-card">
+          <div class="fds-card-title clickable"
+            (click)="showTimeline =
+              !showTimeline">
+            RECENT ACTIVITY
+            <span>{{ showTimeline ? '▲':'▼' }}</span>
+          </div>
+          <div *ngIf="showTimeline">
+            <div class="fds-tl-empty"
+              *ngIf="!timeline.length">
+              No activity yet
+            </div>
+            <div class="fds-tl-item"
+              *ngFor="let t of timeline">
+              <div class="fds-tl-dot"></div>
+              <div class="fds-tl-right">
+                <div class="fds-tl-text">
+                  <strong>{{ t.user }}</strong>
+                  {{ getTimelineLabel(t.action) }}
+                </div>
+                <div class="fds-tl-time">
+                  {{ t.createdAt
+                    | date:'dd MMM, hh:mm a':'Asia/Kolkata' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-    </mat-card-content>
-  </mat-card>
+    </div>
 
-</div>
+    <div class="fd-not-found"
+      *ngIf="!loading && !ticket">
+      <h3>Ticket not found</h3>
+      <button type="button"
+        (click)="router.navigate(['/tickets'])">
+        Back to Tickets
+      </button>
+    </div>
+
+  </div>
+</app-layout>

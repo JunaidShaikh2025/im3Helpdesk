@@ -1,72 +1,175 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/agents'])">← Back</button>
-  <span>Invite New Agent</span>
-</mat-toolbar>
+<app-layout>
+  <div class="invite-page">
 
-<div class="page-container">
-  <mat-card class="invite-card">
-
-    <div *ngIf="success" class="success-box">
-      <div class="success-icon">✓</div>
-      <h3>Agent Invited Successfully!</h3>
-      <p>Share these credentials with the agent:</p>
-      <div class="credentials">
-        <p><strong>Email:</strong> {{ form.get('email')?.value }}</p>
-        <p><strong>Temp Password:</strong>
-          <code>{{ tempPassword }}</code>
-        </p>
-      </div>
-      <p class="note">Agent should change password after first login.</p>
-      <button mat-raised-button color="primary"
+    <div class="page-header">
+      <button class="back-btn"
         (click)="router.navigate(['/agents'])">
-        View All Agents
+        ← Back to Agents
       </button>
+      <h1>Invite New Agent</h1>
     </div>
 
-    <div *ngIf="!success">
-      <h2>Invite Agent</h2>
+    <div class="invite-form-card">
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Full Name</mat-label>
-          <input matInput formControlName="fullName" placeholder="Agent Name"/>
-          <mat-error *ngIf="form.get('fullName')?.hasError('required')">
-            Name is required
-          </mat-error>
-        </mat-form-field>
+        <!-- Photo Upload -->
+        <div class="photo-section">
+          <div class="photo-preview">
+            <img *ngIf="photoPreview" [src]="photoPreview" alt="Photo"/>
+            <div *ngIf="!photoPreview" class="photo-placeholder">
+              {{ form.value.fullName?.charAt(0)?.toUpperCase() || '?' }}
+            </div>
+          </div>
+          <div class="photo-upload">
+            <label class="upload-btn">
+              Upload Photo
+              <input type="file" hidden accept="image/*"
+                (change)="onPhotoSelect($event)"/>
+            </label>
+            <span class="upload-hint">
+              {{ photoPreview ? 'Photo selected' : 'No file chosen' }}
+            </span>
+          </div>
+        </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Email</mat-label>
-          <input matInput formControlName="email"
-            type="email" placeholder="agent@company.com"/>
-          <mat-error *ngIf="form.get('email')?.hasError('required')">
-            Email is required
-          </mat-error>
-          <mat-error *ngIf="form.get('email')?.hasError('email')">
-            Invalid email
-          </mat-error>
-        </mat-form-field>
+        <div class="form-divider"></div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Phone Number (optional)</mat-label>
-          <input matInput formControlName="phoneNumber"
-            placeholder="+91 9999999999"/>
-        </mat-form-field>
+        <!-- Basic Info -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name <span class="req">*</span></label>
+            <input type="text" formControlName="fullName"
+              placeholder="Agent full name"
+              [class.invalid]="form.get('fullName')?.invalid
+                && form.get('fullName')?.touched"/>
+            <span class="error"
+              *ngIf="form.get('fullName')?.invalid
+                && form.get('fullName')?.touched">
+              Name is required
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label>Email Address <span class="req">*</span></label>
+            <input type="email" formControlName="email"
+              placeholder="agent@company.com"
+              [class.invalid]="form.get('email')?.invalid
+                && form.get('email')?.touched"/>
+            <span class="error"
+              *ngIf="form.get('email')?.hasError('email')
+                && form.get('email')?.touched">
+              Invalid email
+            </span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" formControlName="phoneNumber"
+              placeholder="+91 9999999999"/>
+          </div>
+
+          <div class="form-group">
+            <label>Role <span class="req">*</span></label>
+            <select formControlName="role" class="form-select">
+              <option *ngFor="let r of roles" [value]="r.value">
+                {{ r.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="form-group full">
+          <label>Signature</label>
+          <textarea formControlName="signature"
+            rows="3"
+            placeholder="Agent email signature...">
+          </textarea>
+          <span class="hint">
+            This will appear at the bottom of agent's email replies
+          </span>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- Groups -->
+        <div class="form-group full">
+          <label>Add to Groups</label>
+          <p class="group-hint">
+            Organize agents into groups to assign tickets to specific teams
+          </p>
+          <div class="groups-grid" *ngIf="groups.length > 0">
+            <div class="group-item"
+              *ngFor="let g of groups"
+              [class.selected]="isGroupSelected(g.id)"
+              (click)="toggleGroup(g.id)">
+              <div class="group-check">
+                <span *ngIf="isGroupSelected(g.id)">✓</span>
+              </div>
+              <div class="group-info">
+                <span class="group-name">{{ g.name }}</span>
+                <span class="group-count">
+                  {{ g.memberCount }} members
+                </span>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="groups.length === 0" class="no-groups">
+            No groups yet.
+            <a (click)="router.navigate(['/agents/groups'])">
+              Create groups
+            </a>
+          </div>
+        </div>
+
+        <div class="form-divider"></div>
 
         <div class="form-actions">
-          <button mat-button type="button"
+          <button type="button" class="cancel-btn"
             (click)="router.navigate(['/agents'])">
             Cancel
           </button>
-          <button mat-raised-button color="primary"
-            type="submit" [disabled]="loading">
-            <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
-            <span *ngIf="!loading">Send Invite</span>
+          <button type="submit" class="submit-btn"
+            [disabled]="loading">
+            <span *ngIf="loading">Sending invite...</span>
+            <span *ngIf="!loading">Send Invite →</span>
           </button>
+        </div>
+
+        <!-- Success State -->
+        <div class="success-state" *ngIf="inviteSuccess">
+          <div class="success-icon">✓</div>
+          <h3>Agent Invited Successfully!</h3>
+          <p>An invitation email has been sent to the agent.</p>
+
+          <div class="temp-password-box">
+            <label>Temporary Password:</label>
+            <div class="temp-pass">
+              <code>{{ invitedTempPassword }}</code>
+              <button (click)="copyPassword()" class="copy-btn">
+                Copy
+              </button>
+            </div>
+            <p class="temp-hint">
+              Share this with the agent. They should change it after first login.
+            </p>
+          </div>
+
+          <div class="success-actions">
+            <button class="submit-btn"
+              (click)="router.navigate(['/agents'])">
+              Go to Agents
+            </button>
+            <button class="cancel-btn"
+              (click)="inviteSuccess = false; form.reset({ role: 'Agent' })">
+              Invite Another
+            </button>
+          </div>
         </div>
 
       </form>
     </div>
-
-  </mat-card>
-</div>
+  </div>
+</app-layout>

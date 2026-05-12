@@ -1,0 +1,134 @@
+<div class="auth-layout">
+  <div class="auth-left">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <span class="brand-name">iM3HelpDesk</span>
+    </div>
+    <div class="hero-content">
+      <h1>GET SUPPORT<br>
+        <span class="highlight">FASTER</span> THAN EVER.
+      </h1>
+      <p>Submit tickets, track progress, and get help from our support team.</p>
+      <div class="feature-list">
+        <div class="feature-item">✓ Submit support tickets</div>
+        <div class="feature-item">✓ Real-time updates</div>
+        <div class="feature-item">✓ Chat with support team</div>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge-item">⊕ Enterprise Grade</span>
+      <span class="badge-item">⊕ Global Infrastructure</span>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-form-wrap">
+      <a routerLink="/login" class="back-link">← Back to login</a>
+      <h2>Customer Registration</h2>
+      <p class="auth-subtitle">
+        Create your account to submit and track support tickets.
+      </p>
+
+      <div class="success-state" *ngIf="success">
+        <div class="success-circle">✓</div>
+        <h3>Account Created!</h3>
+        <p>Please check your email to verify your account.</p>
+        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:8px">
+          Redirecting to login in 3 seconds...
+        </p>
+      </div>
+
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!success">
+
+        <div class="form-group">
+          <label>Full Name</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input type="text" formControlName="fullName"
+              placeholder="Your full name"/>
+          </div>
+          <span class="field-error"
+            *ngIf="form.get('fullName')?.invalid && form.get('fullName')?.touched">
+            Required (min 3 characters)
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" formControlName="email"
+              placeholder="your@email.com"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Phone (optional)</label>
+          <div class="input-wrap">
+            <span class="input-icon">📱</span>
+            <input type="tel" formControlName="phoneNumber"
+              placeholder="+91 9999999999"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Organization Slug</label>
+          <div class="input-wrap">
+            <span class="input-icon">🏢</span>
+            <input type="text" formControlName="organizationSlug"
+              placeholder="your-company-slug"/>
+          </div>
+          <span class="field-hint">
+            Ask your company for the organization slug
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" formControlName="password"
+                placeholder="••••••••"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" formControlName="confirmPassword"
+                placeholder="••••••••"/>
+            </div>
+            <span class="field-error"
+              *ngIf="form.get('confirmPassword')?.hasError('mismatch')
+                && form.get('confirmPassword')?.touched">
+              Passwords do not match
+            </span>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" [disabled]="loading">
+          <span *ngIf="!loading">Create Account →</span>
+          <span *ngIf="loading">Creating...</span>
+        </button>
+
+        <div class="alt-links">
+          <span>Already have an account?</span>
+          <a routerLink="/login" class="create-link">Sign in</a>
+          <span>|</span>
+          <a routerLink="/register" class="create-link">Company Signup</a>
+        </div>
+      </form>
+
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth-guard';
 import { superAdminGuard } from './guards/super-admin-guard';
 import { customerGuard } from './guards/customer-guard';
+import { ContactsPageComponent } from './features/contacts/contacts-page/contacts-page';
+import { TodoListComponent } from './features/todo/todo-panel/todo-list.component'; 
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -23,6 +25,32 @@ export const routes: Routes = [
       import('./features/auth/forgot-password/forgot-password')
         .then(m => m.ForgotPasswordComponent)
   },
+  {
+    path: 'contacts',
+    component: ContactsPageComponent,
+    canActivate: [authGuard]
+  },
+    {
+    path: 'todo',
+    component: TodoListComponent,
+    canActivate: [authGuard]
+  },
+  // {
+  //   path: 'todo',
+  //   loadComponent: () =>
+  //     import('./features/todo/todo-panel/todo-panel')
+  //       .then(m => m.TodoPanelComponent),
+  //   canActivate: [authGuard]
+  // },
+
+  {
+  path: 'chat',
+  loadComponent: () =>
+    import('./features/chat/chat-page/chat-page')
+      .then(m => m.ChatPageComponent),
+  canActivate: [authGuard]
+  },
+
   {
     path: 'verify-email',
     loadComponent: () =>
@@ -59,8 +87,8 @@ export const routes: Routes = [
   },
   {
     path: 'tickets/:id',
-    loadComponent: () =>
-      import('./features/tickets/ticket-detail/ticket-detail')
+      loadComponent: () =>
+        import('./features/tickets/ticket-detail/ticket-detail')
         .then(m => m.TicketDetailComponent),
     canActivate: [authGuard]
   },
@@ -68,7 +96,7 @@ export const routes: Routes = [
   path: 'agents',
   loadComponent: () =>
     import('./features/agents/agent-list/agent-list')
-      .then(m => m.AgentListComponent),
+      .then(m => m.AgentsComponent),
   canActivate: [authGuard]
 },
 {
@@ -96,7 +124,7 @@ export const routes: Routes = [
   path: 'reports',
   loadComponent: () =>
     import('./features/reports/reports-page/reports-page')
-      .then(m => m.ReportsPageComponent),
+      .then(m => m.ReportsComponent),
   canActivate: [authGuard]
 },
 {
@@ -190,5 +218,38 @@ export const routes: Routes = [
       .then(m => m.AuditLogComponent),
   canActivate: [authGuard]
 },
+{
+  path: 'register-customer',
+  loadComponent: () =>
+    import('./features/auth/register-customer/register-customer')
+      .then(m => m.RegisterCustomerComponent)
+},
+{
+  path: 'agents/groups',
+  loadComponent: () =>
+    import('./features/agents/agent-groups/agent-groups')
+      .then(m => m.AgentGroupsComponent),
+  canActivate: [authGuard]
+},
+  {
+    path: 'ai-dashboard',
+    loadComponent: () =>
+      import('./features/dashboard/ai-dashboard/ai-dashboard')
+        .then(m => m.AIDashboardComponent),
+    canActivate: [authGuard]
+  },
+{
+  path: 'calendar',
+  loadComponent: () =>
+    import('./features/calendar/calendar-event/calendar-event')
+      .then(m => m.CalendarEventComponent),
+  canActivate: [authGuard]
+},
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./auth/reset-password/reset-password')
+        .then(m => m.ResetPasswordComponent)
+  },
   { path: '**', redirectTo: 'login' }
 ];

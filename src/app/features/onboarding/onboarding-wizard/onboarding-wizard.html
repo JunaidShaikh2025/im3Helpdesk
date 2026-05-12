@@ -1,148 +1,169 @@
-<div class="onboarding-container">
+<div class="onboarding-bg">
   <div class="onboarding-card">
-    <h1>Welcome to iM3 Helpdesk!</h1>
-    <p class="subtitle">Let's set up your helpdesk in a few easy steps</p>
 
-    <mat-stepper linear #stepper>
+    <div class="ob-header">
+      <div class="ob-logo">⚡</div>
+      <h1>Welcome to iM3 Helpdesk!</h1>
+      <p>Set up your workspace in just 2 steps</p>
+    </div>
 
-      <!-- Step 1: Logo & Brand -->
-      <mat-step [stepControl]="step1Form" label="Brand Setup">
+    <mat-stepper linear #stepper class="ob-stepper">
+
+      <!-- Step 1: Organization Setup -->
+      <mat-step [stepControl]="step1Form" label="Organization">
         <form [formGroup]="step1Form">
-          <div class="step-content">
-            <h3>Step 1 — Company Branding</h3>
+          <div class="step-body">
+            <h3>Company Details</h3>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Logo URL (optional)</mat-label>
-              <input matInput formControlName="logoUrl"
-                placeholder="https://yourcompany.com/logo.png"/>
-            </mat-form-field>
+            <!-- Logo Upload -->
+            <div class="logo-row">
+              <div class="logo-circle">
+                <img *ngIf="logoPreview" [src]="logoPreview" alt="Logo"/>
+                <span *ngIf="!logoPreview">🏢</span>
+              </div>
+              <div class="logo-upload">
+                <label class="upload-btn">
+                  Upload Logo
+                  <input type="file" hidden accept="image/*"
+                    (change)="onLogoSelect($event)"/>
+                </label>
+                <span class="upload-hint">PNG/JPG, max 2MB</span>
+              </div>
+            </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Brand Color</mat-label>
-              <input matInput formControlName="brandColor"
-                placeholder="#1976d2"/>
-            </mat-form-field>
+            <div class="form-group">
+              <label>Company Name <span class="req">*</span></label>
+              <input type="text" formControlName="companyName"
+                placeholder="Your company name"
+                [class.invalid]="step1Form.get('companyName')?.invalid
+                  && step1Form.get('companyName')?.touched"/>
+            </div>
 
-            <div class="color-preview"
-              [style.background]="step1Form.get('brandColor')?.value">
-              Brand Color Preview
+            <div class="form-group">
+              <label>Support Email <span class="req">*</span></label>
+              <input type="email" formControlName="supportEmail"
+                placeholder="support@yourcompany.com"
+                [class.invalid]="step1Form.get('supportEmail')?.invalid
+                  && step1Form.get('supportEmail')?.touched"/>
+              <span class="hint">
+                Emails sent here will auto-create tickets
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label>Brand Color</label>
+              <div class="color-row">
+                <input type="color" formControlName="brandColor"
+                  class="color-picker"/>
+                <span class="color-val">
+                  {{ step1Form.value.brandColor }}
+                </span>
+                <div class="color-preview"
+                  [style.background]="step1Form.value.brandColor">
+                </div>
+              </div>
             </div>
           </div>
+
           <div class="step-actions">
-            <button mat-raised-button color="primary" matStepperNext>
-              Next
+            <button type="button" class="next-btn"
+              matStepperNext
+              [disabled]="step1Form.invalid">
+              Next →
             </button>
           </div>
         </form>
       </mat-step>
 
-      <!-- Step 2: Support Email -->
-      <mat-step [stepControl]="step2Form" label="Support Email">
-        <form [formGroup]="step2Form">
-          <div class="step-content">
-            <h3>Step 2 — Support Email</h3>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Support Email</mat-label>
-              <input matInput formControlName="supportEmail"
-                type="email" placeholder="support@yourcompany.com"/>
-              <mat-error *ngIf="step2Form.get('supportEmail')?.hasError('required')">
-                Support email is required
-              </mat-error>
-              <mat-error *ngIf="step2Form.get('supportEmail')?.hasError('email')">
-                Invalid email address
-              </mat-error>
-            </mat-form-field>
-          </div>
-          <div class="step-actions">
-            <button mat-button matStepperPrevious>Back</button>
-            <button mat-raised-button color="primary" matStepperNext>
-              Next
-            </button>
-          </div>
-        </form>
-      </mat-step>
-
-      <!-- Step 3: Ticket Categories -->
-      <mat-step label="Ticket Categories">
-        <div class="step-content">
-          <h3>Step 3 — Ticket Categories</h3>
-
-          <div class="chip-list">
-            <span class="chip" *ngFor="let cat of categories">
-              {{ cat }}
-              <button class="chip-remove" (click)="removeCategory(cat)">x</button>
-            </span>
-          </div>
-
-          <div class="add-row">
-            <mat-form-field appearance="outline" class="flex-input">
-              <mat-label>Add Category</mat-label>
-              <input matInput [(ngModel)]="newCategory"
-                placeholder="e.g. Network Issue"/>
-            </mat-form-field>
-            <button mat-raised-button color="accent" (click)="addCategory()">
-              Add
-            </button>
-          </div>
-        </div>
-        <div class="step-actions">
-          <button mat-button matStepperPrevious>Back</button>
-          <button mat-raised-button color="primary" matStepperNext>Next</button>
-        </div>
-      </mat-step>
-
-      <!-- Step 4: Invite Agents -->
+      <!-- Step 2: Invite Agents -->
       <mat-step label="Invite Agents">
-        <div class="step-content">
-          <h3>Step 4 — Invite Agents</h3>
+        <div class="step-body">
+          <h3>Invite Your Team</h3>
+          <p class="step-desc">
+            Add agent email addresses to invite them.
+            They will receive an email with login credentials.
+          </p>
 
-          <div class="chip-list">
-            <span class="chip" *ngFor="let email of agentEmails">
-              {{ email }}
-              <button class="chip-remove" (click)="removeAgent(email)">x</button>
-            </span>
-            <span *ngIf="agentEmails.length === 0" class="no-agents">
-              No agents added yet
-            </span>
+          <div class="invite-list" *ngIf="agentEmails.length > 0">
+            <div class="invite-item"
+              *ngFor="let email of agentEmails">
+              <span class="invite-av">
+                {{ email.charAt(0).toUpperCase() }}
+              </span>
+              <span class="invite-email">{{ email }}</span>
+              <button class="remove-invite"
+                (click)="removeAgent(email)">×</button>
+            </div>
           </div>
 
-          <div class="add-row">
-            <mat-form-field appearance="outline" class="flex-input">
-              <mat-label>Agent Email</mat-label>
-              <input matInput [(ngModel)]="newAgentEmail"
-                type="email" placeholder="agent@yourcompany.com"/>
-            </mat-form-field>
-            <button mat-raised-button color="accent" (click)="addAgentEmail()">
-              Invite
+          <div class="add-email-row">
+            <input type="email"
+              [(ngModel)]="newAgentEmail"
+              placeholder="agent@yourcompany.com"
+              (keyup.enter)="addAgentEmail()"
+              class="email-input"/>
+            <button class="add-btn"
+              (click)="addAgentEmail()"
+              [disabled]="!newAgentEmail.trim()">
+              + Add
             </button>
           </div>
+
+          <div class="skip-hint" *ngIf="agentEmails.length === 0">
+            You can skip this and invite agents later from Settings
+          </div>
         </div>
+
         <div class="step-actions">
-          <button mat-button matStepperPrevious>Back</button>
-          <button mat-raised-button color="primary" matStepperNext>Next</button>
+          <button type="button" class="back-btn" matStepperPrevious>
+            ← Back
+          </button>
+          <button type="button" class="next-btn"
+            matStepperNext>
+            Next →
+          </button>
         </div>
       </mat-step>
 
-      <!-- Step 5: Finish -->
-      <mat-step label="Finish">
-        <div class="step-content finish-step">
+      <!-- Step 3: Finish -->
+      <mat-step label="Done">
+        <div class="step-body finish-body">
           <div class="finish-icon">✓</div>
           <h3>You're all set!</h3>
           <p>Your helpdesk is configured and ready to use.</p>
 
-          <div class="summary">
-            <p><strong>Support Email:</strong>
-              {{ step2Form.get('supportEmail')?.value || 'Not set' }}</p>
-            <p><strong>Categories:</strong> {{ categories.join(', ') }}</p>
-            <p><strong>Agents Invited:</strong>
-              {{ agentEmails.length > 0 ? agentEmails.join(', ') : 'None' }}</p>
+          <div class="summary-box">
+            <div class="summary-row">
+              <span class="sum-label">Company</span>
+              <span class="sum-val">
+                {{ step1Form.value.companyName }}
+              </span>
+            </div>
+            <div class="summary-row">
+              <span class="sum-label">Support Email</span>
+              <span class="sum-val">
+                {{ step1Form.value.supportEmail }}
+              </span>
+            </div>
+            <div class="summary-row">
+              <span class="sum-label">Agents Invited</span>
+              <span class="sum-val">
+                {{ agentEmails.length > 0
+                  ? agentEmails.length + ' agent(s)'
+                  : 'None (invite later)' }}
+              </span>
+            </div>
           </div>
         </div>
+
         <div class="step-actions">
-          <button mat-button matStepperPrevious>Back</button>
-          <button mat-raised-button color="primary" (click)="finish()">
-            Go to Dashboard
+          <button type="button" class="back-btn" matStepperPrevious>
+            ← Back
+          </button>
+          <button type="button" class="finish-btn"
+            (click)="finish()" [disabled]="loading">
+            <span *ngIf="loading">Setting up...</span>
+            <span *ngIf="!loading">Go to Dashboard →</span>
           </button>
         </div>
       </mat-step>

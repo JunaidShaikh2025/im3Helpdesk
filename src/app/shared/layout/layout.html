@@ -1,0 +1,311 @@
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" [class.collapsed]="isSidebarCollapsed">
+
+    <!-- Logo -->
+    <div class="sidebar-logo" routerLink="/dashboard" style="cursor:pointer">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">
+        <ng-container *ngIf="!isSuperAdmin && !isCustomer">iM3 Helpdesk</ng-container>
+        <ng-container *ngIf="isSuperAdmin">Super Admin</ng-container>
+        <ng-container *ngIf="isCustomer">My Support</ng-container>
+      </span>
+    </div>
+
+    <!-- Agent/Admin Nav -->
+    <nav class="sidebar-nav" *ngIf="!isSuperAdmin && !isCustomer">
+
+      <div class="nav-section">
+        <div class="nav-label">{{ tr.t('mainMenu') || 'Main Menu' }}</div>
+
+        <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
+          <span class="nav-icon">📊</span>
+          <span>{{ tr.t('dashboard') }}</span>
+        </a>
+
+        <a class="nav-item" routerLink="/tickets" routerLinkActive="active">
+          <span class="nav-icon">🎫</span>
+          <span>{{ tr.t('tickets') }}</span>
+        </a>
+
+        <a class="nav-item" routerLink="/chat" routerLinkActive="active">
+          <span class="nav-icon">💬</span>
+          <span>{{ tr.t('chat') }}</span>
+          <span class="badge" *ngIf="chatUnreadCount > 0 && missedCallCount === 0">
+            {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
+          </span>
+          <span class="badge badge-call" *ngIf="missedCallCount > 0 && chatUnreadCount === 0">
+            {{ missedCallCount > 99 ? '99+' : missedCallCount }}
+          </span>
+          <ng-container *ngIf="chatUnreadCount > 0 && missedCallCount > 0">
+            <span class="badge">{{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}</span>
+            <span class="badge badge-call">{{ missedCallCount > 99 ? '99+' : missedCallCount }}</span>
+          </ng-container>
+        </a>
+
+        <a class="nav-item" routerLink="/contacts" routerLinkActive="active">
+          <span class="nav-icon">👤</span>
+          <span>{{ tr.t('contacts') }}</span>
+        </a>
+
+        <a class="nav-item" routerLink="/todo" routerLinkActive="active">
+          <span class="nav-icon">📋</span>
+          <span>{{ tr.t('todo') }}</span>
+          <span class="badge" *ngIf="todoCount > 0">
+            {{ todoCount > 99 ? '99+' : todoCount }}
+          </span>
+        </a>
+
+        <a class="nav-item" routerLink="/kb" routerLinkActive="active">
+          <span class="nav-icon">📚</span>
+          <span>{{ tr.t('insights') }}</span>
+        </a>
+
+        <a class="nav-item" routerLink="/notifications" routerLinkActive="active">
+          <span class="nav-icon">🔔</span>
+          <span>{{ tr.t('notifications') }}</span>
+          <span class="badge" *ngIf="unreadCount > 0">
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
+        </a>
+
+        <a class="nav-item" routerLink="/ai-dashboard" routerLinkActive="active">
+          <span class="nav-icon">🤖</span>
+          <span>AI Forecast</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">{{ tr.t('manage') || 'Manage' }}</div>
+
+        <a class="nav-item" routerLink="/agents" routerLinkActive="active">
+          <span class="nav-icon">👥</span>
+          <span>{{ tr.t('team') }}</span>
+        </a>
+
+        <a class="nav-item" routerLink="/reports" routerLinkActive="active">
+          <span class="nav-icon">📈</span>
+          <span>{{ tr.t('reports') }}</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">{{ tr.t('system') || 'System' }}</div>
+
+        <a class="nav-item" routerLink="/settings" routerLinkActive="active">
+          <span class="nav-icon">⚙</span>
+          <span>{{ tr.t('settings') }}</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- SuperAdmin Nav -->
+    <nav class="sidebar-nav" *ngIf="isSuperAdmin">
+      <div class="nav-section">
+        <div class="nav-label">Super Admin</div>
+        <a class="nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          <span class="nav-icon">🏠</span><span>Overview</span>
+        </a>
+        <a class="nav-item" routerLink="/admin/organizations" routerLinkActive="active">
+          <span class="nav-icon">🏢</span><span>Organizations</span>
+        </a>
+        <a class="nav-item" routerLink="/admin/users" routerLinkActive="active">
+          <span class="nav-icon">👤</span><span>All Users</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Customer Nav -->
+    <nav class="sidebar-nav" *ngIf="isCustomer">
+      <div class="nav-section">
+        <div class="nav-label">My Support</div>
+        <a class="nav-item" routerLink="/customer" routerLinkActive="active">
+          <span class="nav-icon">🎫</span><span>{{ tr.t('tickets') }}</span>
+        </a>
+        <a class="nav-item" routerLink="/kb" routerLinkActive="active">
+          <span class="nav-icon">📚</span><span>{{ tr.t('insights') }}</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Sidebar Bottom User -->
+    <div class="sidebar-user" (click)="router.navigate(['/profile'])">
+      <div class="user-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
+        <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
+          (error)="userPhotoUrl = ''"
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+        <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ userName }}</div>
+        <div class="user-role">{{ userRole }}</div>
+      </div>
+    </div>
+
+    <div class="sidebar-collapse-btn" (click)="toggleSidebarCollapse()">
+      <span class="nav-icon" style="font-size: 18px;">
+        {{ isSidebarCollapsed ? '⇥' : '⇤' }}
+      </span>
+      <span class="collapse-text" *ngIf="!isSidebarCollapsed">
+        {{ tr.t('collapse') || 'Collapse' }}
+      </span>
+    </div>
+  </div>
+  <!-- End Sidebar -->
+
+  <!-- MAIN AREA -->
+  <div class="main-area" [class.collapsed]="isSidebarCollapsed">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="hamburger" (click)="sidebarOpen = !sidebarOpen">☰</button>
+
+      <!-- Search -->
+      <div class="topbar-search" *ngIf="!isSuperAdmin && !isCustomer">
+        <span class="ts-icon">🔍</span>
+        <input class="ts-input"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearch()"
+          [placeholder]="tr.t('search') + ' tickets, agents, KB...'"/>
+        <div class="search-dropdown" *ngIf="searchResults.length > 0">
+          <div class="sr-item" *ngFor="let r of searchResults" (click)="goToResult(r)">
+            <span class="sr-icon">
+              {{ r.type === 'ticket' ? '🎫' : r.type === 'agent' ? '👤' : '📚' }}
+            </span>
+            <span>{{ r.title }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer header -->
+      <div class="customer-header" *ngIf="isCustomer">Support Portal</div>
+
+      <!-- SuperAdmin Topbar -->
+      <div class="super-header" *ngIf="isSuperAdmin">
+        <span class="super-label">🔧 Platform Administration</span>
+        <div class="super-nav">
+          <a class="super-nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">🏠 Overview</a>
+          <a class="super-nav-item" routerLink="/admin/organizations" routerLinkActive="active">🏢 Organizations</a>
+          <a class="super-nav-item" routerLink="/admin/users" routerLinkActive="active">👤 All Users</a>
+        </div>
+      </div>
+
+      <!-- Right side -->
+      <div class="topbar-right">
+
+        <!-- New Ticket btn -->
+        <button class="new-ticket-btn"
+          *ngIf="!isSuperAdmin && !isCustomer"
+          (click)="router.navigate(['/tickets/create'])">
+          + {{ tr.t('newTicket') }}
+        </button>
+
+        <!-- Todo trigger -->
+        <div class="todo-trigger" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleTodoPanel()">
+          📋
+          <span class="todo-count" *ngIf="todoCount > 0">
+            {{ todoCount > 99 ? '99+' : todoCount }}
+          </span>
+          <div class="todo-dropdown" *ngIf="showTodoPanel" (click)="$event.stopPropagation()">
+            <app-todo-panel (close)="showTodoPanel = false; onTodoPanelChange()"></app-todo-panel>
+          </div>
+        </div>
+
+        <!-- Calendar Icon -->
+        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="router.navigate(['/calendar'])">
+          <span class="bell-icon" title="Calendar">📆</span>
+        </div>
+
+        <!-- KB Bell -->
+        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleKbDropdown()">
+          <span class="bell-icon">📚</span>
+          <span class="notif-count" *ngIf="kbUnreadCount > 0">
+            {{ kbUnreadCount > 99 ? '99+' : kbUnreadCount }}
+          </span>
+          <div class="notif-dropdown" *ngIf="showKbDropdown" (click)="$event.stopPropagation()">
+            <div class="nd-header">
+              <span>{{ tr.t('insights') }}</span>
+              <button (click)="router.navigate(['/kb']); showKbDropdown=false">View All</button>
+            </div>
+            <div class="nd-empty" *ngIf="kbUnreadArticles.length === 0">No new articles</div>
+            <div class="nd-scroll-area">
+              <div class="nd-item" *ngFor="let a of kbUnreadArticles" (click)="goToKbArticle(a.id)">
+                <div class="nd-content">
+                  <div class="nd-title">{{ a.title }}</div>
+                  <div class="nd-msg">{{ a.category }}</div>
+                  <div class="nd-time">{{ a.createdAt | date:'dd MMM, hh:mm a':'Asia/Kolkata' }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="nd-footer" (click)="router.navigate(['/kb']); showKbDropdown=false">
+              Browse Knowledge Base
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Bell -->
+        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleNotifDropdown()">
+          <span class="bell-icon">🔔</span>
+          <span class="notif-count" *ngIf="unreadCount > 0">
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
+          <div class="notif-dropdown" *ngIf="showNotifDropdown" (click)="$event.stopPropagation()">
+            <div class="nd-header">
+              <span>{{ tr.t('notifications') }}</span>
+              <button (click)="markAllRead()">Mark all read</button>
+            </div>
+            <div class="nd-empty" *ngIf="notifications.length === 0">No notifications</div>
+            <div class="nd-scroll-area">
+              <div class="nd-item"
+                *ngFor="let n of notifications.slice(0,8)"
+                [class.unread]="!n.isRead"
+                (click)="goToNotification(n)">
+                <div class="nd-dot" *ngIf="!n.isRead"></div>
+                <div class="nd-content">
+                  <div class="nd-title">{{ n.title }}</div>
+                  <div class="nd-msg">{{ n.message }}</div>
+                  <div class="nd-time">{{ n.createdAt | date:'dd MMM, hh:mm a':'Asia/Kolkata' }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="nd-footer" (click)="router.navigate(['/notifications'])">
+              View all notifications
+            </div>
+          </div>
+        </div>
+
+        <!-- Topbar User Avatar -->
+        <div class="topbar-user" (click)="router.navigate(['/profile'])">
+          <div class="u-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
+            <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
+              (error)="userPhotoUrl = ''"
+              style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+            <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
+          </div>
+          <div class="u-info">
+            <span class="u-name">{{ userName }}</span>
+            <span class="u-role">{{ userRole }}</span>
+          </div>
+        </div>
+
+        <a class="nav-item logout-item" (click)="logout()">
+          <span class="nav-icon">→</span>
+          <span>{{ tr.t('logout') }}</span>
+        </a>
+      </div>
+    </div>
+    <!-- End Topbar -->
+
+    <!-- PAGE CONTENT -->
+    <div class="page-content">
+      <ng-content></ng-content>
+    </div>
+
+  </div>
+  <!-- End Main Area -->
+
+</div>
+
+<!-- Global Call Popup -->
+<app-global-call-popup></app-global-call-popup>

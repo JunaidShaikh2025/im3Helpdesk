@@ -1,15 +1,17 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatBadgeModule } from '@angular/material/badge';
 import { ToastrService } from 'ngx-toastr';
 import { NotificationService } from '../../../services/notification';
 import { AuthService } from '../../../services/auth.service';
+import { Subject, interval, takeUntil } from 'rxjs';
+import { LayoutComponent } from '../../../shared/layout/layout';
+
+
 
 @Component({
   selector: 'app-notifications-page',
@@ -17,18 +19,18 @@ import { AuthService } from '../../../services/auth.service';
   imports: [
     CommonModule, RouterModule,
     MatButtonModule, MatToolbarModule,
-    MatCardModule, MatTabsModule,
-    MatProgressSpinnerModule, MatBadgeModule
+    MatTabsModule, MatProgressSpinnerModule,LayoutComponent
   ],
   templateUrl: './notifications-page.html',
   styleUrls: ['./notifications-page.scss']
 })
-export class NotificationsPageComponent implements OnInit {
+export class NotificationsPageComponent implements OnInit, OnDestroy {
   private notifService = inject(NotificationService);
   private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
+  private destroy$ = new Subject<void>();
 
   notifications: any[] = [];
   activityLogs: any[] = [];
@@ -39,10 +41,18 @@ export class NotificationsPageComponent implements OnInit {
   ngOnInit() {
     this.loadNotifications();
     this.loadActivity();
+
+    interval(30000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadNotifications());
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadNotifications() {
-    this.loading = true;
     this.notifService.getAll().subscribe({
       next: (data: any[]) => {
         this.notifications = data;
@@ -58,7 +68,6 @@ export class NotificationsPageComponent implements OnInit {
   }
 
   loadActivity() {
-    this.loadingActivity = true;
     this.notifService.getActivity().subscribe({
       next: (data: any[]) => {
         this.activityLogs = data;
@@ -75,11 +84,11 @@ export class NotificationsPageComponent implements OnInit {
   markRead(id: string) {
     this.notifService.markRead(id).subscribe({
       next: () => {
-        const n = this.notifications.find(n => n.id === id);
-        if (n) {
+        const n = this.notifications.find(x => x.id === id);
+        if (n && !n.isRead) {
           n.isRead = true;
-          this.unreadCount = this.notifications.filter(n => !n.isRead).length;
-          this.cdr.detectChanges();
+          this.unreadCount = Math.max(0, this.unreadCount - 1);
+          this.cdr.markForCheck();
         }
       }
     });
@@ -90,10 +99,41 @@ export class NotificationsPageComponent implements OnInit {
       next: () => {
         this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;
-        this.cdr.detectChanges();
-        this.toastr.success('All notifications marked as read');
+        this.toastr.success('All marked as read');
+        this.cdr.markForCheck();
       }
     });
+  }
+
+navigateToTicket(notification: any) {
+  this.markRead(notification.id);
+
+  Promise.resolve().then(() => {
+    if (notification.ticketId) {
+      this.router.navigate(
+        ['/tickets', notification.ticketId]);
+      return;
+    }
+
+    const title = (notification.title || '').toLowerCase();
+    if (title.includes('ticket')) {
+      this.router.navigate(['/tickets']);
+    } else if (title.includes('agent')) {
+      this.router.navigate(['/agents']);
+    } else {
+      this.router.navigate(['/notifications']);
+    }
+  });
+}
+
+  getTypeIcon(type: string): string {
+    const icons: any = {
+      'info': 'ℹ',
+      'success': '✓',
+      'warning': '⚠',
+      'error': '✗'
+    };
+    return icons[type] || 'ℹ';
   }
 
   getTypeColor(type: string): string {
@@ -112,7 +152,10 @@ export class NotificationsPageComponent implements OnInit {
       'StatusChanged': '↻',
       'Commented': '💬',
       'Invited': '👤',
-      'Updated': '✎'
+      'Updated': '✎',
+      'Assigned': '→',
+      'TimeLogged': '⏱',
+      'BulkUpdate': '⊞'
     };
     return icons[action] || '•';
   }

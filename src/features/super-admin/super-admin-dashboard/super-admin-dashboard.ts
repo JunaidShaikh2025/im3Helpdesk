@@ -1,21 +1,19 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../services/super-admin';
 import { AuthService } from '../../../app/services/auth.service';
+import { LayoutComponent } from '../../../app/shared/layout/layout';
+
 
 @Component({
   selector: 'app-super-admin-dashboard',
   standalone: true,
   imports: [
-    CommonModule, RouterModule,
-    MatButtonModule, MatToolbarModule,
-    MatCardModule, MatProgressSpinnerModule
+    CommonModule,
+    RouterModule,
+    LayoutComponent
   ],
   templateUrl: './super-admin-dashboard.html',
   styleUrls: ['./super-admin-dashboard.scss']

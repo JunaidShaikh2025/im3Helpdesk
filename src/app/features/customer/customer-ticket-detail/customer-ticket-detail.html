@@ -1,115 +1,240 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/customer'])">← Back</button>
-  <span>Ticket Detail</span>
-  <span class="spacer"></span>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<div class="detail-layout">
 
-<div class="page-container" *ngIf="loading">
-  <div class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
-</div>
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⚡</div>
+      <span class="brand-name">My Support</span>
+    </div>
 
-<div class="page-container" *ngIf="!loading && ticket">
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">MY SUPPORT</div>
 
-  <!-- Ticket Info -->
-  <mat-card class="ticket-card">
-    <mat-card-content>
-      <div class="ticket-header">
-        <div>
-          <h2>{{ ticket.title }}</h2>
-          <span class="category-badge">{{ ticket.category }}</span>
+      <a class="nav-item"
+        (click)="router.navigate(['/customer'])">
+        <span class="nav-icon">🎫</span>
+        <span>My Tickets</span>
+      </a>
+
+      <a class="nav-item"
+        (click)="router.navigate(['/todo'])">
+        <span class="nav-icon">✅</span>
+        <span>Todo</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="user-info">
+        <div class="avatar">
+          {{ ticket?.createdBy?.fullName?.charAt(0) || 'U' }}
         </div>
-        <span class="status-badge"
-          [style.background]="getStatusColor(ticket.status) + '20'"
-          [style.color]="getStatusColor(ticket.status)">
-          {{ ticket.status }}
+        <div class="user-details">
+          <span class="user-name">
+            {{ ticket?.createdBy?.fullName || 'Customer' }}
+          </span>
+          <span class="user-role">Customer</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="main-wrap">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="back-btn"
+          (click)="router.navigate(['/customer'])">
+          ← Back to Tickets
+        </button>
+        <span class="topbar-title" *ngIf="ticket">
+          {{ ticket.title }}
         </span>
       </div>
 
-      <p class="description">{{ ticket.description }}</p>
+      <div class="topbar-right">
+        <!-- Only notifications -->
+        <button class="icon-btn"
+          (click)="router.navigate(['/notifications'])"
+          title="Notifications">
+          🔔
+        </button>
 
-      <div class="meta-row">
-        <div class="meta-item">
-          <span class="meta-label">Submitted</span>
-          <span class="meta-value">
-            {{ ticket.createdAt | date:'dd MMM yyyy, hh:mm a' }}
-          </span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">Assigned To</span>
-          <span class="meta-value">
-            {{ ticket.assignedTo?.fullName || 'Pending' }}
-          </span>
-        </div>
-        <div class="meta-item" *ngIf="ticket.resolvedAt">
-          <span class="meta-label">Resolved At</span>
-          <span class="meta-value">
-            {{ ticket.resolvedAt | date:'dd MMM yyyy' }}
-          </span>
-        </div>
+        <!-- Todo -->
+        <button class="icon-btn"
+          (click)="router.navigate(['/todo'])"
+          title="Todo">
+          ✅
+        </button>
+
+        <button class="logout-btn" (click)="logout()">
+          → Logout
+        </button>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </header>
 
-  <!-- Conversation -->
-  <mat-card class="conversation-card">
-    <mat-card-content>
-      <h3>Conversation</h3>
-      <mat-divider></mat-divider>
+    <!-- LOADING -->
+    <div class="loading-center" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Loading ticket...</p>
+    </div>
 
-      <div class="messages">
-        <div *ngIf="!ticket.comments?.length" class="no-messages">
-          No replies yet. Our team will respond shortly.
+    <!-- CONTENT -->
+    <div class="content" *ngIf="!loading && ticket">
+
+      <!-- Ticket Info Card -->
+      <div class="ticket-info-card">
+        <div class="ticket-info-top">
+          <div class="ticket-info-left">
+            <h2>{{ ticket.title }}</h2>
+            <span class="category-tag">
+              {{ ticket.category }}
+            </span>
+          </div>
+          <span class="status-badge"
+            [style.background]="getStatusColor(ticket.status) + '18'"
+            [style.color]="getStatusColor(ticket.status)"
+            [style.border]="'1px solid ' + getStatusColor(ticket.status) + '40'">
+            {{ ticket.status }}
+          </span>
         </div>
 
-        <div *ngFor="let c of ticket.comments"
-          class="message"
-          [class.agent-message]="c.isAgent"
-          [class.customer-message]="!c.isAgent">
+        <p class="ticket-desc">{{ ticket.description }}</p>
 
-          <div class="message-bubble">
-            <div class="message-header">
-              <span class="message-author">
-                {{ c.user?.fullName }}
-                <span class="agent-tag" *ngIf="c.isAgent">Support Agent</span>
-              </span>
-              <span class="message-time">
-                {{ c.createdAt | date:'dd MMM, hh:mm a' }}
-              </span>
-            </div>
-            <p class="message-text">{{ c.comment }}</p>
+        <div class="meta-row">
+          <div class="meta-item">
+            <span class="meta-label">SUBMITTED</span>
+            <span class="meta-val">
+              {{ ticket.createdAt | date:'dd MMM yyyy, hh:mm a' }}
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">ASSIGNED TO</span>
+            <span class="meta-val">
+              {{ ticket.assignedTo?.fullName || 'Pending' }}
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">PRIORITY</span>
+            <span class="meta-val">
+              {{ ticket.priority }}
+            </span>
+          </div>
+          <div class="meta-item" *ngIf="ticket.resolvedAt">
+            <span class="meta-label">RESOLVED AT</span>
+            <span class="meta-val">
+              {{ ticket.resolvedAt | date:'dd MMM yyyy' }}
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- Reply Box -->
-      <div class="reply-box"
-        *ngIf="ticket.status !== 'Closed' && ticket.status !== 'Resolved'">
-        <mat-divider></mat-divider>
-        <div class="reply-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Your reply...</mat-label>
-            <textarea matInput [(ngModel)]="replyText"
-              rows="3"
-              placeholder="Type your message here...">
-            </textarea>
-          </mat-form-field>
-          <button mat-raised-button color="primary"
-            (click)="sendReply()"
-            [disabled]="!replyText.trim() || sending">
-            <mat-spinner *ngIf="sending" diameter="18"></mat-spinner>
-            <span *ngIf="!sending">Send Reply</span>
-          </button>
+      <!-- Conversation Card -->
+      <div class="conversation-card">
+        <div class="conv-header">
+          <h3>💬 Conversation</h3>
+          <span class="msg-count">
+            {{ ticket.comments?.length || 0 }} messages
+          </span>
         </div>
-      </div>
 
-      <div class="resolved-note"
-        *ngIf="ticket.status === 'Resolved' || ticket.status === 'Closed'">
-        This ticket has been {{ ticket.status | lowercase }}.
-        If you need further assistance, please submit a new ticket.
+        <div class="messages-wrap" #messagesWrap>
+
+          <!-- No messages -->
+          <div class="no-msg"
+            *ngIf="!ticket.comments?.length">
+            <span>🤝</span>
+            <p>No replies yet. Our team will respond shortly.</p>
+          </div>
+
+          <!-- Messages -->
+          <div *ngFor="let c of ticket.comments"
+            class="msg-row"
+            [class.agent-row]="c.isAgent"
+            [class.customer-row]="!c.isAgent">
+
+            <!-- Agent bubble (left) -->
+            <ng-container *ngIf="c.isAgent">
+              <div class="msg-avatar agent-avatar">
+                {{ c.user?.fullName?.charAt(0) || 'A' }}
+              </div>
+              <div class="msg-bubble agent-bubble">
+                <div class="msg-meta">
+                  <span class="msg-name">
+                    {{ c.user?.fullName }}
+                  </span>
+                  <span class="agent-tag">Support Agent</span>
+                  <span class="msg-time">
+                    {{ c.createdAt | date:'dd MMM, hh:mm a' }}
+                  </span>
+                </div>
+                <p class="msg-text"
+                  [innerHTML]="c.comment"></p>
+              </div>
+            </ng-container>
+
+            <!-- Customer bubble (right) -->
+            <ng-container *ngIf="!c.isAgent">
+              <div class="msg-bubble customer-bubble">
+                <div class="msg-meta">
+                  <span class="msg-name">
+                    {{ c.user?.fullName }}
+                  </span>
+                  <span class="msg-time">
+                    {{ c.createdAt | date:'dd MMM, hh:mm a' }}
+                  </span>
+                </div>
+                <p class="msg-text">{{ c.comment }}</p>
+              </div>
+              <div class="msg-avatar customer-avatar">
+                {{ c.user?.fullName?.charAt(0) || 'U' }}
+              </div>
+            </ng-container>
+
+          </div>
+        </div>
+
+        <!-- Reply Box -->
+        <div class="reply-box"
+          *ngIf="ticket.status !== 'Closed' &&
+                 ticket.status !== 'Resolved'">
+          <textarea
+            [(ngModel)]="replyText"
+            placeholder="Type your reply here..."
+            rows="3"
+            (keydown.control.enter)="sendReply()">
+          </textarea>
+          <div class="reply-actions">
+            <span class="reply-hint">
+              Ctrl+Enter to send
+            </span>
+            <button class="send-btn"
+              (click)="sendReply()"
+              [disabled]="!replyText.trim() || sending">
+              <span *ngIf="!sending">Send Reply →</span>
+              <span *ngIf="sending"
+                class="btn-loading">
+                <span class="spinner-sm"></span>
+                Sending...
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Closed notice -->
+        <div class="closed-notice"
+          *ngIf="ticket.status === 'Resolved' ||
+                 ticket.status === 'Closed'">
+          <span>🔒</span>
+          This ticket is {{ ticket.status | lowercase }}.
+          Need more help?
+          <a (click)="router.navigate(['/customer'])">
+            Submit a new ticket
+          </a>
+        </div>
+
       </div>
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </div>
 </div>

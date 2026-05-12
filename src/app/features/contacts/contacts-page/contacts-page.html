@@ -1,0 +1,285 @@
+<app-layout>
+  <div class="contacts-page">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Contacts</h1>
+      </div>
+      <div class="header-right">
+        <div class="search-wrap">
+          <span>🔍</span>
+          <input class="search-input"
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="search()"
+            [placeholder]="activeView === 'companies'
+              ? 'Search companies...'
+              : 'Search contacts...'"/>
+        </div>
+        <!-- ✅ Removed Add Contact button -->
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="contact-tabs">
+      <button class="c-tab"
+        [class.active]="activeView === 'contacts'"
+        (click)="activeView = 'contacts'">
+        Contacts
+        <span class="tab-count">
+          {{ contacts.length }}
+        </span>
+      </button>
+      <button class="c-tab"
+        [class.active]="activeView === 'companies'"
+        (click)="activeView = 'companies'">
+        Companies
+        <span class="tab-count">
+          {{ companies.length }}
+        </span>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-center">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- CONTACTS VIEW -->
+    <div *ngIf="!loading && activeView === 'contacts'"
+      class="contacts-layout">
+
+      <!-- Left: Contacts List -->
+      <div class="contacts-list">
+        <div *ngIf="filteredContacts.length === 0"
+          class="empty-state">
+          <div class="empty-icon">👤</div>
+          <p>No contacts found</p>
+        </div>
+
+        <div class="list-item"
+          *ngFor="let c of filteredContacts"
+          [class.selected]="
+            selectedContact?.id === c.id"
+          (click)="selectContact(c)">
+
+          <div class="contact-av"
+            [style.background]="
+              getAvatarColor(c.fullName)">
+            {{ getInitials(c.fullName) }}
+          </div>
+
+          <div class="contact-info">
+            <div class="contact-name">
+              {{ c.fullName }}
+            </div>
+            <div class="contact-email">
+              {{ c.email }}
+            </div>
+            <div class="contact-company"
+              *ngIf="c.company">
+              🏢 {{ c.company }}
+            </div>
+          </div>
+
+          <div class="contact-meta">
+            <span class="source-badge email-src"
+              *ngIf="c.source">
+              {{ c.source }}
+            </span>
+            <div class="contact-date">
+              {{ c.createdAt | date:'dd MMM' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Contact Detail -->
+      <div class="contact-detail"
+        *ngIf="selectedContact">
+        <div class="detail-card">
+          <div class="detail-avatar"
+            [style.background]="
+              getAvatarColor(selectedContact.fullName)">
+            {{ getInitials(selectedContact.fullName) }}
+          </div>
+          <div class="detail-name">
+            {{ selectedContact.fullName }}
+          </div>
+          <div class="detail-email">
+            {{ selectedContact.email }}
+          </div>
+          <div *ngIf="selectedContact.company">
+            🏢 {{ selectedContact.company }}
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <h4>Contact Info</h4>
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-val">
+              {{ selectedContact.email }}
+            </span>
+          </div>
+          <div class="info-row"
+            *ngIf="selectedContact.phoneNumber">
+            <span class="info-label">Phone</span>
+            <span class="info-val">
+              {{ selectedContact.phoneNumber }}
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Source</span>
+            <span class="info-val">
+              {{ selectedContact.source || 'email' }}
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Added</span>
+            <span class="info-val">
+              {{ selectedContact.createdAt
+                | date:'dd MMM yyyy' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <a class="action-btn primary"
+            (click)="router.navigate(['/tickets'])">
+            View Tickets
+          </a>
+          <a class="action-btn secondary"
+            [href]="'mailto:' +
+              selectedContact.email">
+            Send Email
+          </a>
+        </div>
+      </div>
+
+      <div class="contact-detail empty-detail"
+        *ngIf="!selectedContact">
+        <div class="select-hint">
+          <div>👈</div>
+          <p>Select a contact</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COMPANIES VIEW -->
+    <div *ngIf="!loading && activeView === 'companies'">
+
+      <!-- Company not selected: list -->
+      <div *ngIf="!selectedCompany"
+        class="companies-table-wrap">
+        <table class="companies-table">
+          <thead>
+            <tr>
+              <th>
+                <input type="checkbox"/>
+              </th>
+              <th>Company</th>
+              <th>Contacts</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let co of filteredCompanies"
+              class="co-row"
+              (click)="selectCompany(co)">
+              <td (click)="$event.stopPropagation()">
+                <input type="checkbox"/>
+              </td>
+              <td>
+                <div class="co-name-cell">
+                  <div class="co-av">
+                    {{ co.name?.charAt(0)
+                      ?.toUpperCase() }}
+                  </div>
+                  <span class="co-name">
+                    {{ co.name }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="co-count"
+                  *ngIf="co.contacts.length > 0">
+                  {{ co.contacts.length }}
+                </span>
+                <span class="co-dash"
+                  *ngIf="co.contacts.length === 0">
+                  —
+                </span>
+              </td>
+              <td>
+                <button class="more-btn"
+                  (click)="$event.stopPropagation()">
+                  ⋮
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Company selected: detail -->
+      <div *ngIf="selectedCompany"
+        class="company-detail">
+        <div class="co-detail-header">
+          <button class="back-btn"
+            (click)="selectedCompany = null">
+            ← Companies
+          </button>
+        </div>
+
+        <div class="co-detail-card">
+          <div class="co-detail-logo">
+            {{ selectedCompany.name?.charAt(0)
+              ?.toUpperCase() }}
+          </div>
+          <div>
+            <h2>{{ selectedCompany.name }}</h2>
+            <p>
+              {{ selectedCompany.contacts.length }}
+              contact(s)
+            </p>
+          </div>
+        </div>
+
+        <!-- Tabs: Contacts -->
+        <div class="co-detail-tabs">
+          <button class="co-tab"
+            [class.active]="coActiveTab==='contacts'"
+            (click)="coActiveTab='contacts'">
+            Contacts
+          </button>
+        </div>
+
+        <!-- Contacts in this company -->
+        <div class="co-contacts-list">
+          <div class="co-contact-row"
+            *ngFor="let c of
+              selectedCompany.contacts"
+            (click)="viewContact(c)">
+            <div class="co-c-av"
+              [style.background]="
+                getAvatarColor(c.fullName)">
+              {{ getInitials(c.fullName) }}
+            </div>
+            <div>
+              <div class="co-c-name">
+                {{ c.fullName }}
+              </div>
+              <div class="co-c-email">
+                {{ c.email }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</app-layout>

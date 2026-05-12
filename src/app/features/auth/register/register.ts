@@ -23,6 +23,7 @@ import { ChangeDetectorRef } from '@angular/core';
 })
 export class RegisterComponent {
   loading = false;
+  success = false; // <-- ADDED THIS
   form: FormGroup;
   successMessage = '';
 
@@ -34,14 +35,14 @@ export class RegisterComponent {
     private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
-    fullName: ['', [Validators.required, Validators.minLength(3)]],
-    email: ['', [Validators.required, Validators.email]],
-    phoneNumber: ['', Validators.required],
-    companyName: ['', Validators.required],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-    confirmPassword: ['', Validators.required]
-  }, { validators: this.passwordMatchValidator });
-}
+      fullName: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.required, Validators.email]],
+      phoneNumber: ['', Validators.required],
+      companyName: ['', Validators.required],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', Validators.required]
+    }, { validators: this.passwordMatchValidator });
+  }
 
   passwordMatchValidator(control: AbstractControl) {
     const password = control.get('password')?.value;
@@ -54,25 +55,26 @@ export class RegisterComponent {
   }
 
   onSubmit() {
-  if (this.form.invalid) return;
-  this.loading = true;
-  this.cdr.detectChanges();
+    if (this.form.invalid) return;
+    this.loading = true;
+    this.cdr.detectChanges();
 
-  this.authService.register(this.form.value).subscribe({
-    next: (res) => {
-      this.loading = false;
-      this.successMessage = res.message;
-      this.cdr.detectChanges();
-      this.toastr.success('Account created! Please verify your email.');
-      setTimeout(() => {
-        this.router.navigate(['/login']);
-      }, 3000);
-    },
-    error: (err) => {
-      this.loading = false;
-      this.cdr.detectChanges();
-      this.toastr.error(err.error?.message || 'Registration failed');
-    }
-  });
-}
+    this.authService.register(this.form.value).subscribe({
+      next: (res) => {
+        this.loading = false;
+        this.success = true; // <-- ADDED THIS
+        this.successMessage = res.message;
+        this.cdr.detectChanges();
+        this.toastr.success('Account created! Please verify your email.');
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 3000);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.cdr.detectChanges();
+        this.toastr.error(err.error?.message || 'Registration failed');
+      }
+    });
+  }
 }

@@ -1,76 +1,158 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/kb'])">← Back</button>
-  <span>{{ isEdit ? 'Edit Article' : 'New Article' }}</span>
-</mat-toolbar>
+<div class="create-page">
 
-<div class="page-container">
-  <mat-card class="form-card">
-    <mat-card-content>
-      <h2>{{ isEdit ? 'Edit Article' : 'Create New Article' }}</h2>
+  <!-- Header -->
+  <div class="create-header">
+    <button class="back-btn"
+      (click)="router.navigate(['/kb'])">
+      ← Back
+    </button>
+    <h1>{{ isEdit ? 'Edit Post' : 'Create Post' }}</h1>
+  </div>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <!-- Post Form Card -->
+  <div class="create-card">
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Title</mat-label>
-          <input matInput formControlName="title"
-            placeholder="Article title..."/>
-          <mat-error *ngIf="form.get('title')?.hasError('required')">
-            Title is required
-          </mat-error>
-        </mat-form-field>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Category</mat-label>
-          <mat-select formControlName="category">
-            <mat-option *ngFor="let c of categories" [value]="c">
-              {{ c }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+      <!-- ── Media Upload Area ── -->
+      <div class="media-section">
+        <label class="media-label">📷 Photo / Video (optional)</label>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Tags (comma separated)</mat-label>
-          <input matInput formControlName="tags"
-            placeholder="login, password, reset"/>
-        </mat-form-field>
+        <!-- Preview -->
+        <div class="media-preview"
+          *ngIf="mediaPreview">
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Content</mat-label>
-          <textarea matInput formControlName="content"
-            rows="12"
-            placeholder="Write your article content here...">
-          </textarea>
-          <mat-error *ngIf="form.get('content')?.hasError('required')">
-            Content is required
-          </mat-error>
-        </mat-form-field>
+          <!-- Image Preview -->
+          <img *ngIf="mediaType === 'image'"
+            [src]="mediaPreview"
+            alt="Preview"
+            class="preview-img"/>
 
-        <div class="toggle-row">
-          <mat-slide-toggle formControlName="isPublished" color="primary">
-            Published
-          </mat-slide-toggle>
-          <span class="toggle-hint">
-            {{ form.get('isPublished')?.value
-              ? 'Visible to all users'
-              : 'Saved as draft' }}
-          </span>
+          <!-- Video Preview -->
+          <video *ngIf="mediaType === 'video'"
+            [src]="mediaPreview"
+            class="preview-video"
+            controls>
+          </video>
+
+          <!-- Uploading Spinner -->
+          <div class="uploading-overlay" *ngIf="uploadingMedia">
+            <div class="upload-spinner"></div>
+            <span>Uploading...</span>
+          </div>
+
+          <!-- Remove Button -->
+          <button type="button" class="remove-media-btn"
+            *ngIf="!uploadingMedia"
+            (click)="removeMedia()">
+            ✕ Remove
+          </button>
         </div>
 
-        <div class="form-actions">
-          <button mat-button type="button"
-            (click)="router.navigate(['/kb'])">
-            Cancel
-          </button>
-          <button mat-raised-button color="primary"
-            type="submit" [disabled]="loading">
-            <mat-spinner *ngIf="loading" diameter="18"></mat-spinner>
-            <span *ngIf="!loading">
-              {{ isEdit ? 'Update Article' : 'Publish Article' }}
+        <!-- Upload Button -->
+        <label class="upload-area"
+          *ngIf="!mediaPreview"
+          [class.dragover]="false">
+          <input type="file"
+            accept="image/*,video/*"
+            style="display:none"
+            (change)="onFileSelected($event)"/>
+          <div class="upload-placeholder">
+            <span class="upload-icon">🖼</span>
+            <span class="upload-text">
+              Click to add photo or video
             </span>
-          </button>
-        </div>
+            <span class="upload-hint">
+              JPG, PNG, GIF, MP4, MOV — Max 50MB
+            </span>
+          </div>
+        </label>
+      </div>
 
-      </form>
-    </mat-card-content>
-  </mat-card>
+      <!-- ── Title ── -->
+      <div class="field-wrap">
+        <label class="field-label">Title *</label>
+        <input class="field-input"
+          formControlName="title"
+          placeholder="What's this post about?"/>
+        <span class="field-error"
+          *ngIf="form.get('title')?.touched &&
+                 form.get('title')?.hasError('required')">
+          Title is required
+        </span>
+      </div>
+
+      <!-- ── Category ── -->
+      <div class="field-wrap">
+        <label class="field-label">Category *</label>
+        <select class="field-select" formControlName="category">
+          <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+
+      <!-- ── Tags ── -->
+      <div class="field-wrap">
+        <label class="field-label">Tags
+          <span class="field-hint">(comma separated)</span>
+        </label>
+        <input class="field-input"
+          formControlName="tags"
+          placeholder="e.g. login, reset, password"/>
+      </div>
+
+      <!-- ── Content ── -->
+      <div class="field-wrap">
+        <label class="field-label">Content *</label>
+        <textarea class="field-textarea"
+          formControlName="content"
+          rows="8"
+          placeholder="Share your knowledge, tips, or updates...">
+        </textarea>
+        <span class="field-error"
+          *ngIf="form.get('content')?.touched &&
+                 form.get('content')?.hasError('required')">
+          Content is required
+        </span>
+      </div>
+
+      <!-- ── Published Toggle ── -->
+      <div class="toggle-row">
+        <label class="toggle-label">
+          <div class="toggle-switch"
+            [class.on]="form.get('isPublished')?.value"
+            (click)="form.get('isPublished')?.setValue(
+              !form.get('isPublished')?.value)">
+            <div class="toggle-knob"></div>
+          </div>
+          <span>
+            {{
+              form.get('isPublished')?.value
+                ? '✅ Published — visible to everyone'
+                : '📝 Draft — only you can see it'
+            }}
+          </span>
+        </label>
+      </div>
+
+      <!-- ── Buttons ── -->
+      <div class="form-actions">
+        <button type="button" class="cancel-btn"
+          (click)="router.navigate(['/kb'])">
+          Cancel
+        </button>
+        <button type="submit" class="submit-btn"
+          [disabled]="loading || uploadingMedia">
+          <div class="btn-spinner"
+            *ngIf="loading || uploadingMedia"></div>
+          <span *ngIf="!loading && !uploadingMedia">
+            {{ isEdit ? '💾 Update Post' : '🚀 Publish Post' }}
+          </span>
+          <span *ngIf="uploadingMedia">Uploading media...</span>
+          <span *ngIf="loading && !uploadingMedia">Saving...</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
 </div>

@@ -1,147 +1,165 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/dashboard'])">
-    ← Dashboard
-  </button>
-  <span>Ticket Templates</span>
-  <span class="spacer"></span>
-  <button mat-raised-button (click)="showForm = !showForm">
-    {{ showForm ? 'Cancel' : '+ New Template' }}
-  </button>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
-
-<div class="page-container">
-
-  <!-- Create Form -->
-  <mat-card class="form-card" *ngIf="showForm">
-    <mat-card-content>
-      <h3>Create New Template</h3>
-      <form [formGroup]="form" (ngSubmit)="saveTemplate()">
-
-        <div class="two-col">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Template Name</mat-label>
-            <input matInput formControlName="name"
-              placeholder="e.g. Password Reset Request"/>
-            <mat-error *ngIf="form.get('name')?.hasError('required')">
-              Required
-            </mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Default Title</mat-label>
-            <input matInput formControlName="title"
-              placeholder="e.g. I cannot reset my password"/>
-            <mat-error *ngIf="form.get('title')?.hasError('required')">
-              Required
-            </mat-error>
-          </mat-form-field>
-        </div>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Default Description</mat-label>
-          <textarea matInput formControlName="description"
-            rows="4"
-            placeholder="Default description for this ticket type...">
-          </textarea>
-          <mat-error *ngIf="form.get('description')?.hasError('required')">
-            Required
-          </mat-error>
-        </mat-form-field>
-
-        <div class="two-col">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Category</mat-label>
-            <mat-select formControlName="category">
-              <mat-option *ngFor="let c of categories" [value]="c">
-                {{ c }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Priority</mat-label>
-            <mat-select formControlName="priority">
-              <mat-option *ngFor="let p of priorities" [value]="p">
-                {{ p }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-        <div class="form-actions">
-          <button mat-button type="button"
-            (click)="showForm = false">
-            Cancel
-          </button>
-          <button mat-raised-button color="primary"
-            type="submit" [disabled]="saving">
-            <mat-spinner *ngIf="saving" diameter="18"></mat-spinner>
-            <span *ngIf="!saving">Save Template</span>
-          </button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Templates Table -->
-  <div *ngIf="loading" class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
+<div class="templates-wrap">
+  <div class="templates-top">
+    <div>
+      <h2>Ticket Templates</h2>
+      <p>Create and manage ticket templates for quick ticket creation</p>
+    </div>
+    <button class="add-btn"
+      (click)="showForm = !showForm">
+      {{ showForm ? 'Cancel' : '+ New Template' }}
+    </button>
   </div>
 
-  <div *ngIf="!loading">
-    <div *ngIf="templates.length === 0" class="empty-state">
-      <p>No templates yet. Create your first template!</p>
-      <button mat-raised-button color="primary"
-        (click)="showForm = true">
-        Create Template
-      </button>
-    </div>
+  <!-- Create Form -->
+  <div class="form-card" *ngIf="showForm">
+    <h4>Create New Template</h4>
+    <form [formGroup]="form" (ngSubmit)="saveTemplate()">
 
-    <table mat-table [dataSource]="templates"
-      class="templates-table" *ngIf="templates.length > 0">
-
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Template Name</th>
-        <td mat-cell *matCellDef="let t">
-          <strong>{{ t.name }}</strong>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="title">
-        <th mat-header-cell *matHeaderCellDef>Default Title</th>
-        <td mat-cell *matCellDef="let t">{{ t.title }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="category">
-        <th mat-header-cell *matHeaderCellDef>Category</th>
-        <td mat-cell *matCellDef="let t">
-          <span class="category-badge">{{ t.category }}</span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="priority">
-        <th mat-header-cell *matHeaderCellDef>Priority</th>
-        <td mat-cell *matCellDef="let t">
-          <span class="priority-dot"
-            [style.background]="getPriorityColor(t.priority)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Template Name <span class="req">*</span></label>
+          <input type="text" formControlName="name"
+            placeholder="e.g. Password Reset Request"/>
+          <span class="error"
+            *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+            Required
           </span>
-          {{ t.priority }}
-        </td>
-      </ng-container>
+        </div>
+        <div class="form-group">
+          <label>Default Subject <span class="req">*</span></label>
+          <input type="text" formControlName="title"
+            placeholder="e.g. I cannot reset my password"/>
+        </div>
+      </div>
 
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Actions</th>
-        <td mat-cell *matCellDef="let t">
-          <button mat-button color="warn"
-            (click)="deleteTemplate(t.id)">
-            Delete
-          </button>
-        </td>
-      </ng-container>
+      <div class="form-group">
+        <label>Default Description</label>
+        <textarea formControlName="description" rows="4"
+          placeholder="Default description...">
+        </textarea>
+      </div>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Type</label>
+          <select formControlName="ticketType" class="form-sel">
+            <option *ngFor="let t of ticketTypes" [value]="t">
+              {{ t }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Status</label>
+          <select formControlName="status" class="form-sel">
+            <option *ngFor="let s of statuses" [value]="s">
+              {{ s }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Priority</label>
+          <select formControlName="priority" class="form-sel">
+            <option *ngFor="let p of priorities" [value]="p">
+              {{ p }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <select formControlName="category" class="form-sel">
+            <option *ngFor="let c of categories" [value]="c">
+              {{ c }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tags (comma separated)</label>
+        <input type="text" formControlName="tags"
+          placeholder="billing, urgent, account"/>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="cancel-btn"
+          (click)="showForm = false">Cancel</button>
+        <button type="submit" class="save-btn"
+          [disabled]="form.invalid">
+          Save Template
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && templates.length === 0"
+    class="empty-state">
+    <div class="empty-icon">📋</div>
+    <p>No templates yet.</p>
+    <button class="add-btn" (click)="showForm = true">
+      Create First Template
+    </button>
+  </div>
+
+  <!-- Templates Table -->
+  <div class="templates-table-wrap"
+    *ngIf="!loading && templates.length > 0">
+    <table class="t-table">
+      <thead>
+        <tr>
+          <th>TEMPLATE NAME</th>
+          <th>DEFAULT TITLE</th>
+          <th>TYPE</th>
+          <th>CATEGORY</th>
+          <th>PRIORITY</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of templates">
+          <td><strong>{{ t.name }}</strong></td>
+          <td class="title-cell">{{ t.title }}</td>
+          <td>
+            <span class="type-badge">
+              {{ t.ticketType || 'Support' }}
+            </span>
+          </td>
+          <td>
+            <span class="cat-badge">{{ t.category }}</span>
+          </td>
+          <td>
+            <span class="priority-indicator">
+              <span class="p-dot"
+                [style.background]="getPriorityColor(t.priority)">
+              </span>
+              <span [style.color]="getPriorityColor(t.priority)">
+                {{ t.priority }}
+              </span>
+            </span>
+          </td>
+          <td>
+            <span class="status-badge">{{ t.status }}</span>
+          </td>
+          <td>
+            <button class="del-btn"
+              (click)="deleteTemplate(t.id)">
+              Delete
+            </button>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </div>
 </div>
+
+
+

@@ -1,0 +1,121 @@
+<mat-toolbar color="primary">
+  <button mat-button (click)="router.navigate(['/agents'])">← Agents</button>
+  <span>Agent Groups</span>
+  <span class="spacer"></span>
+  <button mat-raised-button (click)="showCreateForm = !showCreateForm">
+    {{ showCreateForm ? 'Cancel' : '+ New Group' }}
+  </button>
+  <button mat-button (click)="logout()">Logout</button>
+</mat-toolbar>
+
+<div class="page-container">
+
+  <!-- Create Form -->
+  <mat-card class="create-card" *ngIf="showCreateForm">
+    <mat-card-content>
+      <h3>Create Agent Group</h3>
+      <form [formGroup]="form" (ngSubmit)="createGroup()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Group Name</mat-label>
+          <input matInput formControlName="name"
+            placeholder="e.g. Tier 1 Support, Network Team"/>
+          <mat-error *ngIf="form.get('name')?.hasError('required')">
+            Required
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <input matInput formControlName="description"
+            placeholder="What does this group handle?"/>
+        </mat-form-field>
+
+        <div class="form-actions">
+          <button mat-button type="button"
+            (click)="showCreateForm = false">Cancel</button>
+          <button mat-raised-button color="primary" type="submit">
+            Create Group
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div *ngIf="loading" class="loading-center">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading">
+    <div *ngIf="groups.length === 0" class="empty-state">
+      <p>No groups yet. Create Tier 1, Tier 2 groups!</p>
+      <button mat-raised-button color="primary"
+        (click)="showCreateForm = true">
+        Create First Group
+      </button>
+    </div>
+
+    <mat-expansion-panel
+      *ngFor="let group of groups"
+      class="group-panel">
+
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <strong>{{ group.name }}</strong>
+        </mat-panel-title>
+        <mat-panel-description>
+          {{ group.memberCount }} members
+          — {{ group.description }}
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <!-- Members List -->
+      <div class="members-section">
+        <h4>Members</h4>
+        <div class="member-list">
+          <div class="member-item"
+            *ngFor="let m of group.members">
+            <div class="member-info">
+              <span class="member-name">{{ m.fullName }}</span>
+              <span class="member-email">{{ m.email }}</span>
+            </div>
+            <button mat-button color="warn"
+              (click)="removeMember(group.id, m.userId)">
+              Remove
+            </button>
+          </div>
+          <div *ngIf="group.members?.length === 0"
+            class="no-members">
+            No members yet
+          </div>
+        </div>
+
+        <!-- Add Member -->
+        <div class="add-member-row">
+          <mat-form-field appearance="outline" class="flex-input">
+            <mat-label>Add Agent</mat-label>
+            <mat-select [(ngModel)]="selectedAgentToAdd">
+              <mat-option *ngFor="let a of getAvailableAgents(group)"
+                [value]="a.id">
+                {{ a.fullName }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-raised-button color="primary"
+            (click)="addMember(group.id)"
+            [disabled]="!selectedAgentToAdd">
+            Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel Actions -->
+      <mat-action-row>
+        <button mat-button color="warn"
+          (click)="deleteGroup(group.id)">
+          Delete Group
+        </button>
+      </mat-action-row>
+
+    </mat-expansion-panel>
+  </div>
+</div>

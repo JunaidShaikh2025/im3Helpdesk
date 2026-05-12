@@ -1,0 +1,821 @@
+<app-layout>
+<div class="chat-page">
+
+  <!-- ══════════ INCOMING CALL ══════════ -->
+  <div class="call-overlay"
+    *ngIf="callState === 'receiving'">
+    <div class="call-card incoming-card">
+      <div class="call-ring-animation">
+        <div class="call-av-ring"
+          [style.background]="
+            getAvatarColor(
+              callSvc.incomingCallData?.callerName)">
+          {{ getInitials(
+            callSvc.incomingCallData?.callerName) }}
+        </div>
+      </div>
+      <div class="call-name">
+        {{ callSvc.incomingCallData?.callerName }}
+      </div>
+      <div class="call-subtitle">
+        Incoming
+        {{ callType === 'video'
+          ? '📹 Video' : '📞 Audio' }} call
+      </div>
+      <div class="call-actions">
+        <button class="call-btn reject"
+          type="button"
+          (click)="rejectCall()">
+          <span class="call-btn-icon">📵</span>
+          Decline
+        </button>
+        <button class="call-btn accept"
+          type="button"
+          (click)="answerCall()">
+          <span class="call-btn-icon">📞</span>
+          Accept
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ACTIVE CALL ══════════ -->
+  <div class="call-overlay"
+    *ngIf="callState === 'calling'
+      || callState === 'active'">
+    <div class="call-card active-card">
+
+      <!-- Video streams -->
+      <div class="call-videos"
+        *ngIf="callType === 'video'">
+        <video class="remote-video"
+          #remoteVideo autoplay playsinline>
+        </video>
+        <video class="local-video"
+          #localVideo autoplay playsinline
+          muted>
+        </video>
+      </div>
+
+      <!-- ✅ Hidden audio element for remote stream — REQUIRED for audio calls -->
+      <audio #remoteAudio autoplay playsinline
+        style="display:none">
+      </audio>
+
+      <!-- Audio UI -->
+      <ng-container
+        *ngIf="callType === 'audio'">
+        <div class="call-av-large"
+          [style.background]="
+            getAvatarColor(
+              selectedUser?.fullName
+              || callSvc.incomingCallData?.callerName)">
+          {{ getInitials(
+            selectedUser?.fullName
+            || callSvc.incomingCallData?.callerName) }}
+        </div>
+        <div class="call-name">
+          {{ selectedUser?.fullName
+            || callSvc.incomingCallData?.callerName }}
+        </div>
+      </ng-container>
+
+      <div class="call-status">
+        <span *ngIf="callState==='calling'">
+          Calling...
+        </span>
+        <span *ngIf="callState==='active'"
+          class="call-timer">
+          🟢 {{ getCallDurationStr() }}
+        </span>
+      </div>
+
+      <!-- Call controls -->
+      <div class="call-controls">
+        <button class="ctrl-btn mute"
+          type="button"
+          [class.active]="isMuted"
+          (click)="toggleMute()"
+          title="Mute">
+          {{ isMuted ? '🔇' : '🎙' }}
+        </button>
+        <button class="ctrl-btn camera"
+          type="button"
+          *ngIf="callType==='video'"
+          [class.active]="isCameraOff"
+          (click)="toggleCamera()"
+          title="Camera">
+          {{ isCameraOff ? '📵' : '📷' }}
+        </button>
+        <!-- ✅ Minimize button -->
+        <button class="ctrl-btn minimize"
+          type="button"
+          *ngIf="callState==='active'"
+          (click)="minimizeCall()"
+          title="Minimize — call continues">
+          ⬇
+        </button>
+        <button class="ctrl-btn end"
+          type="button"
+          (click)="hangUp()"
+          title="End call">
+          📵
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ CREATE GROUP MODAL ══════════ -->
+  <div class="modal-overlay"
+    *ngIf="showCreateGroup"
+    (click)="showCreateGroup = false">
+    <div class="modal-card"
+      (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h3>Create Group Chat</h3>
+        <button type="button"
+          class="modal-close"
+          (click)="showCreateGroup = false">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Group name -->
+        <div class="mf-group">
+          <label>Group Name *</label>
+          <input class="mf-input"
+            [(ngModel)]="newGroupName"
+            placeholder="e.g. Support Team"/>
+        </div>
+
+        <!-- Description -->
+        <div class="mf-group">
+          <label>Description</label>
+          <input class="mf-input"
+            [(ngModel)]="newGroupDesc"
+            placeholder="Optional..."/>
+        </div>
+
+        <!-- Members -->
+        <div class="mf-group">
+          <label>
+            Add Members
+            <span class="mf-count"
+              *ngIf="selectedMemberIds.length > 0">
+              {{ selectedMemberIds.length }}
+              selected
+            </span>
+          </label>
+
+          <!-- ✅ Search members -->
+          <div class="mf-search">
+            <span>🔍</span>
+            <input
+              [(ngModel)]="memberSearchQuery"
+              placeholder="Search members..."/>
+          </div>
+
+          <!-- ✅ Scrollable member list -->
+          <div class="mf-member-list">
+            <div class="mf-empty"
+              *ngIf="filteredModalUsers
+                .length === 0">
+              No users found
+            </div>
+
+            <div class="mf-member-item"
+              *ngFor="let u of
+                filteredModalUsers"
+              [class.sel]="
+                isMemberSelected(u.id)"
+              (click)="toggleMember(u.id)">
+
+              <div class="mf-av"
+                [style.background]="
+                  getAvatarColor(u.fullName)">
+                {{ getInitials(u.fullName) }}
+              </div>
+              <div class="mf-info">
+                <div class="mf-name">
+                  {{ u.fullName }}
+                </div>
+                <div class="mf-role">
+                  {{ getRoleLabel(u.role) }}
+                  · {{ u.email }}
+                </div>
+              </div>
+              <div class="mf-check"
+                [class.checked]="
+                  isMemberSelected(u.id)">
+                {{ isMemberSelected(u.id)
+                  ? '✓' : '' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+          class="mf-cancel"
+          (click)="showCreateGroup = false">
+          Cancel
+        </button>
+        <button type="button"
+          class="mf-create"
+          [disabled]="!newGroupName.trim()"
+          (click)="createGroup()">
+          Create Group
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ADD MEMBERS MODAL ══════════ -->
+  <div class="modal-overlay"
+    *ngIf="showAddMembers"
+    (click)="showAddMembers = false">
+    <div class="modal-card"
+      (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h3>
+          Add Members to
+          {{ addMemberGroupName }}
+        </h3>
+        <button type="button"
+          class="modal-close"
+          (click)="showAddMembers = false">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mf-group">
+          <label>
+            Select Members to Add
+            <span class="mf-count"
+              *ngIf="
+                addMemberSelected.length > 0">
+              {{ addMemberSelected.length }}
+              selected
+            </span>
+          </label>
+
+          <!-- Search -->
+          <div class="mf-search">
+            <span>🔍</span>
+            <input
+              [(ngModel)]="addMemberSearch"
+              placeholder="Search people..."/>
+          </div>
+
+          <!-- Member list -->
+          <div class="mf-member-list">
+            <div class="mf-empty"
+              *ngIf="filteredAddMemberUsers
+                .length === 0">
+              All users are already members
+            </div>
+
+            <div class="mf-member-item"
+              *ngFor="let u of
+                filteredAddMemberUsers"
+              [class.sel]="
+                isAddMemberSelected(u.id)"
+              (click)="toggleAddMember(u.id)">
+
+              <div class="mf-av"
+                [style.background]="
+                  getAvatarColor(u.fullName)">
+                {{ getInitials(u.fullName) }}
+              </div>
+              <div class="mf-info">
+                <div class="mf-name">
+                  {{ u.fullName }}
+                </div>
+                <div class="mf-role">
+                  {{ getRoleLabel(u.role) }}
+                  · {{ u.email }}
+                </div>
+              </div>
+              <div class="mf-check"
+                [class.checked]="
+                  isAddMemberSelected(u.id)">
+                {{ isAddMemberSelected(u.id)
+                  ? '✓' : '' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+          class="mf-cancel"
+          (click)="showAddMembers = false">
+          Cancel
+        </button>
+        <button type="button"
+          class="mf-create"
+          [disabled]="
+            !addMemberSelected.length
+            || addMemberLoading"
+          (click)="confirmAddMembers()">
+          {{ addMemberLoading
+            ? 'Adding...'
+            : 'Add Members' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ LEFT SIDEBAR ══════════ -->
+  <div class="chat-sidebar">
+
+    <!-- ── Sidebar top: Chat / Calls switcher ── -->
+    <div class="cs-header">
+      <div class="cs-main-tabs">
+        <button type="button"
+          class="cs-main-tab"
+          [class.active]="sidebarTab==='chat'"
+          (click)="setSidebarTab('chat')">
+          💬 Chat
+        </button>
+        <button type="button"
+          class="cs-main-tab"
+          [class.active]="sidebarTab==='calls'"
+          (click)="setSidebarTab('calls')">
+          📞 Calls
+        </button>
+      </div>
+      <button type="button"
+        class="cs-new-btn"
+        *ngIf="sidebarTab==='chat'"
+        title="Create Group"
+        (click)="openCreateGroup()">
+        👥+
+      </button>
+    </div>
+
+    <!-- ══ CALLS TAB ══ -->
+    <app-call-log
+      *ngIf="sidebarTab==='calls'">
+    </app-call-log>
+
+    <!-- ══ CHAT TAB ══ -->
+    <ng-container *ngIf="sidebarTab==='chat'">
+
+    <div class="cs-search">
+      <span>🔍</span>
+      <input
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="applyFilter()"
+        placeholder="Search..."/>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="cs-tabs">
+      <button type="button"
+        class="cs-tab"
+        [class.active]="activeFilter==='all'"
+        (click)="setFilter('all')">
+        All
+      </button>
+      <button type="button"
+        class="cs-tab"
+        [class.active]="
+          activeFilter==='unread'"
+        (click)="setFilter('unread')">
+        Unread
+        <span class="cs-tab-dot"
+          *ngIf="users.some(
+            u => (u.unreadCount||0) > 0)">
+        </span>
+      </button>
+      <button type="button"
+        class="cs-tab"
+        [class.active]="
+          activeFilter==='online'"
+        (click)="setFilter('online')">
+        Online
+      </button>
+      <button type="button"
+        class="cs-tab"
+        [class.active]="
+          activeFilter==='groups'"
+        (click)="setFilter('groups')">
+        Groups
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="cs-loading"
+      *ngIf="loadingUsers">
+      <div class="cs-spin"></div>
+    </div>
+
+    <!-- List -->
+    <div class="cs-list"
+      *ngIf="!loadingUsers">
+
+      <div class="cs-empty"
+        *ngIf="filteredItems.length === 0">
+        <ng-container
+          [ngSwitch]="activeFilter">
+          <span *ngSwitchCase="'unread'">
+            No unread messages 🎉
+          </span>
+          <span *ngSwitchCase="'online'">
+            No one online right now
+          </span>
+          <span *ngSwitchCase="'groups'">
+            No groups yet
+            <br/>
+            <button type="button"
+              class="cs-create-g"
+              (click)="openCreateGroup()">
+              + Create Group
+            </button>
+          </span>
+          <span *ngSwitchDefault>
+            No results
+          </span>
+        </ng-container>
+      </div>
+
+      <div class="cs-item"
+        *ngFor="let item of filteredItems"
+        [class.sel]="
+          (!item.isGroupItem &&
+            selectedUser?.id === item.id) ||
+          (item.isGroupItem &&
+            selectedGroup?.id === item.id)"
+        (click)="selectItem(item)">
+
+        <!-- Avatar -->
+        <div class="cs-av-wrap">
+          <div class="cs-av g-av"
+            *ngIf="item.isGroupItem">
+            👥
+          </div>
+          <div class="cs-av"
+            *ngIf="!item.isGroupItem"
+            [style.background]="
+              item.photoUrl
+                ? 'transparent'
+                : getAvatarColor(item.fullName)">
+            <img *ngIf="item.photoUrl"
+              [src]="'https://localhost:7071'
+                + item.photoUrl"
+              [alt]="item.fullName"/>
+            <span *ngIf="!item.photoUrl">
+              {{ getInitials(item.fullName) }}
+            </span>
+          </div>
+          <span class="cs-dot"
+            *ngIf="!item.isGroupItem"
+            [class.online]="item.isOnline"
+            [class.offline]="!item.isOnline">
+          </span>
+        </div>
+
+        <!-- Info -->
+        <div class="cs-info">
+          <div class="cs-name">
+            {{ item.fullName || item.name }}
+          </div>
+          <div class="cs-last"
+            *ngIf="item.lastMessage">
+            <span class="cs-you"
+              *ngIf="
+                item.lastMessage.isFromMe">
+              You:
+            </span>
+            {{ (item.lastMessage.content||'')
+              | slice:0:32 }}
+          </div>
+          <div class="cs-sub"
+            *ngIf="!item.lastMessage">
+            <span *ngIf="!item.isGroupItem">
+              {{ getRoleLabel(item.role) }}
+            </span>
+            <span *ngIf="item.isGroupItem">
+              {{ item.memberCount }} members
+            </span>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="cs-meta">
+          <span class="cs-time"
+            *ngIf="item.lastMessage">
+            {{ getTimeStr(
+              item.lastMessage.createdAt) }}
+          </span>
+          <span class="cs-status"
+            *ngIf="!item.lastMessage
+              && !item.isGroupItem"
+            [class.o-txt]="item.isOnline"
+            [class.f-txt]="!item.isOnline">
+            {{ item.isOnline ? 'Online'
+              : getLastSeenText(item) }}
+          </span>
+          <span class="cs-unread"
+            *ngIf="(item.unreadCount||0) > 0">
+            {{ (item.unreadCount||0) > 9
+              ? '9+' : item.unreadCount }}
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    </ng-container>
+    <!-- ══ END CHAT TAB ══ -->
+
+  </div>
+
+  <!-- ══════════ MAIN CHAT ══════════ -->
+  <div class="chat-main">
+
+    <!-- Empty -->
+    <div class="cm-empty"
+      *ngIf="!selectedUser && !selectedGroup">
+      <span class="cm-empty-icon">💬</span>
+      <h3>Select a conversation</h3>
+      <p>Choose a person or group to chat</p>
+      <button type="button"
+        class="cm-empty-btn"
+        (click)="openCreateGroup()">
+        👥 New Group Chat
+      </button>
+    </div>
+
+    <!-- Chat window -->
+    <div class="cm-window"
+      *ngIf="selectedUser || selectedGroup">
+
+      <!-- Header -->
+      <div class="cm-header">
+        <div class="cm-hd-av-wrap">
+          <div class="cm-hd-av g"
+            *ngIf="selectedGroup">
+            👥
+          </div>
+          <div class="cm-hd-av"
+            *ngIf="selectedUser"
+            [style.background]="
+              selectedUser.photoUrl
+                ? 'transparent'
+                : getAvatarColor(
+                    selectedUser.fullName)">
+            <img *ngIf="selectedUser.photoUrl"
+              [src]="'https://localhost:7071'
+                + selectedUser.photoUrl"
+              [alt]="selectedUser.fullName"/>
+            <span
+              *ngIf="!selectedUser.photoUrl">
+              {{ getInitials(
+                selectedUser.fullName) }}
+            </span>
+          </div>
+          <span class="cm-hd-dot"
+            *ngIf="selectedUser"
+            [class.online]="
+              selectedUser.isOnline"
+            [class.offline]="
+              !selectedUser.isOnline">
+          </span>
+        </div>
+
+        <div class="cm-hd-info">
+          <div class="cm-hd-name">
+            {{ selectedUser?.fullName
+              || selectedGroup?.name }}
+          </div>
+          <div class="cm-hd-status"
+            *ngIf="selectedUser"
+            [class.o-status]="
+              selectedUser.isOnline"
+            [class.f-status]="
+              !selectedUser.isOnline">
+            {{ getLastSeenText(selectedUser) }}
+          </div>
+          <div class="cm-hd-status"
+            *ngIf="selectedGroup">
+            {{ selectedGroup.memberCount }}
+            members
+            <span class="cm-hd-sep"> · </span>
+            <span class="cm-add-member"
+              (click)="
+                openAddMembers(selectedGroup)">
+              + Add members
+            </span>
+          </div>
+        </div>
+
+        <!-- Call buttons (direct only) -->
+        <div class="cm-hd-actions"
+          *ngIf="selectedUser">
+          <button type="button"
+            class="cm-call audio"
+            title="Audio Call"
+            (click)="startCall('audio')">
+            📞
+          </button>
+          <button type="button"
+            class="cm-call video"
+            title="Video Call"
+            (click)="startCall('video')">
+            📹
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="cm-msgs"
+        #messagesContainer>
+
+        <div class="cm-loading"
+          *ngIf="loadingMessages">
+          <div class="cs-spin"></div>
+        </div>
+
+        <div class="cm-no-msgs"
+          *ngIf="!loadingMessages
+            && messages.length === 0">
+          <p>No messages yet 👋</p>
+        </div>
+
+        <ng-container
+          *ngFor="let m of messages;
+            let i = index">
+
+          <!-- Date separator -->
+          <div class="cm-date-sep"
+            *ngIf="shouldShowDate(
+              messages[i-1]?.createdAt,
+              m.createdAt)">
+            <span>{{ m.createdAt
+              | date:'EEEE, MMMM d' }}</span>
+          </div>
+
+          <div class="cm-msg"
+            [class.mine]="
+              m.isFromMe ||
+              m.senderId === myId"
+            [class.theirs]="
+              !m.isFromMe &&
+              m.senderId !== myId">
+
+            <!-- Their avatar -->
+            <div class="cm-msg-av"
+              *ngIf="!m.isFromMe &&
+                m.senderId !== myId">
+              <div class="mini-av"
+                [style.background]="
+                  getAvatarColor(
+                    m.senderName || '')">
+                {{ getInitials(
+                  m.senderName || '') }}
+              </div>
+            </div>
+
+            <div class="cm-msg-body">
+
+              <!-- Sender name (group) -->
+              <div class="cm-sender"
+                *ngIf="selectedGroup
+                  && !m.isFromMe
+                  && m.senderId !== myId">
+                {{ m.senderName }}
+              </div>
+
+              <!-- IMAGE -->
+              <div class="cm-img-wrap"
+                *ngIf="m.messageType==='image'
+                  && m.attachmentUrl">
+                <img class="cm-img"
+                  [src]="'https://localhost:7071'
+                    + m.attachmentUrl"
+                  [alt]="m.attachmentName
+                    || 'Image'"
+                  (click)="openImage(
+                    'https://localhost:7071'
+                    + m.attachmentUrl)"/>
+              </div>
+
+              <!-- FILE -->
+              <a class="cm-file"
+                *ngIf="m.messageType==='file'
+                  && m.attachmentUrl"
+                [href]="'https://localhost:7071'
+                  + m.attachmentUrl"
+                target="_blank"
+                [download]="m.attachmentName">
+                <span class="cm-file-ic">
+                  📎
+                </span>
+                <div>
+                  <div class="cm-file-nm">
+                    {{ m.attachmentName
+                      || 'File' }}
+                  </div>
+                  <div class="cm-file-sz"
+                    *ngIf="m.attachmentSize">
+                    {{ formatFileSize(
+                      m.attachmentSize) }}
+                  </div>
+                </div>
+                <span class="cm-file-dl">
+                  ↓
+                </span>
+              </a>
+
+              <!-- TEXT -->
+              <div class="cm-bubble"
+                *ngIf="m.content &&
+                  m.messageType !== 'file'">
+                {{ m.content }}
+              </div>
+
+              <!-- Time + ticks -->
+              <div class="cm-time-row">
+                <span class="cm-time">
+                  {{ getTimeStr(m.createdAt) }}
+                </span>
+                <span class="cm-ticks"
+                  *ngIf="m.isFromMe ||
+                    m.senderId === myId"
+                  [class.read]="m.isRead">
+                  {{ m.isRead ? '✓✓' : '✓' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Typing -->
+        <div class="cm-typing"
+          *ngIf="isTyping">
+          <div class="cm-typ-av"
+            [style.background]="
+              getAvatarColor(
+                selectedUser?.fullName||'')">
+            {{ getInitials(
+              selectedUser?.fullName||'') }}
+          </div>
+          <div class="cm-typ-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="cm-input-area">
+        <label class="cm-att" title="File">
+          📎
+          <input type="file" hidden multiple
+            accept="*/*"
+            (change)="onFileSelect($event)"/>
+        </label>
+        <label class="cm-att img"
+          title="Image">
+          🖼
+          <input type="file" hidden multiple
+            accept="image/*"
+            (change)="onFileSelect($event)"/>
+        </label>
+
+        <div class="cm-uploading"
+          *ngIf="uploadingFile">
+          <div class="up-spin"></div>
+        </div>
+
+        <textarea class="cm-text"
+          [(ngModel)]="newMessage"
+          (keydown)="onKeydown($event)"
+          placeholder="Type a message..."
+          rows="1">
+        </textarea>
+
+        <button type="button"
+          class="cm-send"
+          [disabled]="
+            !newMessage.trim() &&
+            !uploadingFile"
+          (click)="sendMessage()">
+          ➤
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</app-layout>
