@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-integrations',
@@ -38,7 +39,7 @@ simulateEmail() {
   }
 
   this.http.post<any>(
-    'https://localhost:7071/api/InboundEmail/simulate',
+    `${environment.apiUrl}/InboundEmail/simulate`,
     {
       fromEmail: this.testFromEmail,
       fromName: this.testFromName,
@@ -74,7 +75,7 @@ simulateEmail() {
 
   ngOnInit() {
     this.http.get<any>(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -88,7 +89,7 @@ simulateEmail() {
   saveSlack() {
     this.saving = true;
     this.http.put(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       { slackWebhookUrl: this.slackWebhookUrl },
       { headers: this.getHeaders() }
     ).subscribe({
@@ -105,7 +106,7 @@ simulateEmail() {
   saveTeams() {
     this.saving = true;
     this.http.put(
-      'https://localhost:7071/api/Organizations/current',
+      `${environment.apiUrl}/Organizations/current`,
       { teamsWebhookUrl: this.teamsWebhookUrl },
       { headers: this.getHeaders() }
     ).subscribe({
@@ -126,7 +127,7 @@ simulateEmail() {
     const orgId = payload.organizationId;
 
     this.http.post(
-      'https://localhost:7071/api/Slack/notify',
+      `${environment.apiUrl}/Slack/notify`,
       {
         orgId,
         message: 'Test notification from iM3 Helpdesk!',
@@ -153,7 +154,7 @@ simulateEmail() {
     const orgId = payload.organizationId;
 
     this.http.post(
-      'https://localhost:7071/api/Slack/teams/notify',
+      `${environment.apiUrl}/Slack/teams/notify`,
       {
         orgId,
         message: 'Test notification from iM3 Helpdesk!',

@@ -2,11 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from '../app/services/auth.service';
-
+import { environment } from '../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class SuperAdminService {
-private apiUrl = 'https://localhost:7071/api/SuperAdmin';
+private readonly apiUrl = `${environment.apiUrl}/SuperAdmin`;
 
 
   constructor(private http: HttpClient, private authService: AuthService) {}

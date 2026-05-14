@@ -14,6 +14,7 @@ import { AuthService }
 import { LayoutComponent }
   from '../../../shared/layout/layout';
 import Chart from 'chart.js/auto';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-ai-dashboard',
@@ -64,7 +65,7 @@ export class AIDashboardComponent
   summaryLoading = false;
   recentTickets: any[] = [];
 
-  private BASE = 'https://localhost:7071';
+  private readonly BASE = environment.baseUrl;
 
   private getHeaders(): HttpHeaders {
     return new HttpHeaders({

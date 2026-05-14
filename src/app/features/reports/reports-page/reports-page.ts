@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 
 @Component({
@@ -58,7 +59,7 @@ export class ReportsComponent
   loadStats() {
     this.loading = true;
     this.http.get<any>(
-      `https://localhost:7071/api/Dashboard/widgets`,
+      `${environment.apiUrl}/Dashboard/widgets`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
@@ -73,7 +74,7 @@ export class ReportsComponent
 
   loadDashStats() {
     this.http.get<any>(
-      `https://localhost:7071/api/Dashboard/stats`,
+      `${environment.apiUrl}/Dashboard/stats`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {

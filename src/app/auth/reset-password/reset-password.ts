@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-reset-password',
@@ -54,7 +55,7 @@ export class ResetPasswordComponent implements OnInit {
     this.cdr.detectChanges();
 
     this.http.post(
-      'https://localhost:7071/api/Auth/reset-password',
+      `${environment.apiUrl}/Auth/reset-password`,
       { token: this.token, newPassword: this.newPassword }
     ).subscribe({
       next: () => {

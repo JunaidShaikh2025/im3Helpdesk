@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angula
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-verify-email',
@@ -32,7 +33,7 @@ export class VerifyEmailComponent implements OnInit, OnDestroy {
     }
 
     this.http.get(
-      `https://localhost:7071/api/Auth/verify-email?token=${token}`
+      `${environment.apiUrl}/Auth/verify-email?token=${token}`
     ).subscribe({
       next: () => {
         this.status = 'success';

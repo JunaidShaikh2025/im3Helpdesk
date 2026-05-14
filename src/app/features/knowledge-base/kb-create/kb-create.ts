@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { ToastrService } from 'ngx-toastr';
 import { KnowledgeBaseService } from '../../../services/knowledge-base';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-kb-create',
@@ -74,7 +75,7 @@ export class KbCreateComponent implements OnInit {
         if (data.mediaUrl && data.mediaType !== 'none') {
           this.mediaUrl     = data.mediaUrl;
           this.mediaType    = data.mediaType;
-          this.mediaPreview = 'https://localhost:7071' + data.mediaUrl;
+          this.mediaPreview = environment.baseUrl + data.mediaUrl;
         }
         this.cdr.detectChanges();
       }

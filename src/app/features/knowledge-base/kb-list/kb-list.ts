@@ -11,6 +11,7 @@ import { KnowledgeBaseService } from '../../../services/knowledge-base';
 import { AuthService } from '../../../services/auth.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-kb-list',
@@ -28,6 +29,7 @@ export class KbListComponent implements OnInit {
   public  router      = inject(Router);
   private toastr      = inject(ToastrService);
   private fb          = inject(FormBuilder);
+  readonly baseUrl = environment.baseUrl;
   private cdr         = inject(ChangeDetectorRef);
 
   articles:    any[]    = [];

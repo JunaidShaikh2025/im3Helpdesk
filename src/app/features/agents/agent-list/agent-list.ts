@@ -10,6 +10,7 @@ import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
 import { AgentService } from '../../../services/agent';
 import { LayoutComponent } from '../../../shared/layout/layout';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-agents',
@@ -27,6 +28,7 @@ export class AgentsComponent implements OnInit {
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
+  readonly baseUrl = environment.baseUrl;
   private http = inject(HttpClient);
 
   agents: any[] = [];
@@ -65,7 +67,7 @@ export class AgentsComponent implements OnInit {
   loadAgents() {
     // ✅ Groups aur Agents dono load karo, phir UUID lowercase se match karo
     this.http.get<any[]>(
-      'https://localhost:7071/api/AgentGroups',
+      `${environment.apiUrl}/AgentGroups`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (groups) => {
@@ -190,7 +192,7 @@ export class AgentsComponent implements OnInit {
       `Delete agent ${agent.fullName}?`)) return;
 
     this.http.delete(
-      `https://localhost:7071/api/Agents/${agent.id}`,
+      `${environment.apiUrl}/Agents/${agent.id}`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
@@ -208,7 +210,7 @@ export class AgentsComponent implements OnInit {
 
   toggleActive(agent: any) {
     this.http.put(
-      `https://localhost:7071/api/Agents/${agent.id}/toggle-active`,
+      `${environment.apiUrl}/Agents/${agent.id}/toggle-active`,
       {},
       { headers: this.getHeaders() }
     ).subscribe({

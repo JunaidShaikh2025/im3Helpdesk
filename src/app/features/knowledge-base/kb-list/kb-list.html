@@ -178,13 +178,13 @@
             <div class="post-media"
               *ngIf="a.mediaUrl && a.mediaType !== 'none'">
               <img *ngIf="a.mediaType === 'image'"
-                [src]="'https://localhost:7071' + a.mediaUrl"
+                [src]="baseUrl + a.mediaUrl"
                 alt="Post image" class="media-image"
                 (error)="$event.target.style.display='none'"/>
               <video *ngIf="a.mediaType === 'video'"
                 class="media-video" controls
                 (click)="$event.stopPropagation()">
-                <source [src]="'https://localhost:7071' + a.mediaUrl"/>
+                <source [src]="baseUrl + a.mediaUrl"/>
               </video>
             </div>
           </div>
