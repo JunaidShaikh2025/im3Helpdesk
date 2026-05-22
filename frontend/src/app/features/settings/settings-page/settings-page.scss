@@ -2,26 +2,26 @@
    SETTINGS PAGE — Matched to Login/Layout Design
 ═══════════════════════════════════════ */
 
-$accent:      #2563eb;
+$accent:      var(--ui-color-primary);
 $accent-bg:   rgba(37, 99, 235, 0.06);
-$slate-900:   #0f172a;
-$slate-700:   #334155;
-$slate-600:   #475569;
-$slate-500:   #64748b;
-$slate-400:   #94a3b8;
-$slate-300:   #cbd5e1;
-$slate-200:   #e2e8f0;
-$slate-100:   #f1f5f9;
-$slate-50:    #f8fafc;
-$white:       #ffffff;
-$red:         #dc2626;
-$red-bg:      #fee2e2;
+$slate-900:   var(--ui-color-text-primary);
+$slate-700:   var(--ui-color-text-secondary);
+$slate-600:   var(--ui-color-text-secondary);
+$slate-500:   var(--ui-color-text-muted);
+$slate-400:   var(--ui-color-text-faint);
+$slate-300:   var(--ui-color-border);
+$slate-200:   var(--ui-color-border);
+$slate-100:   var(--ui-color-border-soft);
+$slate-50:    var(--ui-color-bg-page);
+$white:       var(--ui-color-bg-surface);
+$red:         var(--ui-color-danger);
+$red-bg:      var(--ui-color-danger-bg);
 
 .settings-wrapper {
   display: flex;
   height: 100%;
   background: $slate-50;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--ui-font-family);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -311,7 +311,7 @@ input:checked ~ .toggle-slider::before {
   font-family: inherit;
   transition: background 0.15s;
 
-  &:hover { background: #1e293b; }
+  &:hover { background: var(--ui-color-text-secondary); }
 }
 
 /* ── Danger Zone ── */
@@ -325,7 +325,7 @@ input:checked ~ .toggle-slider::before {
   padding: 8px 16px;
   background: $red-bg;
   color: $red;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--ui-color-danger-bg);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
@@ -333,5 +333,5 @@ input:checked ~ .toggle-slider::before {
   font-family: inherit;
   transition: all 0.15s;
 
-  &:hover { background: #fee2e2; border-color: $red; }
+  &:hover { background: var(--ui-color-danger-bg); border-color: $red; }
 }
