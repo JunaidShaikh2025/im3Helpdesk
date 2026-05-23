@@ -65,7 +65,9 @@ Implemented in:
 
 - Client calls POST /api/Auth/refresh.
 - Backend accepts refresh token from request body or im3_refresh cookie fallback.
+- Backend hashes the presented refresh token and compares hash against stored value.
 - New access and refresh cookies are issued.
+- Database stores refresh token hash only (not plaintext token).
 
 Implemented in:
 - backend/iM3Helpdesk.API/Controllers/AuthController.cs

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { TOKEN_KEY } from '../constants/auth.constants';
 
 @Injectable()
 export class ChatService {
@@ -17,7 +18,8 @@ export class ChatService {
   connect(): Promise<void> {
     this.hubConnection = new signalR.HubConnectionBuilder()
       .withUrl(`${environment.baseUrl}/hubs/chat`, {
-        withCredentials: true
+        withCredentials: true,
+        accessTokenFactory: () => localStorage.getItem(TOKEN_KEY) || ''
       })
       .withAutomaticReconnect()
       .build();

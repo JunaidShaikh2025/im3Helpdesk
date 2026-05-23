@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.RateLimiting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using iM3Helpdesk.Infrastructure.Services;
 using System.Text;
 
@@ -137,12 +138,12 @@ public class AuthController : ControllerBase
     {
       // Normal password mode — seedha JWT return karo
       var token = GenerateJwtToken(user);
-      var refreshToken = Guid.NewGuid().ToString();
+      var refreshToken = GenerateRefreshToken();
       var isFirstLogin = user.LastLoginAt == null;
 
       SetAuthCookies(token, refreshToken);
 
-      user.RefreshToken = refreshToken;
+      user.RefreshToken = HashRefreshToken(refreshToken);
       user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
       user.LastLoginAt = DateTime.UtcNow;
       await _context.SaveChangesAsync();
@@ -242,12 +243,12 @@ public class AuthController : ControllerBase
 
     // Issue JWT + refresh token
     var token = GenerateJwtToken(user);
-    var refreshToken = Guid.NewGuid().ToString();
+    var refreshToken = GenerateRefreshToken();
     var isFirstLogin = user.LastLoginAt == null;
 
     SetAuthCookies(token, refreshToken);
 
-    user.RefreshToken = refreshToken;
+    user.RefreshToken = HashRefreshToken(refreshToken);
     user.RefreshTokenExpiresAt =
         DateTime.UtcNow.AddDays(7);
     user.LastLoginAt = DateTime.UtcNow;
@@ -424,11 +425,13 @@ public class AuthController : ControllerBase
       return Unauthorized(
         new { message = "Invalid or expired refresh token" });
 
+    var presentedRefreshTokenHash = HashRefreshToken(presentedRefreshToken);
+
     var user = await _context.Users
         .IgnoreQueryFilters()
         .Include(u => u.Organization)
         .FirstOrDefaultAsync(u =>
-        u.RefreshToken == presentedRefreshToken &&
+      u.RefreshToken == presentedRefreshTokenHash &&
             u.RefreshTokenExpiresAt > DateTime.UtcNow);
 
     if (user == null)
@@ -436,8 +439,8 @@ public class AuthController : ControllerBase
           new { message = "Invalid or expired refresh token" });
 
     var newToken = GenerateJwtToken(user);
-    var newRefreshToken = Guid.NewGuid().ToString();
-    user.RefreshToken = newRefreshToken;
+    var newRefreshToken = GenerateRefreshToken();
+    user.RefreshToken = HashRefreshToken(newRefreshToken);
     user.RefreshTokenExpiresAt =
         DateTime.UtcNow.AddDays(7);
     await _context.SaveChangesAsync();
@@ -568,6 +571,18 @@ public class AuthController : ControllerBase
             key, SecurityAlgorithms.HmacSha256));
 
     return new JwtSecurityTokenHandler().WriteToken(token);
+  }
+
+  private static string GenerateRefreshToken()
+  {
+    var bytes = RandomNumberGenerator.GetBytes(32);
+    return Convert.ToBase64String(bytes);
+  }
+
+  private static string HashRefreshToken(string refreshToken)
+  {
+    var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
+    return Convert.ToHexString(bytes);
   }
 }
 

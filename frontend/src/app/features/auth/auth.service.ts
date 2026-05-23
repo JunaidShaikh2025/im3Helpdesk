@@ -1,8 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import {
+  REFRESH_TOKEN_KEY,
+  TOKEN_KEY
+} from '../../core/constants/auth.constants';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -16,8 +20,10 @@ export class AuthService {
   }
 
   login(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, data,
-      { withCredentials: true });
+    return this.http.post<any>(`${this.apiUrl}/login`, data,
+      { withCredentials: true }).pipe(
+      tap(res => this.persistAuthTokens(res))
+    );
   }
 
 verifyOtp(dto: { email: string; otp: string }) {
@@ -25,6 +31,8 @@ verifyOtp(dto: { email: string; otp: string }) {
     `${this.apiUrl}/verify-otp`,   // ✅ sirf /verify-otp
     dto,
     { withCredentials: true }
+  ).pipe(
+    tap(res => this.persistAuthTokens(res))
   );
 }
 
@@ -53,10 +61,15 @@ resendOtp(dto: { email: string }) {
 }
 
   saveToken(token: string): void {
-    void token;
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+
+  saveRefreshToken(token: string): void {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
   }
 
   saveUserData(data: any): void {
+    this.persistAuthTokens(data);
     localStorage.setItem('im3_isFirstLogin', data.isFirstLogin?.toString() || 'false');
     localStorage.setItem('im3_role', data.user?.role || '');
     localStorage.setItem('im3_name', data.user?.fullName || '');
@@ -64,20 +77,31 @@ resendOtp(dto: { email: string }) {
   }
 
   getToken(): string | null {
-  return null;
+    return localStorage.getItem(TOKEN_KEY);
 }
 
   getRefreshToken(): string | null {
-    return null;
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
   }
 
   refreshAccessToken(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/refresh`, {},
-      { withCredentials: true });
+    return this.refreshToken();
+  }
+
+  refreshToken(): Observable<any> {
+    const refreshToken = this.getRefreshToken();
+    const payload = refreshToken
+      ? { refreshToken }
+      : {};
+
+    return this.http.post<any>(`${this.apiUrl}/refresh`, payload,
+      { withCredentials: true }).pipe(
+      tap(res => this.persistAuthTokens(res))
+    );
   }
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('im3_role');
+    return this.isAuthenticated();
   }
 
   isFirstLogin(): boolean {
@@ -93,14 +117,45 @@ resendOtp(dto: { email: string }) {
   }
 
   isTokenValid(): boolean {
-  return this.isLoggedIn();
+    return this.isAuthenticated();
+}
+
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+    return !this.isTokenExpired(token);
+  }
+
+  isTokenExpired(token?: string | null): boolean {
+    const activeToken = token ?? this.getToken();
+    if (!activeToken) return true;
+
+    try {
+      const payload = JSON.parse(atob(activeToken.split('.')[1]));
+      const exp = Number(payload?.exp);
+      if (!exp) return true;
+      return Date.now() >= exp * 1000;
+    } catch {
+      return true;
+    }
 }
 
   logout(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem('im3_isFirstLogin');
     localStorage.removeItem('im3_role');
     localStorage.removeItem('im3_name');
     localStorage.removeItem('im3_orgName'); // Clear org name on logout
-    this.router.navigate(['/login']);
+    this.router.navigate(['/auth/login']);
+  }
+
+  private persistAuthTokens(response: any): void {
+    if (response?.token) {
+      this.saveToken(response.token);
+    }
+    if (response?.refreshToken) {
+      this.saveRefreshToken(response.refreshToken);
+    }
   }
 }

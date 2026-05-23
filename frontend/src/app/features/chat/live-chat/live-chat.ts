@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import * as signalR from '@microsoft/signalr';
 import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
+import { TOKEN_KEY } from '../../../core/constants/auth.constants';
 
 @Component({
   selector: 'app-live-chat',
@@ -93,7 +94,8 @@ export class LiveChatComponent
   connectHub() {
     this.hub = new signalR.HubConnectionBuilder()
       .withUrl(`${environment.baseUrl}/hubs/chat`, {
-        withCredentials: true
+        withCredentials: true,
+        accessTokenFactory: () => localStorage.getItem(TOKEN_KEY) || ''
       })
       .withAutomaticReconnect()
       .build();

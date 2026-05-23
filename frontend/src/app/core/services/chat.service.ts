@@ -15,6 +15,7 @@ import {
 } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
+import { TOKEN_KEY } from '../constants/auth.constants';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -197,7 +198,10 @@ export class ChatService {
     if (this.isConnected) return;
 
     this.hub = new signalR.HubConnectionBuilder()
-      .withUrl(`${this.BASE}/hubs/chat`, { withCredentials: true })
+      .withUrl(`${this.BASE}/hubs/chat`, {
+        withCredentials: true,
+        accessTokenFactory: () => localStorage.getItem(TOKEN_KEY) || ''
+      })
       .withAutomaticReconnect([
         0, 2000, 5000, 10000, 30000
       ])
