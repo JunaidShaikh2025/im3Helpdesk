@@ -6,7 +6,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../features/auth/auth.service';
@@ -116,8 +116,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   loadTodoCount() {
     this.http.get<any[]>(
-      `${environment.apiUrl}/Todo`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/Todo`
     ).subscribe({
       next: (data) => {
         this.todos     = data;
@@ -146,8 +145,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   loadKbUnread() {
     this.http.get<any>(
-      `${environment.apiUrl}/KnowledgeBase/unread-count`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/KnowledgeBase/unread-count`
     ).subscribe({
       next: (data) => {
         this.kbUnreadCount    = data.count    || 0;
@@ -174,8 +172,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   loadMissedCallCount() {
     this.http.get<any>(
-      `${environment.apiUrl}/CallLog/unread-missed`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/CallLog/unread-missed`
     ).subscribe({
       next: (data) => {
         this.missedCallCount = data.count ?? data.missedCount ?? 0;
@@ -185,30 +182,14 @@ export class LayoutComponent implements OnInit, OnDestroy {
     });
   }
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({ 'Authorization': `Bearer ${this.authService.getToken()}` });
-  }
-
   // ──────────────────────────────────────────────
   // Lifecycle
   // ──────────────────────────────────────────────
   ngOnInit() {
-    const token = this.authService.getToken();
-    if (!token) return;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userName =
-        payload['fullName'] ||
-        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-        payload.email?.split('@')[0] || 'User';
-      this.userEmail = payload.email || '';
-      this.userRole  =
-        payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-        payload.role || '';
-      this.isSuperAdmin = this.userRole === 'SuperAdmin';
-      this.isCustomer   = this.userRole === 'Customer';
-    } catch {}
+    this.userName = this.authService.getUserName() || 'User';
+    this.userRole = this.authService.getUserRole();
+    this.isSuperAdmin = this.userRole === 'SuperAdmin';
+    this.isCustomer = this.userRole === 'Customer';
 
     const savedEmail = localStorage.getItem('im3_email');
     if (savedEmail && savedEmail === this.userEmail) {
@@ -267,7 +248,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Profile
   // ──────────────────────────────────────────────
   loadProfile() {
-    this.http.get<any>(`${environment.apiUrl}/Profile`, { headers: this.getHeaders() }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
       next: (data) => {
         if (data.photoUrl) {
           this.userPhotoUrl = environment.apiUrl.replace('/api','') + data.photoUrl;
@@ -287,7 +268,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Notifications
   // ──────────────────────────────────────────────
   loadNotifications() {
-    this.http.get<any[]>(`${environment.apiUrl}/Notifications`, { headers: this.getHeaders() }).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Notifications`).subscribe({
       next: (data) => {
         this.notifications = data;
         this.unreadCount   = data.filter(n => !n.isRead).length;
@@ -297,7 +278,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   loadUnreadCount() {
-    this.http.get<any>(`${environment.apiUrl}/Notifications/unread-count`, { headers: this.getHeaders() }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Notifications/unread-count`).subscribe({
       next: (data) => { this.unreadCount = data.count || 0; this.cdr.detectChanges(); },
       error: () => {}
     });
@@ -314,7 +295,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   markAllRead() {
-    this.http.put(`${environment.apiUrl}/Notifications/mark-all-read`, {}, { headers: this.getHeaders() }).subscribe({
+    this.http.put(`${environment.apiUrl}/Notifications/mark-all-read`, {}).subscribe({
       next: () => {
         this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;
@@ -325,7 +306,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   goToNotification(n: any) {
     this.showNotifDropdown = false;
-    this.http.put(`${environment.apiUrl}/Notifications/${n.id}/read`, {}, { headers: this.getHeaders() }).subscribe({
+    this.http.put(`${environment.apiUrl}/Notifications/${n.id}/read`, {}).subscribe({
       next: () => {
         const notif = this.notifications.find(x => x.id === n.id);
         if (notif) notif.isRead = true;
@@ -347,7 +328,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   onSearch() {
     if (!this.searchQuery.trim()) { this.searchResults = []; this.cdr.detectChanges(); return; }
-    this.http.get<any>(`${environment.apiUrl}/Search?q=${this.searchQuery}`, { headers: this.getHeaders() }).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Search?q=${this.searchQuery}`).subscribe({
       next: (data) => {
         this.searchResults = [
           ...(data.tickets  || []).map((t: any) => ({ ...t, type: 'ticket', title: `#TN${t.ticketNumber} ${t.title}` })),

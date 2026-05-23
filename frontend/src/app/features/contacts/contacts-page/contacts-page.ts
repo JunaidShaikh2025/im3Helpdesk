@@ -5,9 +5,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
@@ -23,7 +22,6 @@ import { environment } from '../../../../environments/environment';
 })
 export class ContactsPageComponent implements OnInit {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -39,13 +37,6 @@ export class ContactsPageComponent implements OnInit {
   filteredCompanies: any[] = [];
   selectedCompany: any = null;
   companyContacts: any[] = [];
-
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
 
 
   coActiveTab = 'contacts';
@@ -64,10 +55,7 @@ export class ContactsPageComponent implements OnInit {
 
   loadContacts() {
     this.loading = true;
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Contacts`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).subscribe({
       next: (data) => {
         this.contacts = data;
         this.filteredContacts = data;
@@ -121,10 +109,7 @@ export class ContactsPageComponent implements OnInit {
 }
 
   loadCompanies() {
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Contacts`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).subscribe({
       next: (data) => {
         const groups: any = {};
         data.forEach(c => {
