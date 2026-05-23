@@ -2,10 +2,9 @@ import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
-import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -20,7 +19,6 @@ export class ContactsPageComponent implements OnInit {
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
-  private authService = inject(AuthService);
 
   contacts: any[] = [];
   filteredContacts: any[] = [];
@@ -40,13 +38,9 @@ export class ContactsPageComponent implements OnInit {
     this.loadCompanies();
   }
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({ 'Authorization': `Bearer ${this.authService.getToken()}` });
-  }
-
   loadContacts() {
     this.loading = true;
-    this.http.get<any[]>(`${environment.apiUrl}/Contacts`, { headers: this.getHeaders() }).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).subscribe({
       next: (data) => {
         this.contacts = data;
         this.buildFilteredContacts(data);
@@ -90,7 +84,7 @@ export class ContactsPageComponent implements OnInit {
   }
 
   loadCompanies() {
-    this.http.get<any[]>(`${environment.apiUrl}/Contacts`, { headers: this.getHeaders() }).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).subscribe({
       next: (data) => {
         const groups: any = {};
         data.forEach(c => {

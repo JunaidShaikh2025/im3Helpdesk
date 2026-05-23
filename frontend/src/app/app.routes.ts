@@ -1,9 +1,9 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth-guard';
+import { authGuard } from './core/guards/auth.guard';
 import { superAdminGuard } from './core/guards/super-admin-guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
   {
     path: 'auth',
     loadChildren: () =>
@@ -206,5 +206,5 @@ export const routes: Routes = [
       import('./features/calendar/calendar-event/calendar-event').then(m => m.CalendarEventComponent),
     canActivate: [authGuard]
   },
-  { path: '**', redirectTo: 'login' }
+  { path: '**', redirectTo: 'auth/login' }
 ];

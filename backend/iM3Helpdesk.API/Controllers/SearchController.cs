@@ -1,4 +1,6 @@
 using iM3Helpdesk.Infrastructure.Persistence;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +13,23 @@ namespace iM3Helpdesk.API.Controllers;
 public class SearchController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
+  private readonly ICurrentTenantService _tenant;
 
-  public SearchController(ApplicationDbContext context)
+  public SearchController(
+      ApplicationDbContext context,
+      ICurrentTenantService tenant)
   {
     _context = context;
+    _tenant = tenant;
   }
 
   [HttpGet]
+  [Authorize(Roles = nameof(UserRole.SuperAdmin) + "," + nameof(UserRole.CompanyAdmin) + "," + nameof(UserRole.Agent))]
   public async Task<IActionResult> GlobalSearch([FromQuery] string q)
   {
+    if (!_tenant.OrganizationId.HasValue)
+      return Forbid();
+
     if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
       return Ok(new
       {
@@ -44,10 +54,11 @@ public class SearchController : ControllerBase
         .ToListAsync();
 
     var agents = await _context.Users
-        .IgnoreQueryFilters()
         .Where(u => (u.FullName.Contains(q) ||
             u.Email.Contains(q)) &&
-            u.OrganizationId != null)
+        u.OrganizationId == _tenant.OrganizationId &&
+        (u.Role == UserRole.Agent ||
+         u.Role == UserRole.CompanyAdmin))
         .Take(5)
         .Select(u => new
         {
