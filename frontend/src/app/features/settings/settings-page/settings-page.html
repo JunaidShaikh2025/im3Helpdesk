@@ -1,5 +1,5 @@
 <app-layout>
-  <div class="settings-wrapper">
+  <div class="settings-wrapper" [ngClass]="'pos-' + settingsSidebarPosition">
     <div class="settings-sidebar">
       <div class="sidebar-header">
         <span class="sidebar-title">⚙️ Settings</span>
@@ -15,10 +15,6 @@
       </div>
     </div>
     <div class="settings-main">
-      <div class="settings-header">
-        <h1>Settings</h1>
-        <p>Manage your helpdesk configuration</p>
-      </div>
       <div class="settings-content">
         <!-- Templates -->
         <div *ngIf="activeTab === 'templates'">
@@ -47,6 +43,36 @@
                   </span>
                 </div>
                 <span class="theme-name">{{ t.name }}</span>
+              </div>
+            </div>
+
+            <div class="sidebar-pos-row">
+              <div class="sidebar-pos-label">Sidebar position</div>
+              <div class="sidebar-pos-options">
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'left'"
+                  (click)="setSettingsSidebarPosition('left')">
+                  Left
+                </button>
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'right'"
+                  (click)="setSettingsSidebarPosition('right')">
+                  Right
+                </button>
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'top'"
+                  (click)="setSettingsSidebarPosition('top')">
+                  Top
+                </button>
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'bottom'"
+                  (click)="setSettingsSidebarPosition('bottom')">
+                  Bottom
+                </button>
               </div>
             </div>
           </div>

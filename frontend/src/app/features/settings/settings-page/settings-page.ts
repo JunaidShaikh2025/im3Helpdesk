@@ -65,6 +65,8 @@ export class SettingsPageComponent implements OnInit {
   browserNotifications = false;
   language = 'en';
 
+  settingsSidebarPosition: 'left' | 'right' | 'top' | 'bottom' = 'left';
+
   themes = this.themeService.themes;
 
   languages = [
@@ -81,6 +83,21 @@ export class SettingsPageComponent implements OnInit {
     this.emailNotifications = localStorage.getItem('im3_email_notif') !== 'false';
     this.browserNotifications = localStorage.getItem('im3_browser_notif') === 'true';
     this.language = this.translationService.getCurrentLang();
+
+    const savedPos = (localStorage.getItem('im3_settings_sidebar_pos') || 'left')
+      .toLowerCase();
+    if (savedPos === 'right' || savedPos === 'top' || savedPos === 'bottom') {
+      this.settingsSidebarPosition = savedPos;
+    } else {
+      this.settingsSidebarPosition = 'left';
+    }
+  }
+
+  setSettingsSidebarPosition(pos: 'left' | 'right' | 'top' | 'bottom') {
+    this.settingsSidebarPosition = pos;
+    localStorage.setItem('im3_settings_sidebar_pos', pos);
+    this.cdr.detectChanges();
+    Promise.resolve().then(() => this.toastr.success('Layout updated!'));
   }
 
   applyTheme(themeId: string) {
