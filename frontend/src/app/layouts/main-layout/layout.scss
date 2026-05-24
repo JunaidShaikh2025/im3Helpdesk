@@ -42,6 +42,7 @@
   height: 100vh;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--ui-color-bg-subtle);
+  background: color-mix(in srgb, var(--ui-color-bg-subtle) 98%, var(--ui-color-bg-surface) 2%);
   border-right: 1px solid var(--ui-color-border);
   display: flex;
   flex-direction: column;
