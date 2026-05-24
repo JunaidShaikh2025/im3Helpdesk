@@ -259,6 +259,47 @@
           </span>
         </div>
 
+        <div class="notif-bell birthday-bell" *ngIf="!isSuperAdmin && !isCustomer && (birthdayBadgeCount > 0 || showBirthdayDropdown)" (click)="toggleBirthdayDropdown($event)">
+          <span class="bell-icon" [title]="birthdayTooltip">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 12 20 22 4 22 4 12"/>
+              <rect x="2" y="7" width="20" height="5"/>
+              <line x1="12" y1="22" x2="12" y2="7"/>
+              <path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z"/>
+              <path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/>
+            </svg>
+          </span>
+          <span class="notif-count-badge" *ngIf="birthdayBadgeCount > 0">
+            {{ birthdayBadgeCount > 99 ? '99+' : birthdayBadgeCount }}
+          </span>
+
+          <div class="notif-dropdown birthday-dropdown" *ngIf="showBirthdayDropdown" (click)="$event.stopPropagation()">
+            <div class="nd-header">
+              <span>Birthdays</span>
+              <button (click)="goToCalendarFromBirthday()">Open Calendar</button>
+            </div>
+
+            <div class="nd-empty" *ngIf="birthdayItems.length === 0">
+              No birthdays today or tomorrow.
+            </div>
+
+            <div class="nd-scroll-area" *ngIf="birthdayItems.length > 0">
+              <div class="nd-item" *ngFor="let b of birthdayItems" (click)="goToCalendarFromBirthday()">
+                <div class="bd-av" [style.background]="b.photoUrl ? 'var(--ui-color-bg-surface)' : getAvatarColor(b.fullName)">
+                  <img *ngIf="b.photoUrl" [src]="getBirthdayPhotoUrl(b.photoUrl)" [alt]="b.fullName" (error)="b.photoUrl = ''" class="bd-avatar-img"/>
+                  <span *ngIf="!b.photoUrl">{{ getInitials(b.fullName) }}</span>
+                </div>
+                <div class="nd-content">
+                  <div class="nd-title">{{ b.fullName }}</div>
+                  <div class="nd-msg">
+                    {{ b.when === 'today' ? 'Today' : 'Tomorrow' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleKbDropdown()">
           <span class="bell-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>

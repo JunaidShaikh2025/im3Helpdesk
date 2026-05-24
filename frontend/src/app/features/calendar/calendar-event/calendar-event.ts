@@ -31,6 +31,7 @@ export interface CalendarEvent {
   attendeeEmails?: string;   // comma-separated: "a@b.com,c@d.com"
   reminderSent?: boolean;
   createdAt: string;
+  isBirthday?: boolean;
 }
 
 interface DayCell {
@@ -70,6 +71,12 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // ── Data ─────────────────────────────────────────
   allEvents: CalendarEvent[] = [];
   allTickets: any[] = [];
+
+  private readonly ticketTimeZone = 'Asia/Kolkata';
+
+  private ticketsRangeKey = '';
+
+  private birthdaysRangeKey = '';
   calendarDays: DayCell[] = [];
   weekDays: DayCell[] = [];
   agendaItems: { date: Date; events: CalendarEvent[]; tickets: any[] }[] = [];
@@ -141,10 +148,32 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // Lifecycle
   // ─────────────────────────────────────────────────
   ngOnInit() {
+    this.initIstCalendarClock();
     this.loadAll();
     // Poll reminders every 60s
     interval(60000).pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.checkReminders());
+      .subscribe(() => {
+        this.checkReminders();
+        this.ensureTicketsLoaded();
+      });
+  }
+
+  private initIstCalendarClock() {
+    // Create a stable Date that represents *today in IST* using UTC noon,
+    // so it doesn't shift based on the user's machine timezone.
+    const todayYmdIst = this.formatYmdInTimeZone(new Date(), this.ticketTimeZone);
+    const parts = todayYmdIst.split('-').map(n => Number(n));
+    if (parts.length === 3 && parts.every(n => Number.isFinite(n))) {
+      const [y, m, d] = parts;
+      const stable = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+      this.today = stable;
+      this.currentDate = new Date(stable);
+      return;
+    }
+
+    // Fallback
+    this.today = new Date();
+    this.currentDate = new Date();
   }
 
   ngOnDestroy() {
@@ -164,6 +193,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (events) => {
         this.allEvents = events || [];
+        this.ensureBirthdaysLoaded();
         this.checkReminders();
         this.buildCalendar();
         this.loading = false;
@@ -173,6 +203,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
         // Fallback: load from localStorage
         const saved = localStorage.getItem('im3_calendar_events');
         this.allEvents = saved ? JSON.parse(saved) : [];
+        this.ensureBirthdaysLoaded();
         this.checkReminders();
         this.buildCalendar();
         this.loading = false;
@@ -180,16 +211,32 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Load tickets for calendar
+    this.ensureTicketsLoaded(true);
+  }
+
+  private ensureTicketsLoaded(force = false) {
+    const { start, end } = this.getViewRange();
+    const key = `${this.formatDateOnly(start)}|${this.formatDateOnly(end)}`;
+    if (!force && key === this.ticketsRangeKey) return;
+    this.ticketsRangeKey = key;
+
+    const qs = new URLSearchParams({
+      start: this.formatDateOnly(start),
+      end: this.formatDateOnly(end)
+    });
+
     this.http.get<any[]>(
-      `${environment.apiUrl}/Tickets`
+      `${environment.apiUrl}/Tickets/calendar?${qs.toString()}`
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (tickets) => {
         this.allTickets = tickets || [];
         this.buildCalendar();
         this.cdr.detectChanges();
       },
-      error: () => {}
+      error: () => {
+        // Allow retry on next tick.
+        this.ticketsRangeKey = '';
+      }
     });
   }
 
@@ -197,41 +244,120 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // Calendar building
   // ─────────────────────────────────────────────────
   buildCalendar() {
+    this.ensureBirthdaysLoaded();
+    this.ensureTicketsLoaded();
     if (this.currentView === 'month') this.buildMonthView();
     else if (this.currentView === 'week') this.buildWeekView();
     else if (this.currentView === 'day') this.buildDayView();
     else this.buildAgendaView();
   }
 
+  private formatDateOnly(d: Date): string {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  private getViewRange(): { start: Date; end: Date } {
+    if (this.currentView === 'month') {
+      const year = this.currentDate.getUTCFullYear();
+      const month = this.currentDate.getUTCMonth();
+      const firstDay = new Date(Date.UTC(year, month, 1, 12, 0, 0));
+      const start = new Date(firstDay);
+      start.setUTCDate(start.getUTCDate() - firstDay.getUTCDay());
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 41);
+      return { start, end };
+    }
+
+    if (this.currentView === 'week') {
+      const start = new Date(this.currentDate);
+      start.setUTCDate(start.getUTCDate() - start.getUTCDay());
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 6);
+      return { start, end };
+    }
+
+    if (this.currentView === 'day') {
+      const start = new Date(this.currentDate);
+      const end = new Date(this.currentDate);
+      return { start, end };
+    }
+
+    // agenda
+    const start = new Date(this.today);
+    const end = new Date(this.today);
+    end.setUTCDate(end.getUTCDate() + 29);
+    return { start, end };
+  }
+
+  private ensureBirthdaysLoaded() {
+    const { start, end } = this.getViewRange();
+    const key = `${this.formatDateOnly(start)}|${this.formatDateOnly(end)}`;
+    if (key === this.birthdaysRangeKey) return;
+    this.birthdaysRangeKey = key;
+
+    const qs = new URLSearchParams({
+      start: this.formatDateOnly(start),
+      end: this.formatDateOnly(end)
+    });
+
+    this.http.get<CalendarEvent[]>(
+      `${environment.apiUrl}/Birthdays/calendar?${qs.toString()}`
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (items) => {
+        const birthdays = (items || []).map(e => ({
+          ...e,
+          isBirthday: true,
+          allDay: true,
+          type: 'event',
+          priority: 'low',
+          isCompleted: false
+        } as CalendarEvent));
+
+        // Replace existing birthday events for this view.
+        this.allEvents = this.allEvents.filter(e => !e.isBirthday).concat(birthdays);
+        this.checkReminders();
+        this.buildCalendar();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Retry later (important if API was restarted).
+        if (this.birthdaysRangeKey === key) this.birthdaysRangeKey = '';
+      }
+    });
+  }
+
   buildMonthView() {
-    const year = this.currentDate.getFullYear();
-    const month = this.currentDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+    const year = this.currentDate.getUTCFullYear();
+    const month = this.currentDate.getUTCMonth();
+    const firstDay = new Date(Date.UTC(year, month, 1, 12, 0, 0));
+    const lastDay = new Date(Date.UTC(year, month + 1, 0, 12, 0, 0));
     const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    startDate.setUTCDate(startDate.getUTCDate() - firstDay.getUTCDay());
 
     this.calendarDays = [];
     const d = new Date(startDate);
     for (let i = 0; i < 42; i++) {
       this.calendarDays.push({
         date: new Date(d),
-        isCurrentMonth: d.getMonth() === month,
+        isCurrentMonth: d.getUTCMonth() === month,
         isToday: this.isSameDay(d, this.today),
         events: this.getEventsForDay(d),
         tickets: this.getTicketsForDay(d)
       });
-      d.setDate(d.getDate() + 1);
+      d.setUTCDate(d.getUTCDate() + 1);
     }
   }
 
   buildWeekView() {
     const start = new Date(this.currentDate);
-    start.setDate(start.getDate() - start.getDay());
+    start.setUTCDate(start.getUTCDate() - start.getUTCDay());
     this.weekDays = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(start);
-      d.setDate(d.getDate() + i);
+      d.setUTCDate(d.getUTCDate() + i);
       this.weekDays.push({
         date: d,
         isCurrentMonth: true,
@@ -251,7 +377,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     const start = new Date(this.today);
     for (let i = 0; i < 30; i++) {
       const d = new Date(start);
-      d.setDate(d.getDate() + i);
+      d.setUTCDate(d.getUTCDate() + i);
       const events = this.getEventsForDay(d);
       const tickets = this.getTicketsForDay(d);
       if (events.length > 0 || tickets.length > 0) {
@@ -267,14 +393,87 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     return this.allEvents.filter(e => {
       if (!this.showCompleted && e.isCompleted) return false;
       if (this.filterType !== 'all' && e.type !== this.filterType) return false;
-      return this.isSameDay(new Date(e.startDate), date);
+      return this.isSameDayInTimeZone(new Date(e.startDate), date, this.ticketTimeZone);
     });
   }
 
   getTicketsForDay(date: Date): any[] {
-    return this.allTickets.filter(t =>
-      t.createdAt && this.isSameDay(new Date(t.createdAt), date)
-    );
+    const occurrences: any[] = [];
+
+    for (const ticket of this.allTickets) {
+      const createdAtRaw = ticket?.createdAt ?? ticket?.CreatedAt;
+      if (!createdAtRaw) continue;
+
+      const createdAt = new Date(createdAtRaw);
+
+      const updatedAtRaw = ticket?.updatedAt ?? ticket?.UpdatedAt;
+      const lastActivityAtRaw = ticket?.lastActivityAt ?? ticket?.LastActivityAt;
+
+      const updatedAt = updatedAtRaw ? new Date(updatedAtRaw) : null;
+      const lastActivityAt = lastActivityAtRaw ? new Date(lastActivityAtRaw) : null;
+      const activityAt = updatedAt && lastActivityAt
+        ? (updatedAt > lastActivityAt ? updatedAt : lastActivityAt)
+        : (updatedAt || lastActivityAt);
+
+      // Always show on created day.
+      if (this.isSameDayInTimeZone(createdAt, date, this.ticketTimeZone)) {
+        occurrences.push({ ...ticket, __calendarOccurrence: 'created' });
+        continue;
+      }
+
+      // Also show on the day it was last updated (status change / comment / assignment etc).
+      if (activityAt && this.isSameDayInTimeZone(activityAt, date, this.ticketTimeZone)) {
+        occurrences.push({ ...ticket, __calendarOccurrence: 'updated', __calendarActivityAt: activityAt.toISOString() });
+      }
+    }
+
+    return occurrences;
+  }
+
+  getTicketStatusLabel(ticket: any): string {
+    if (ticket?.__calendarOccurrence === 'created') return 'Created';
+    return ticket?.status ?? '';
+  }
+
+  getTicketStatusDisplayColor(ticket: any): string {
+    if (ticket?.__calendarOccurrence === 'created') return this.getStatusColor('Open');
+    return this.getStatusColor(ticket?.status);
+  }
+
+  getTicketMetaTimeLabel(ticket: any): string {
+    return ticket?.__calendarOccurrence === 'updated' ? 'Updated' : 'Created';
+  }
+
+  getTicketMetaTimeValue(ticket: any): string {
+    return (ticket?.__calendarOccurrence === 'updated' && ticket?.__calendarActivityAt)
+      ? ticket.__calendarActivityAt
+      : ticket?.createdAt;
+  }
+
+  private formatYmdInTimeZone(date: Date, timeZone: string): string {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(date);
+    } catch {
+      return this.formatDateOnly(date);
+    }
+  }
+
+  private formatCellYmd(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private isSameDayInTimeZone(a: Date, b: Date, timeZone: string): boolean {
+    // Compare instants' IST date against the calendar cell's stable date-only
+    // (UTC components represent the IST date).
+    return this.formatYmdInTimeZone(a, timeZone) === this.formatDateOnly(b);
   }
 
   getEventsForCurrentDay(): CalendarEvent[] {
@@ -321,24 +520,24 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────
   prevPeriod() {
     const d = new Date(this.currentDate);
-    if (this.currentView === 'month') d.setMonth(d.getMonth() - 1);
-    else if (this.currentView === 'week') d.setDate(d.getDate() - 7);
-    else d.setDate(d.getDate() - 1);
+    if (this.currentView === 'month') d.setUTCMonth(d.getUTCMonth() - 1);
+    else if (this.currentView === 'week') d.setUTCDate(d.getUTCDate() - 7);
+    else d.setUTCDate(d.getUTCDate() - 1);
     this.currentDate = d;
     this.buildCalendar();
   }
 
   nextPeriod() {
     const d = new Date(this.currentDate);
-    if (this.currentView === 'month') d.setMonth(d.getMonth() + 1);
-    else if (this.currentView === 'week') d.setDate(d.getDate() + 7);
-    else d.setDate(d.getDate() + 1);
+    if (this.currentView === 'month') d.setUTCMonth(d.getUTCMonth() + 1);
+    else if (this.currentView === 'week') d.setUTCDate(d.getUTCDate() + 7);
+    else d.setUTCDate(d.getUTCDate() + 1);
     this.currentDate = d;
     this.buildCalendar();
   }
 
   goToToday() {
-    this.currentDate = new Date();
+    this.currentDate = new Date(this.today);
     this.buildCalendar();
   }
 
@@ -387,6 +586,10 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   }
 
   editEvent(event: CalendarEvent) {
+    if (event.isBirthday) {
+      this.toastr.info('Birthday events are read-only');
+      return;
+    }
     this.newEvent = {
       ...event,
       startDate: new Date(event.startDate).toISOString().slice(0, 16),
@@ -464,6 +667,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   }
 
   deleteEvent(event: CalendarEvent) {
+    if (event.isBirthday) return;
     if (!confirm(`Delete "${event.title}"?`)) return;
     this.http.delete(
       `${environment.apiUrl}/CalendarEvents/${event.id}`
@@ -484,6 +688,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   }
 
   toggleComplete(event: CalendarEvent) {
+    if (event.isBirthday) return;
     event.isCompleted = !event.isCompleted;
     this.http.put(
       `${environment.apiUrl}/CalendarEvents/${event.id}`, event
@@ -497,7 +702,8 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   }
 
   private saveLocal() {
-    localStorage.setItem('im3_calendar_events', JSON.stringify(this.allEvents));
+    const persistable = this.allEvents.filter(e => !e.isBirthday);
+    localStorage.setItem('im3_calendar_events', JSON.stringify(persistable));
   }
 
   // ─────────────────────────────────────────────────
@@ -544,21 +750,21 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   }
 
   isSameDay(a: Date, b: Date): boolean {
-    return a.getFullYear() === b.getFullYear() &&
-           a.getMonth() === b.getMonth() &&
-           a.getDate() === b.getDate();
+      return a.getUTCFullYear() === b.getUTCFullYear() &&
+        a.getUTCMonth() === b.getUTCMonth() &&
+        a.getUTCDate() === b.getUTCDate();
   }
 
   formatTime(iso: string): string {
     if (!iso) return '';
     const d = new Date(iso);
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: this.ticketTimeZone });
   }
 
   formatDate(iso: string): string {
     if (!iso) return '';
     const d = new Date(iso);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: this.ticketTimeZone });
   }
 
   getTimeAgo(dateStr: string): string {
@@ -638,6 +844,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
   // ── Send reminder manually ─────────────────────────
   async sendReminderNow(ev: CalendarEvent) {
+    if (ev.isBirthday) return;
     if (this.sendingReminder) return;
     this.sendingReminder = true;
     this.cdr.detectChanges();

@@ -52,6 +52,9 @@ builder.Services.AddSingleton<IEscalationService, EscalationService>();
 builder.Services.AddHostedService<EmailWorker>();
 builder.Services.AddHostedService<EscalationWorker>();
 builder.Services.AddHostedService<EmailPollingService>();
+builder.Services.Configure<BirthdayPostOptions>(
+  builder.Configuration.GetSection("BirthdayPosts"));
+builder.Services.AddHostedService<BirthdayPostWorker>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

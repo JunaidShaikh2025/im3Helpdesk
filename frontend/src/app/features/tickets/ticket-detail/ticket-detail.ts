@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, OnDestroy,
+  Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject,
   ViewChild, ElementRef,
   ChangeDetectionStrategy,
@@ -42,7 +42,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./ticket-detail.scss']
 })
 export class TicketDetailComponent
-  implements OnInit, OnDestroy {
+  implements OnInit, AfterViewInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   public router = inject(Router);
@@ -211,17 +211,22 @@ export class TicketDetailComponent
     const role = this.authService.getUserRole();
     this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin'].includes(role);
 
-    Promise.resolve().then(() => {
-      this.loadTicket();
-      this.loadAttachments();
-      this.loadAgents();
-      this.loadGroups();
+    this.loadTicket();
+    this.loadAttachments();
+    this.loadAgents();
+    this.loadGroups();
+    this.loadAgentSignature();
+    this.loadTimeline();
+    this.loadCustomFieldValues();
+  }
+
+  ngAfterViewInit() {
+    // Run these after first render to avoid NG0100 in dev-mode
+    // (some requests can resolve synchronously via caching/interceptors).
+    setTimeout(() => {
       this.loadOrgInfo();
-      this.loadAgentSignature();
-      this.loadTimeline();
-      this.loadCustomFieldValues();
       this.startPolling();
-    });
+    }, 0);
   }
 
   ngOnDestroy() {
@@ -248,7 +253,7 @@ loadTicket() {
     .subscribe({
       next: (data: any) => {
         this.ticket = data;
-        this.loading = false;
+        this.setLoading(false);
 
         if (data.assignedTo?.id)
           this.selectedAgentId = data.assignedTo.id;
@@ -257,12 +262,19 @@ loadTicket() {
         this.loadViewers();
       },
       error: (err) => {
-        this.loading = false;
+        this.setLoading(false);
         if (err.status === 404)
           this.router.navigate(['/tickets']);
       }
     });
 }
+
+  private setLoading(value: boolean) {
+    queueMicrotask(() => {
+      this.loading = value;
+      this.cdr.detectChanges();
+    });
+  }
 
   loadAttachments() {
     this.http.get<any[]>(

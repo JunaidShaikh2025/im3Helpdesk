@@ -1,4 +1,4 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, LOCALE_ID, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 @Pipe({
@@ -6,7 +6,8 @@ import { DatePipe } from '@angular/common';
   standalone: true
 })
 export class LocalDatePipe implements PipeTransform {
-  private datePipe = new DatePipe('en-IN');
+  private readonly locale = inject(LOCALE_ID);
+  private readonly datePipe = new DatePipe(this.locale);
 
   transform(
     value: string | Date | null | undefined,

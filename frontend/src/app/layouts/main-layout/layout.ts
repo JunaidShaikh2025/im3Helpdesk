@@ -113,6 +113,23 @@ export class LayoutComponent implements OnInit, OnDestroy {
   kbUnreadArticles: any[] = [];
   showKbDropdown   = false;
 
+  birthdaySummary = {
+    today: '',
+    tomorrow: '',
+    todayCount: 0,
+    tomorrowCount: 0
+  };
+  private birthdayLastLoadedAt = 0;
+
+  showBirthdayDropdown = false;
+  birthdayItems: Array<{
+    userId: string;
+    fullName: string;
+    photoUrl?: string | null;
+    when: 'today' | 'tomorrow';
+    date: string;
+  }> = [];
+
   myTicketCounts = {
     open: 0,
     inProgress: 0,
@@ -173,11 +190,101 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.loadUnreadCount();
       this.loadTodoCount();
       this.loadKbUnread();
+      this.loadBirthdayReminders();
       this.loadMissedCallCount();
     }
 
     // Ticket counts are useful for both internal users and customers.
     this.loadMyTicketCounts();
+  }
+
+  // ──────────────────────────────────────────────
+  // Birthdays (topbar reminder)
+  // ──────────────────────────────────────────────
+  get birthdayBadgeCount(): number {
+    return (this.birthdaySummary.todayCount || 0) +
+           (this.birthdaySummary.tomorrowCount || 0);
+  }
+
+  get birthdayTooltip(): string {
+    const t = this.birthdaySummary.todayCount || 0;
+    const tm = this.birthdaySummary.tomorrowCount || 0;
+    if (t <= 0 && tm <= 0) return 'No upcoming birthdays';
+    if (t > 0 && tm > 0) return `Birthdays: ${t} today, ${tm} tomorrow`;
+    if (t > 0) return `Birthdays today: ${t}`;
+    return `Birthdays tomorrow: ${tm}`;
+  }
+
+  private readonly apiBaseUrl = environment.apiUrl.replace('/api', '');
+
+  getBirthdayPhotoUrl(photoUrl?: string | null): string {
+    if (!photoUrl) return '';
+    return photoUrl.startsWith('http') ? photoUrl : `${this.apiBaseUrl}${photoUrl}`;
+  }
+
+  toggleBirthdayDropdown(event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    this.showBirthdayDropdown = !this.showBirthdayDropdown;
+    if (this.showBirthdayDropdown) {
+      this.loadBirthdayReminders(true);
+      setTimeout(() => {
+        window.addEventListener('click', this.closeBirthdayDropdown, { once: true });
+        window.addEventListener('keydown', this.handleBirthdayDropdownEsc, { once: true });
+      });
+    }
+    this.cdr.detectChanges();
+  }
+
+  closeBirthdayDropdown = () => {
+    this.showBirthdayDropdown = false;
+    this.cdr.detectChanges();
+    window.removeEventListener('keydown', this.handleBirthdayDropdownEsc, { capture: true } as any);
+  };
+
+  handleBirthdayDropdownEsc = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') this.closeBirthdayDropdown();
+  };
+
+  goToCalendarFromBirthday() {
+    this.showBirthdayDropdown = false;
+    this.router.navigate(['/calendar']);
+    this.cdr.detectChanges();
+  }
+
+  loadBirthdayReminders(force = false) {
+    // Keep this lightweight but retry-safe.
+    const now = Date.now();
+    if (!force && now - this.birthdayLastLoadedAt < 30 * 1000) return;
+
+    this.http.get<any>(
+      `${environment.apiUrl}/Birthdays/reminders`
+    ).subscribe({
+      next: (data) => {
+        this.birthdayLastLoadedAt = now;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        this.birthdayItems = items.map((i: any) => ({
+          userId: i.userId,
+          fullName: i.fullName,
+          photoUrl: i.photoUrl,
+          when: i.when,
+          date: i.date
+        }));
+
+        const todayCount = Number(data?.todayCount ?? 0);
+        const tomorrowCount = Number(data?.tomorrowCount ?? 0);
+        this.birthdaySummary = {
+          today: data?.today ?? '',
+          tomorrow: data?.tomorrow ?? '',
+          todayCount: Number.isFinite(todayCount) ? todayCount : 0,
+          tomorrowCount: Number.isFinite(tomorrowCount) ? tomorrowCount : 0
+        };
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Allow retry on next refresh.
+        if (force) this.birthdayLastLoadedAt = 0;
+      }
+    });
   }
 
   toggleSidebarCollapse() {
