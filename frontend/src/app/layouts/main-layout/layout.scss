@@ -10,6 +10,43 @@
   background: var(--ui-color-bg-page); /* Premium clean background alignment */
   font-family: var(--ui-font-family);
   -webkit-font-smoothing: antialiased;
+
+  /* Icon style tuning (Settings → Icon Style) */
+  --im3-icon-stroke-width: 2;
+
+  --bg-primary: var(--ui-color-bg-page);
+  --bg-secondary: var(--ui-color-bg-surface);
+  --bg-card: var(--ui-color-bg-surface);
+  --text-primary: var(--ui-color-text-primary);
+  --text-secondary: var(--ui-color-text-secondary);
+  --text-muted: var(--ui-color-text-faint);
+  --border-color: var(--ui-color-border);
+  --accent: var(--ui-color-primary);
+  --accent-light: var(--ui-color-primary-soft);
+  --hover-bg: var(--ui-color-bg-hover);
+  --toolbar-bg: var(--ui-color-primary);
+  --shadow: var(--ui-shadow-sm);
+}
+
+.app-shell svg.im3-icon * {
+  stroke-width: var(--im3-icon-stroke-width) !important;
+}
+
+/* Non-active icon variants are hidden by default; global styles toggle them. */
+.app-shell .icon-emoji,
+.app-shell .icon-fa {
+  display: none;
+  line-height: 1;
+}
+
+/* Avoid layout "jump" on route navigation:
+   transitions should only run when user toggles collapse,
+   not when layout is recreated on page change. */
+.app-shell:not(.anim-ready) {
+  .sidebar,
+  .main-area {
+    transition: none !important;
+  }
 }
 
 /* ── SIDEBAR CONTAINER ENGINE ── */
@@ -18,7 +55,8 @@
   min-width: 250px;
   height: 100vh;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--ui-color-bg-surface);
+  background: var(--ui-color-bg-subtle);
+  background: color-mix(in srgb, var(--ui-color-bg-subtle) 98%, var(--ui-color-bg-surface) 2%);
   border-right: 1px solid var(--ui-color-border);
   display: flex;
   flex-direction: column;
@@ -32,7 +70,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--ui-color-border-soft);
+  border-bottom: 1px solid var(--ui-color-border);
   flex-shrink: 0;
 
   .logo-icon {
@@ -89,7 +127,7 @@
   text-decoration: none;
 
   &:hover {
-    background: var(--ui-color-border-soft);
+    background: var(--ui-color-bg-hover);
     color: var(--ui-color-text-primary);
 
     .nav-icon svg {
@@ -98,7 +136,7 @@
   }
 
   &.active {
-    background: rgba(37, 99, 235, 0.06);
+    background: rgba(37, 99, 235, 0.1);
     color: var(--ui-color-primary);
     font-weight: 600;
 
@@ -119,6 +157,19 @@
   svg {
     color: var(--ui-color-text-muted);
     transition: color 0.15s ease;
+  }
+}
+
+.icon-fa {
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 16px;
+    line-height: 1;
+    color: currentColor;
   }
 }
 
@@ -143,7 +194,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid var(--ui-color-border-soft);
+  border-top: 1px solid var(--ui-color-border);
   cursor: pointer;
   color: var(--ui-color-text-muted);
   font-size: 13.5px;
@@ -152,7 +203,7 @@
   flex-shrink: 0;
 
   &:hover {
-    background: var(--ui-color-bg-page);
+    background: var(--ui-color-bg-hover);
     color: var(--ui-color-text-primary);
     
     .nav-icon-toggle svg { color: var(--ui-color-text-primary); }
@@ -240,6 +291,8 @@
     justify-content: center;
     
     svg { color: var(--ui-color-text-faint); transition: color 0.15s ease; }
+
+    .icon-fa i { font-size: 13px; }
   }
   
   .ts-input {
@@ -310,6 +363,8 @@
     justify-content: center;
     
     svg { color: var(--ui-color-text-muted); transition: color 0.15s ease; }
+
+    .icon-fa i { font-size: 15px; }
   }
 }
 
@@ -401,6 +456,7 @@
   color: var(--ui-color-bg-surface); font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; overflow: hidden;
+  box-shadow: 0 0 0 2px var(--ui-color-bg-surface), 0 0 0 3px var(--ui-color-primary);
 
   .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 }
@@ -566,4 +622,57 @@
   .hamburger { display: block; }
   .topbar { padding: 0 16px; }
   .topbar-search { max-width: 180px; }
+}
+
+.my-ticket-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-color-border);
+  background: var(--ui-color-bg-subtle);
+  color: var(--ui-color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  margin-right: 10px;
+
+  .mts-label { color: var(--ui-color-text-muted); font-weight: 900; }
+  .mts-item { color: var(--ui-color-text-primary); }
+  .mts-dot { color: var(--ui-color-text-faint); }
+
+  @media (max-width: 920px) {
+    .mts-dot, .mts-item { display: none; }
+  }
+}
+
+.birthday-dropdown {
+  width: 300px;
+
+  .nd-item {
+    gap: 10px;
+  }
+
+  .bd-av {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    overflow: hidden;
+    border: 1px solid var(--ui-color-border-soft);
+  }
+
+  .bd-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+  }
 }

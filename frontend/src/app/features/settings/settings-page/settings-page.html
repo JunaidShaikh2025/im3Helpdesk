@@ -1,5 +1,5 @@
 <app-layout>
-  <div class="settings-wrapper">
+  <div class="settings-wrapper" [ngClass]="'pos-' + settingsSidebarPosition">
     <div class="settings-sidebar">
       <div class="sidebar-header">
         <span class="sidebar-title">⚙️ Settings</span>
@@ -15,10 +15,6 @@
       </div>
     </div>
     <div class="settings-main">
-      <div class="settings-header">
-        <h1>Settings</h1>
-        <p>Manage your helpdesk configuration</p>
-      </div>
       <div class="settings-content">
         <!-- Templates -->
         <div *ngIf="activeTab === 'templates'">
@@ -47,6 +43,109 @@
                   </span>
                 </div>
                 <span class="theme-name">{{ t.name }}</span>
+              </div>
+            </div>
+
+            <h3>Icon Style</h3>
+            <div class="icon-style-grid">
+              <button type="button"
+                class="icon-style-card"
+                *ngFor="let s of iconStyles"
+                [class.active]="currentIconStyle === s.id"
+                (click)="applyIconStyle(s.id)">
+
+                <div class="icon-style-preview" [attr.data-style]="s.id">
+                  <ng-container [ngSwitch]="s.id">
+                    <ng-container *ngSwitchCase="'outline'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'colorful'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'soft'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'soft-colorful'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'awesome'">
+                      <i class="fa-solid fa-icons icon-style-fa"></i>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'awesome-colorful'">
+                      <i class="fa-solid fa-icons icon-style-fa"></i>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'mono'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'emoji'">
+                      <span class="icon-style-emoji">🎨</span>
+                    </ng-container>
+                  </ng-container>
+                </div>
+
+                <span class="icon-style-name">{{ s.name }}</span>
+              </button>
+            </div>
+
+            <div class="sidebar-pos-row">
+              <div class="sidebar-pos-label">Sidebar position</div>
+              <div class="sidebar-pos-options">
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'left'"
+                  (click)="setSettingsSidebarPosition('left')">
+                  Left
+                </button>
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'right'"
+                  (click)="setSettingsSidebarPosition('right')">
+                  Right
+                </button>
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'top'"
+                  (click)="setSettingsSidebarPosition('top')">
+                  Top
+                </button>
+                <button type="button"
+                  class="sidebar-pos-btn"
+                  [class.active]="settingsSidebarPosition === 'bottom'"
+                  (click)="setSettingsSidebarPosition('bottom')">
+                  Bottom
+                </button>
               </div>
             </div>
           </div>

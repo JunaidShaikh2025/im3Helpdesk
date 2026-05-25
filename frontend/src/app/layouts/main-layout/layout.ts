@@ -1,6 +1,6 @@
 // (cleaned up: file now starts with imports only)
 import {
-  Component, OnInit, OnDestroy,
+  Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -33,6 +33,10 @@ import { GlobalCallPopupComponent } from '../../shared/components/global-call-po
 export class LayoutComponent implements OnInit, OnDestroy {
   public showProfileDropdown = false;
   public keyboardShortcutsEnabled = true;
+
+  // Prevent layout shift animation on route navigation.
+  // We only enable transitions after the first render.
+  public animationsReady = false;
 
   // Profile Dropdown Logic
   public toggleProfileDropdown(event: MouseEvent) {
@@ -109,21 +113,177 @@ export class LayoutComponent implements OnInit, OnDestroy {
   kbUnreadArticles: any[] = [];
   showKbDropdown   = false;
 
+  birthdaySummary = {
+    today: '',
+    tomorrow: '',
+    todayCount: 0,
+    tomorrowCount: 0
+  };
+  private birthdayLastLoadedAt = 0;
+
+  showBirthdayDropdown = false;
+  birthdayItems: Array<{
+    userId: string;
+    fullName: string;
+    photoUrl?: string | null;
+    when: 'today' | 'tomorrow';
+    date: string;
+  }> = [];
+
+  myTicketCounts = {
+    open: 0,
+    inProgress: 0,
+    pending: 0,
+    resolved: 0,
+    closed: 0,
+    total: 0
+  };
+
   profileCompletion = 100;
 
   // ──────────────────────────────────────────────
   // Todo
   // ──────────────────────────────────────────────
   loadTodoCount() {
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Todo`
+    this.http.get<any>(
+      `${environment.apiUrl}/Todo/unread-count`
     ).subscribe({
       next: (data) => {
-        this.todos     = data;
-        this.todoCount = data.filter(t => !t.isCompleted).length;
+        this.todoCount = data?.count ?? 0;
         this.cdr.detectChanges();
       },
       error: () => {}
+    });
+  }
+
+  onTodoCountChanged(count: number) {
+    this.todoCount = Number.isFinite(count as any)
+      ? Number(count)
+      : this.todoCount;
+    this.cdr.detectChanges();
+  }
+
+  loadMyTicketCounts() {
+    this.http.get<any>(
+      `${environment.apiUrl}/Tickets/my-status-counts`
+    ).subscribe({
+      next: (data) => {
+        this.myTicketCounts = {
+          open: data?.open ?? 0,
+          inProgress: data?.inProgress ?? 0,
+          pending: data?.pending ?? 0,
+          resolved: data?.resolved ?? 0,
+          closed: data?.closed ?? 0,
+          total: data?.total ?? 0
+        };
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  refreshHeaderCounts() {
+    if (this.isSuperAdmin) return;
+
+    // Topbar modules exist only for internal users.
+    if (!this.isCustomer) {
+      this.loadUnreadCount();
+      this.loadTodoCount();
+      this.loadKbUnread();
+      this.loadBirthdayReminders();
+      this.loadMissedCallCount();
+    }
+
+    // Ticket counts are useful for both internal users and customers.
+    this.loadMyTicketCounts();
+  }
+
+  // ──────────────────────────────────────────────
+  // Birthdays (topbar reminder)
+  // ──────────────────────────────────────────────
+  get birthdayBadgeCount(): number {
+    return (this.birthdaySummary.todayCount || 0) +
+           (this.birthdaySummary.tomorrowCount || 0);
+  }
+
+  get birthdayTooltip(): string {
+    const t = this.birthdaySummary.todayCount || 0;
+    const tm = this.birthdaySummary.tomorrowCount || 0;
+    if (t <= 0 && tm <= 0) return 'No upcoming birthdays';
+    if (t > 0 && tm > 0) return `Birthdays: ${t} today, ${tm} tomorrow`;
+    if (t > 0) return `Birthdays today: ${t}`;
+    return `Birthdays tomorrow: ${tm}`;
+  }
+
+  private readonly apiBaseUrl = environment.apiUrl.replace('/api', '');
+
+  getBirthdayPhotoUrl(photoUrl?: string | null): string {
+    if (!photoUrl) return '';
+    return photoUrl.startsWith('http') ? photoUrl : `${this.apiBaseUrl}${photoUrl}`;
+  }
+
+  toggleBirthdayDropdown(event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    this.showBirthdayDropdown = !this.showBirthdayDropdown;
+    if (this.showBirthdayDropdown) {
+      this.loadBirthdayReminders(true);
+      setTimeout(() => {
+        window.addEventListener('click', this.closeBirthdayDropdown, { once: true });
+        window.addEventListener('keydown', this.handleBirthdayDropdownEsc, { once: true });
+      });
+    }
+    this.cdr.detectChanges();
+  }
+
+  closeBirthdayDropdown = () => {
+    this.showBirthdayDropdown = false;
+    this.cdr.detectChanges();
+    window.removeEventListener('keydown', this.handleBirthdayDropdownEsc, { capture: true } as any);
+  };
+
+  handleBirthdayDropdownEsc = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') this.closeBirthdayDropdown();
+  };
+
+  goToCalendarFromBirthday() {
+    this.showBirthdayDropdown = false;
+    this.router.navigate(['/calendar']);
+    this.cdr.detectChanges();
+  }
+
+  loadBirthdayReminders(force = false) {
+    // Keep this lightweight but retry-safe.
+    const now = Date.now();
+    if (!force && now - this.birthdayLastLoadedAt < 30 * 1000) return;
+
+    this.http.get<any>(
+      `${environment.apiUrl}/Birthdays/reminders`
+    ).subscribe({
+      next: (data) => {
+        this.birthdayLastLoadedAt = now;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        this.birthdayItems = items.map((i: any) => ({
+          userId: i.userId,
+          fullName: i.fullName,
+          photoUrl: i.photoUrl,
+          when: i.when,
+          date: i.date
+        }));
+
+        const todayCount = Number(data?.todayCount ?? 0);
+        const tomorrowCount = Number(data?.tomorrowCount ?? 0);
+        this.birthdaySummary = {
+          today: data?.today ?? '',
+          tomorrow: data?.tomorrow ?? '',
+          todayCount: Number.isFinite(todayCount) ? todayCount : 0,
+          tomorrowCount: Number.isFinite(tomorrowCount) ? tomorrowCount : 0
+        };
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Allow retry on next refresh.
+        if (force) this.birthdayLastLoadedAt = 0;
+      }
     });
   }
 
@@ -134,6 +294,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   toggleTodoPanel() {
     this.showTodoPanel = !this.showTodoPanel;
+    // Keep badge fresh when opening.
     if (this.showTodoPanel) this.loadTodoCount();
     this.cdr.detectChanges();
   }
@@ -228,14 +389,19 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     this.loadProfile();
     this.loadNotifications();
-    this.startNotifPolling();
-    this.loadTodoCount();
-    this.loadKbUnread();
-    this.loadMissedCallCount();
+    this.refreshHeaderCounts();
 
-    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadTodoCount());
-    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadKbUnread());
-    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadMissedCallCount());
+    // Live counters (near real-time) without full page reload.
+    interval(15000).pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshHeaderCounts());
+  }
+
+  ngAfterViewInit() {
+    // Enable transitions after initial paint to avoid
+    // "jump then settle" effect during navigation.
+    setTimeout(() => {
+      this.animationsReady = true;
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   ngOnDestroy() {
@@ -295,7 +461,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   startNotifPolling() {
-    interval(30000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadUnreadCount());
+    // Replaced by refreshHeaderCounts polling.
   }
 
   toggleNotifDropdown() {

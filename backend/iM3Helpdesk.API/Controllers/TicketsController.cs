@@ -56,6 +56,51 @@ public class TicketsController : ControllerBase
     return $"{bytes / 1048576} MB";
   }
 
+  [HttpGet("my-status-counts")]
+  public async Task<IActionResult> GetMyStatusCounts()
+  {
+    var userId = GetUserId();
+    if (userId == Guid.Empty) return Unauthorized();
+
+    var roleClaim = User.FindFirst(
+        "http://schemas.microsoft.com/ws/2008/06/" +
+        "identity/claims/role")?.Value
+        ?? User.FindFirst("role")?.Value;
+
+    var query = _context.Tickets
+        .AsNoTracking()
+        .AsQueryable();
+
+    if (string.Equals(roleClaim, "Customer", StringComparison.OrdinalIgnoreCase))
+      query = query.Where(t => t.CreatedByUserId == userId);
+    else
+      query = query.Where(t => t.AssignedToUserId == userId);
+
+    var grouped = await query
+        .GroupBy(t => t.Status)
+        .Select(g => new { status = g.Key, count = g.Count() })
+        .ToListAsync();
+
+    int Get(TicketStatus s) => grouped.FirstOrDefault(x => x.status == s)?.count ?? 0;
+
+    var open = Get(TicketStatus.Open);
+    var inProgress = Get(TicketStatus.InProgress);
+    var resolved = Get(TicketStatus.Resolved);
+    var closed = Get(TicketStatus.Closed);
+
+    var pending = Get(TicketStatus.Pending);
+
+    return Ok(new
+    {
+      open,
+      inProgress,
+      pending,
+      resolved,
+      closed,
+      total = open + inProgress + pending + resolved + closed
+    });
+  }
+
   [HttpGet]
   public async Task<IActionResult> GetAll()
   {
@@ -101,6 +146,9 @@ public class TicketsController : ControllerBase
           t.Tags,
           t.TicketNumber,
           t.CreatedAt,
+          t.UpdatedAt,
+          t.ResolvedAt,
+          t.LastActivityAt,
           t.SlaDeadline,
           t.SlaStatus,
           t.IsSlaBreached,
@@ -111,6 +159,119 @@ public class TicketsController : ControllerBase
           AssignedToId = t.AssignedToUserId
         })
         .ToListAsync();
+
+    return Ok(tickets);
+  }
+
+  private static TimeZoneInfo? TryGetIst()
+  {
+    try { return TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"); }
+    catch { return null; }
+  }
+
+  private static (DateTime startUtc, DateTime endUtcExclusive) ToUtcRangeForIstDates(DateOnly start, DateOnly end)
+  {
+    var tz = TryGetIst();
+
+    // Interpret start/end as IST calendar days.
+    var startIst = new DateTime(start.Year, start.Month, start.Day, 0, 0, 0, DateTimeKind.Unspecified);
+    var endNextIstDay = end.AddDays(1);
+    var endIstExclusive = new DateTime(endNextIstDay.Year, endNextIstDay.Month, endNextIstDay.Day, 0, 0, 0, DateTimeKind.Unspecified);
+
+    if (tz == null)
+    {
+      // Fallback: treat as UTC date range.
+      return (DateTime.SpecifyKind(startIst, DateTimeKind.Utc), DateTime.SpecifyKind(endIstExclusive, DateTimeKind.Utc));
+    }
+
+    return (
+      TimeZoneInfo.ConvertTimeToUtc(startIst, tz),
+      TimeZoneInfo.ConvertTimeToUtc(endIstExclusive, tz)
+    );
+  }
+
+  // ─────────────────────────────────────
+  // GET /api/Tickets/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
+  // Tickets for calendar range: includes items where CreatedAt OR UpdatedAt
+  // OR LastActivityAt falls within the given IST date range.
+  // ─────────────────────────────────────
+  [HttpGet("calendar")]
+  public async Task<IActionResult> GetCalendarTickets(
+      [FromQuery] DateOnly start,
+      [FromQuery] DateOnly end)
+  {
+    if (end < start)
+      return BadRequest(new { message = "Invalid range" });
+
+    // Keep it bounded.
+    if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 400)
+      return BadRequest(new { message = "Range too large" });
+
+    var userId = GetUserId();
+
+    var roleClaim = User.FindFirst(
+        "http://schemas.microsoft.com/ws/2008/06/" +
+        "identity/claims/role")?.Value
+        ?? User.FindFirst("role")?.Value;
+
+    var (startUtc, endUtcExclusive) = ToUtcRangeForIstDates(start, end);
+
+    var query = _context.Tickets
+        .AsNoTracking()
+        .Include(t => t.CreatedBy)
+        .Include(t => t.AssignedTo)
+        .AsSplitQuery()
+        .AsQueryable();
+
+    if (roleClaim == "Agent")
+    {
+      var groupIds = await _context
+          .AgentGroupMembers
+          .AsNoTracking()
+          .Where(m => m.UserId == userId)
+          .Select(m => m.AgentGroupId)
+          .ToListAsync();
+
+      query = query.Where(t =>
+          t.AssignedToUserId == userId ||
+          t.AssignedToUserId == null ||
+          (t.AgentGroupId != null &&
+           groupIds.Contains(t.AgentGroupId.Value)));
+    }
+    else if (string.Equals(roleClaim, "Customer", StringComparison.OrdinalIgnoreCase))
+    {
+      query = query.Where(t => t.CreatedByUserId == userId);
+    }
+
+    query = query.Where(t =>
+      (t.CreatedAt >= startUtc && t.CreatedAt < endUtcExclusive) ||
+      (t.UpdatedAt != null && t.UpdatedAt >= startUtc && t.UpdatedAt < endUtcExclusive) ||
+      (t.LastActivityAt != null && t.LastActivityAt >= startUtc && t.LastActivityAt < endUtcExclusive));
+
+    var tickets = await query
+      .OrderByDescending(t => t.UpdatedAt ?? t.LastActivityAt ?? t.CreatedAt)
+      .Take(2000)
+      .Select(t => new
+      {
+        t.Id,
+        t.Title,
+        t.Category,
+        Status = t.Status.ToString(),
+        Priority = t.Priority.ToString(),
+        TicketType = t.TicketType ?? "Support",
+        t.Tags,
+        t.TicketNumber,
+        t.CreatedAt,
+        t.UpdatedAt,
+        t.ResolvedAt,
+        t.LastActivityAt,
+        CreatedBy = t.CreatedBy != null
+              ? t.CreatedBy.FullName : "",
+        AssignedTo = t.AssignedTo != null
+              ? t.AssignedTo.FullName : null,
+        AssignedToId = t.AssignedToUserId
+      })
+      .ToListAsync();
 
     return Ok(tickets);
   }

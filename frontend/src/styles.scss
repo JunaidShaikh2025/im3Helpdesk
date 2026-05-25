@@ -20,6 +20,25 @@ html {
   );
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--ui-color-text-primary) !important;
+  caret-color: var(--ui-color-text-primary) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--ui-color-bg-surface) inset !important;
+  box-shadow: 0 0 0 1000px var(--ui-color-bg-surface) inset !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
 .mat-mdc-card {
   background: var(--ui-color-bg-surface) !important;
   color: var(--ui-color-text-primary) !important;
@@ -65,34 +84,243 @@ body.theme-dark,
 }
 
 /* Toastr */
+.toast-container {
+  position: fixed !important;
+  top: 72px !important;
+  right: 16px !important;
+  bottom: auto !important;
+  left: auto !important;
+  width: auto !important;
+  max-width: 420px;
+  pointer-events: none;
+  z-index: 99999 !important;
+}
+
+.toast-container.toast-top-right {
+  top: 72px !important;
+  right: 16px !important;
+}
+
 .ngx-toastr {
   border-radius: 10px !important;
   box-shadow: var(--ui-shadow-md) !important;
   font-size: 14px !important;
   padding: 12px 16px !important;
   min-width: 280px !important;
+  width: 100% !important;
+  max-width: 420px;
+  pointer-events: auto;
+
+  background: var(--ui-color-bg-surface) !important;
+  color: var(--ui-color-text-primary) !important;
+  border: 1px solid var(--ui-color-border) !important;
+  border-top-width: 3px !important;
+
+  // Room for the left status icon
+  padding-left: 52px !important;
+  position: relative;
+
+  // Remove default toastr background images
+  background-image: none !important;
 
   &.toast-success {
-    background-color: var(--ui-color-success) !important;
+    border-top-color: var(--ui-color-success) !important;
   }
 
   &.toast-error {
-    background-color: var(--ui-color-danger) !important;
+    border-top-color: var(--ui-color-danger) !important;
   }
 
   &.toast-info {
-    background-color: var(--ui-color-primary) !important;
+    border-top-color: var(--ui-color-primary) !important;
   }
 
   &.toast-warning {
-    background-color: var(--ui-color-warning) !important;
+    border-top-color: var(--ui-color-warning) !important;
   }
+}
+
+// Hide titles everywhere to match the screenshot style
+.toast-container .toast-title {
+  display: none !important;
+}
+
+.toast-container .toast-message {
+  color: var(--ui-color-text-primary) !important;
+  margin: 0 !important;
+}
+
+.toast-container .toast-close-button {
+  display: none !important;
+}
+
+// Left circular status icon
+.toast-container .ngx-toastr::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.toast-container .toast-success::before {
+  content: '✓';
+  background: var(--ui-color-success-bg);
+  color: var(--ui-color-success);
+  border: 1px solid var(--ui-color-success);
+}
+
+.toast-container .toast-error::before {
+  content: '!';
+  background: var(--ui-color-danger-bg);
+  color: var(--ui-color-danger);
+  border: 1px solid var(--ui-color-danger);
+}
+
+.toast-container .toast-info::before {
+  content: 'i';
+  background: var(--ui-color-primary-soft-strong);
+  color: var(--ui-color-primary);
+  border: 1px solid var(--ui-color-primary);
+}
+
+.toast-container .toast-warning::before {
+  content: '!';
+  background: var(--ui-color-warning-bg);
+  color: var(--ui-color-warning);
+  border: 1px solid var(--ui-color-warning);
 }
 
 .toast-progress {
   background: rgba(255, 255, 255, 0.4) !important;
   height: 3px !important;
 }
+
+/* ──────────────────────────────────────────────
+   Icon Style (Settings → Icon Style)
+   NOTE: Must be global (not component-scoped).
+   Driven by: body[data-im3-icon-style]
+────────────────────────────────────────────── */
+:root {
+  --im3-icon-stroke-width: 2;
+}
+
+body[data-im3-icon-style='outline'] {
+  --im3-icon-stroke-width: 2;
+}
+
+body[data-im3-icon-style='colorful'],
+body[data-im3-icon-style='soft-colorful'],
+body[data-im3-icon-style='awesome-colorful'] {
+  --im3-icon-stroke-width: 2;
+}
+
+body[data-im3-icon-style='emoji'],
+body[data-im3-icon-style='awesome'] {
+  --im3-icon-stroke-width: 2;
+}
+
+/* Emoji mode */
+body[data-im3-icon-style='emoji'] .app-shell .icon-emoji {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+body[data-im3-icon-style='emoji'] .app-shell svg.im3-icon,
+body[data-im3-icon-style='emoji'] .app-shell .icon-fa {
+  display: none !important;
+}
+
+/* Font Awesome mode */
+body[data-im3-icon-style='awesome'] .app-shell .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell .icon-fa {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+body[data-im3-icon-style='awesome'] .app-shell svg.im3-icon,
+body[data-im3-icon-style='awesome'] .app-shell .icon-emoji,
+body[data-im3-icon-style='awesome-colorful'] .app-shell svg.im3-icon,
+body[data-im3-icon-style='awesome-colorful'] .app-shell .icon-emoji {
+  display: none !important;
+}
+
+/* Colorful mode (uses existing theme tokens, no hard-coded colors) */
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='primary'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='primary'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='primary'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='primary'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='primary'] .icon-fa {
+  color: var(--ui-color-primary) !important;
+}
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='success'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='success'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='success'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='success'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='success'] .icon-fa {
+  color: var(--ui-color-success) !important;
+}
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='warning'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='warning'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='warning'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='warning'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='warning'] .icon-fa {
+  color: var(--ui-color-warning) !important;
+}
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='danger'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='danger'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='danger'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='danger'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='danger'] .icon-fa {
+  color: var(--ui-color-danger) !important;
+}
+
+/* Soft backgrounds */
+body[data-im3-icon-style='soft'] .app-shell [data-im3-icon-color],
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color] {
+  background: var(--ui-color-bg-hover);
+  border-radius: 6px;
+}
+
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='primary'] { background: var(--ui-color-primary-soft); }
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='success'] { background: var(--ui-color-success-bg); }
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='warning'] { background: var(--ui-color-warning-bg); }
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='danger'] { background: var(--ui-color-danger-bg); }
+
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color] {
+  background: var(--ui-color-bg-hover);
+  border-radius: 6px;
+}
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='primary'] { background: var(--ui-color-primary-soft); }
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='success'] { background: var(--ui-color-success-bg); }
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='warning'] { background: var(--ui-color-warning-bg); }
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='danger'] { background: var(--ui-color-danger-bg); }
+
+/* Mono mode (keep layout active colors intact; only dim non-active icons) */
+body[data-im3-icon-style='mono'] .app-shell .nav-item:not(.active) .nav-icon svg.im3-icon {
+  color: var(--ui-color-text-faint) !important;
+}
+body[data-im3-icon-style='mono'] .app-shell .topbar .ts-icon svg.im3-icon,
+body[data-im3-icon-style='mono'] .app-shell .topbar .trigger-icon svg.im3-icon,
+body[data-im3-icon-style='mono'] .app-shell .topbar .bell-icon svg.im3-icon,
+body[data-im3-icon-style='mono'] .app-shell .profile-link-icon svg.im3-icon {
+  color: var(--ui-color-text-faint) !important;
+}
+
+/* Size helpers for emoji inside existing icon boxes */
+body[data-im3-icon-style='emoji'] .app-shell .nav-icon .icon-emoji { font-size: 16px; }
+body[data-im3-icon-style='emoji'] .app-shell .ts-icon .icon-emoji { font-size: 14px; }
+body[data-im3-icon-style='emoji'] .app-shell .trigger-icon .icon-emoji,
+body[data-im3-icon-style='emoji'] .app-shell .bell-icon .icon-emoji { font-size: 16px; }
+body[data-im3-icon-style='emoji'] .app-shell .profile-link-icon .icon-emoji { font-size: 14px; }
+body[data-im3-icon-style='emoji'] .app-shell .pcb-label .icon-emoji { font-size: 12px; }
 
 /* Mobile breakpoints */
 @media (max-width: 768px) {

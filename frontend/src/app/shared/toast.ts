@@ -11,7 +11,7 @@ export class AppToastService {
         timeOut: 2500,
         positionClass: 'toast-top-right',
         progressBar: true,
-        closeButton: true
+        closeButton: false
       })
     );
   }
@@ -22,7 +22,7 @@ export class AppToastService {
         timeOut: 4000,
         positionClass: 'toast-top-right',
         progressBar: true,
-        closeButton: true
+        closeButton: false
       })
     );
   }

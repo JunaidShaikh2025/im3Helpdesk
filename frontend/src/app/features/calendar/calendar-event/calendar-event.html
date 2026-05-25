@@ -157,7 +157,7 @@
           [class.has-events]="day.events.length > 0 || day.tickets.length > 0"
           (click)="onDayClick(day)">
 
-          <div class="day-num">{{ day.date.getDate() }}</div>
+          <div class="day-num">{{ day.date | date:'d' }}</div>
 
           <!-- Events (max 3 visible) -->
           <div class="day-events">
@@ -182,8 +182,8 @@
               <span class="de-icon">🎫</span>
               <span class="de-title">#TN{{ t.ticketNumber }}</span>
               <span class="de-status"
-                [style.color]="getStatusColor(t.status)">
-                {{ t.status }}
+                [style.color]="getTicketStatusDisplayColor(t)">
+                {{ getTicketStatusLabel(t) }}
               </span>
             </div>
 
@@ -206,9 +206,9 @@
           *ngFor="let d of weekDays"
           [class.today]="d.isToday"
           (click)="currentDate = d.date; setView('day')">
-          <div class="wh-name">{{ dayNames[d.date.getDay()] }}</div>
+          <div class="wh-name">{{ d.date | date:'EEE' }}</div>
           <div class="wh-num" [class.today-circle]="d.isToday">
-            {{ d.date.getDate() }}
+            {{ d.date | date:'d' }}
           </div>
           <div class="wh-count" *ngIf="d.events.length + d.tickets.length > 0">
             {{ d.events.length + d.tickets.length }} items
@@ -260,23 +260,23 @@
             {{ getEventsForCurrentDay().length }} event(s)
           </span>
           <span *ngIf="getTicketsForCurrentDay().length > 0">
-            · {{ getTicketsForCurrentDay().length }} ticket(s) created
+            · {{ getTicketsForCurrentDay().length }} ticket(s)
           </span>
         </div>
       </div>
 
-      <!-- Tickets created today -->
+      <!-- Tickets activity today -->
       <div class="dv-tickets" *ngIf="getTicketsForCurrentDay().length > 0">
-        <div class="dv-section-label">🎫 Tickets Created on This Day</div>
+        <div class="dv-section-label">🎫 Tickets Activity on This Day</div>
         <div class="ticket-row"
           *ngFor="let t of getTicketsForCurrentDay()"
           (click)="navigateToTicket(t.id)">
           <span class="tr-num">#TN{{ t.ticketNumber }}</span>
           <span class="tr-title">{{ t.title }}</span>
           <span class="tr-status"
-            [style.background]="getStatusColor(t.status) + '22'"
-            [style.color]="getStatusColor(t.status)">
-            {{ t.status }}
+            [style.background]="getTicketStatusDisplayColor(t) + '22'"
+            [style.color]="getTicketStatusDisplayColor(t)">
+            {{ getTicketStatusLabel(t) }}
           </span>
           <span class="tr-priority"
             [style.color]="priorityColors[t.priority?.toLowerCase()]">
@@ -408,10 +408,10 @@
             <div class="ai-body">
               <div class="ai-title">#TN{{ t.ticketNumber }} — {{ t.title }}</div>
               <div class="ai-meta">
-                <span>Created {{ formatTime(t.createdAt) }}</span>
+                <span>{{ getTicketMetaTimeLabel(t) }} {{ formatTime(getTicketMetaTimeValue(t)) }}</span>
                 <span class="ai-dot">·</span>
-                <span [style.color]="getStatusColor(t.status)">
-                  {{ t.status }}
+                <span [style.color]="getTicketStatusDisplayColor(t)">
+                  {{ getTicketStatusLabel(t) }}
                 </span>
                 <span class="ai-dot">·</span>
                 <span [style.color]="priorityColors[t.priority?.toLowerCase()]">
@@ -632,6 +632,7 @@
           </div>
           <div class="dmi-right">
             <button class="ha-btn"
+              *ngIf="!e.isBirthday"
               (click)="$event.stopPropagation(); toggleComplete(e)">
               {{ e.isCompleted ? '↩' : '✓' }}
             </button>
@@ -641,7 +642,7 @@
 
       <!-- Tickets -->
       <div *ngIf="selectedDayEvents.tickets.length > 0">
-        <div class="dm-section">🎫 Tickets Created</div>
+        <div class="dm-section">🎫 Tickets</div>
         <div class="dm-item ticket-dm"
           *ngFor="let t of selectedDayEvents.tickets"
           (click)="navigateToTicket(t.id)">
@@ -650,7 +651,7 @@
             <div>
               <div class="dmi-title">#TN{{ t.ticketNumber }} — {{ t.title }}</div>
               <div class="dmi-meta">
-                <span [style.color]="getStatusColor(t.status)">{{ t.status }}</span>
+                <span [style.color]="getTicketStatusDisplayColor(t)">{{ getTicketStatusLabel(t) }}</span>
                 · {{ t.priority }}
                 <span *ngIf="t.assignedTo"> · {{ t.assignedTo }}</span>
               </div>
