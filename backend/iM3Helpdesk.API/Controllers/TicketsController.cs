@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.Text.Encodings.Web;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -891,14 +890,11 @@ public class TicketsController : ControllerBase
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Id == userId);
 
-    var sanitizedComment = HtmlEncoder.Default.Encode(
-        dto.Comment ?? string.Empty);
-
     var comment = new TicketComment
     {
       TicketId = id,
       UserId = userId,
-      Comment = sanitizedComment,
+      Comment = dto.Comment,
       IsInternal = dto.IsInternal,
       Source = "web",
       OrganizationId =
@@ -922,7 +918,7 @@ public class TicketsController : ControllerBase
         await _emailService.SendReplyAsync(
             ticket.CreatedBy.Email,
             ticket.Title,
-          sanitizedComment,
+            dto.Comment,
             $"#TN{ticket.TicketNumber}",
             agent?.FullName ?? "Support",
             agent?.Signature ?? "");
