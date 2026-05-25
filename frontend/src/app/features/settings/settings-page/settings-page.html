@@ -46,6 +46,79 @@
               </div>
             </div>
 
+            <h3>Icon Style</h3>
+            <div class="icon-style-grid">
+              <button type="button"
+                class="icon-style-card"
+                *ngFor="let s of iconStyles"
+                [class.active]="currentIconStyle === s.id"
+                (click)="applyIconStyle(s.id)">
+
+                <div class="icon-style-preview" [attr.data-style]="s.id">
+                  <ng-container [ngSwitch]="s.id">
+                    <ng-container *ngSwitchCase="'outline'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'colorful'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'soft'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'soft-colorful'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'awesome'">
+                      <i class="fa-solid fa-icons icon-style-fa"></i>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'awesome-colorful'">
+                      <i class="fa-solid fa-icons icon-style-fa"></i>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'mono'">
+                      <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/>
+                        <rect width="7" height="5" x="14" y="3" rx="1"/>
+                        <rect width="7" height="9" x="14" y="12" rx="1"/>
+                        <rect width="7" height="5" x="3" y="16" rx="1"/>
+                      </svg>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'emoji'">
+                      <span class="icon-style-emoji">🎨</span>
+                    </ng-container>
+                  </ng-container>
+                </div>
+
+                <span class="icon-style-name">{{ s.name }}</span>
+              </button>
+            </div>
+
             <div class="sidebar-pos-row">
               <div class="sidebar-pos-label">Sidebar position</div>
               <div class="sidebar-pos-options">

@@ -8,6 +8,7 @@ import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../auth/auth.service';
 import { TranslationService } from '../../../core/services/translation';
 import { ThemeService } from '../../../core/services/theme.service';
+import { IconStyleId, IconStyleService } from '../../../core/services/icon-style.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { TicketTemplatesComponent } from '../ticket-templates/ticket-templates';
 import { EmailNotificationsComponent } from '../email-notifications/email-notifications';
@@ -45,6 +46,7 @@ export class SettingsPageComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private translationService = inject(TranslationService);
   private themeService = inject(ThemeService);
+  private iconStyleService = inject(IconStyleService);
 
   @Input() embedded: boolean = false;
   activeTab = 'settings';
@@ -61,6 +63,7 @@ export class SettingsPageComponent implements OnInit {
   ];
 
   currentTheme = 'theme-blue';
+  currentIconStyle: IconStyleId = 'outline';
   emailNotifications = true;
   browserNotifications = false;
   language = 'en';
@@ -68,6 +71,17 @@ export class SettingsPageComponent implements OnInit {
   settingsSidebarPosition: 'left' | 'right' | 'top' | 'bottom' = 'left';
 
   themes = this.themeService.themes;
+
+  iconStyles: Array<{ id: IconStyleId; name: string }> = [
+    { id: 'outline', name: 'Outline' },
+    { id: 'colorful', name: 'Colorful' },
+    { id: 'awesome', name: 'Awesome' },
+    { id: 'emoji', name: 'Emoji' },
+    { id: 'soft', name: 'Soft' },
+    { id: 'soft-colorful', name: 'Soft Colorful' },
+    { id: 'awesome-colorful', name: 'Awesome Colorful' },
+    { id: 'mono', name: 'Mono' },
+  ];
 
   languages = [
     { code: 'en', name: '\u{1F1EC}\u{1F1E7} English' },
@@ -80,6 +94,7 @@ export class SettingsPageComponent implements OnInit {
 
   ngOnInit() {
     this.currentTheme = this.themeService.initTheme();
+    this.currentIconStyle = this.iconStyleService.init();
     this.emailNotifications = localStorage.getItem('im3_email_notif') !== 'false';
     this.browserNotifications = localStorage.getItem('im3_browser_notif') === 'true';
     this.language = this.translationService.getCurrentLang();
@@ -104,6 +119,12 @@ export class SettingsPageComponent implements OnInit {
     this.currentTheme = this.themeService.applyTheme(themeId);
     this.cdr.detectChanges();
     Promise.resolve().then(() => this.toastr.success('Theme applied!'));
+  }
+
+  applyIconStyle(iconStyleId: IconStyleId) {
+    this.currentIconStyle = this.iconStyleService.apply(iconStyleId);
+    this.cdr.detectChanges();
+    Promise.resolve().then(() => this.toastr.success('Icon style applied!'));
   }
 
   saveNotifications() {

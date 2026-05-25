@@ -11,6 +11,9 @@
   font-family: var(--ui-font-family);
   -webkit-font-smoothing: antialiased;
 
+  /* Icon style tuning (Settings → Icon Style) */
+  --im3-icon-stroke-width: 2;
+
   --bg-primary: var(--ui-color-bg-page);
   --bg-secondary: var(--ui-color-bg-surface);
   --bg-card: var(--ui-color-bg-surface);
@@ -23,6 +26,17 @@
   --hover-bg: var(--ui-color-bg-hover);
   --toolbar-bg: var(--ui-color-primary);
   --shadow: var(--ui-shadow-sm);
+}
+
+.app-shell svg.im3-icon * {
+  stroke-width: var(--im3-icon-stroke-width) !important;
+}
+
+/* Non-active icon variants are hidden by default; global styles toggle them. */
+.app-shell .icon-emoji,
+.app-shell .icon-fa {
+  display: none;
+  line-height: 1;
 }
 
 /* Avoid layout "jump" on route navigation:
@@ -146,6 +160,19 @@
   }
 }
 
+.icon-fa {
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 16px;
+    line-height: 1;
+    color: currentColor;
+  }
+}
+
 /* Symmetrical Dynamic Count Badges */
 .badge {
   margin-left: auto;
@@ -264,6 +291,8 @@
     justify-content: center;
     
     svg { color: var(--ui-color-text-faint); transition: color 0.15s ease; }
+
+    .icon-fa i { font-size: 13px; }
   }
   
   .ts-input {
@@ -334,6 +363,8 @@
     justify-content: center;
     
     svg { color: var(--ui-color-text-muted); transition: color 0.15s ease; }
+
+    .icon-fa i { font-size: 15px; }
   }
 }
 

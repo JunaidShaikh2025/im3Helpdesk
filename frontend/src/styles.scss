@@ -203,6 +203,125 @@ body.theme-dark,
   height: 3px !important;
 }
 
+/* ──────────────────────────────────────────────
+   Icon Style (Settings → Icon Style)
+   NOTE: Must be global (not component-scoped).
+   Driven by: body[data-im3-icon-style]
+────────────────────────────────────────────── */
+:root {
+  --im3-icon-stroke-width: 2;
+}
+
+body[data-im3-icon-style='outline'] {
+  --im3-icon-stroke-width: 2;
+}
+
+body[data-im3-icon-style='colorful'],
+body[data-im3-icon-style='soft-colorful'],
+body[data-im3-icon-style='awesome-colorful'] {
+  --im3-icon-stroke-width: 2;
+}
+
+body[data-im3-icon-style='emoji'],
+body[data-im3-icon-style='awesome'] {
+  --im3-icon-stroke-width: 2;
+}
+
+/* Emoji mode */
+body[data-im3-icon-style='emoji'] .app-shell .icon-emoji {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+body[data-im3-icon-style='emoji'] .app-shell svg.im3-icon,
+body[data-im3-icon-style='emoji'] .app-shell .icon-fa {
+  display: none !important;
+}
+
+/* Font Awesome mode */
+body[data-im3-icon-style='awesome'] .app-shell .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell .icon-fa {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+body[data-im3-icon-style='awesome'] .app-shell svg.im3-icon,
+body[data-im3-icon-style='awesome'] .app-shell .icon-emoji,
+body[data-im3-icon-style='awesome-colorful'] .app-shell svg.im3-icon,
+body[data-im3-icon-style='awesome-colorful'] .app-shell .icon-emoji {
+  display: none !important;
+}
+
+/* Colorful mode (uses existing theme tokens, no hard-coded colors) */
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='primary'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='primary'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='primary'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='primary'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='primary'] .icon-fa {
+  color: var(--ui-color-primary) !important;
+}
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='success'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='success'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='success'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='success'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='success'] .icon-fa {
+  color: var(--ui-color-success) !important;
+}
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='warning'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='warning'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='warning'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='warning'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='warning'] .icon-fa {
+  color: var(--ui-color-warning) !important;
+}
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='danger'] svg.im3-icon,
+body[data-im3-icon-style='colorful'] .app-shell [data-im3-icon-color='danger'] .icon-fa,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='danger'] svg.im3-icon,
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='danger'] .icon-fa,
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='danger'] .icon-fa {
+  color: var(--ui-color-danger) !important;
+}
+
+/* Soft backgrounds */
+body[data-im3-icon-style='soft'] .app-shell [data-im3-icon-color],
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color] {
+  background: var(--ui-color-bg-hover);
+  border-radius: 6px;
+}
+
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='primary'] { background: var(--ui-color-primary-soft); }
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='success'] { background: var(--ui-color-success-bg); }
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='warning'] { background: var(--ui-color-warning-bg); }
+body[data-im3-icon-style='soft-colorful'] .app-shell [data-im3-icon-color='danger'] { background: var(--ui-color-danger-bg); }
+
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color] {
+  background: var(--ui-color-bg-hover);
+  border-radius: 6px;
+}
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='primary'] { background: var(--ui-color-primary-soft); }
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='success'] { background: var(--ui-color-success-bg); }
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='warning'] { background: var(--ui-color-warning-bg); }
+body[data-im3-icon-style='awesome-colorful'] .app-shell [data-im3-icon-color='danger'] { background: var(--ui-color-danger-bg); }
+
+/* Mono mode (keep layout active colors intact; only dim non-active icons) */
+body[data-im3-icon-style='mono'] .app-shell .nav-item:not(.active) .nav-icon svg.im3-icon {
+  color: var(--ui-color-text-faint) !important;
+}
+body[data-im3-icon-style='mono'] .app-shell .topbar .ts-icon svg.im3-icon,
+body[data-im3-icon-style='mono'] .app-shell .topbar .trigger-icon svg.im3-icon,
+body[data-im3-icon-style='mono'] .app-shell .topbar .bell-icon svg.im3-icon,
+body[data-im3-icon-style='mono'] .app-shell .profile-link-icon svg.im3-icon {
+  color: var(--ui-color-text-faint) !important;
+}
+
+/* Size helpers for emoji inside existing icon boxes */
+body[data-im3-icon-style='emoji'] .app-shell .nav-icon .icon-emoji { font-size: 16px; }
+body[data-im3-icon-style='emoji'] .app-shell .ts-icon .icon-emoji { font-size: 14px; }
+body[data-im3-icon-style='emoji'] .app-shell .trigger-icon .icon-emoji,
+body[data-im3-icon-style='emoji'] .app-shell .bell-icon .icon-emoji { font-size: 16px; }
+body[data-im3-icon-style='emoji'] .app-shell .profile-link-icon .icon-emoji { font-size: 14px; }
+body[data-im3-icon-style='emoji'] .app-shell .pcb-label .icon-emoji { font-size: 12px; }
+
 /* Mobile breakpoints */
 @media (max-width: 768px) {
   .sidebar {
