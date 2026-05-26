@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -16,6 +17,10 @@ namespace iM3Helpdesk.API.Controllers;
 [Authorize]
 public class TicketsController : ControllerBase
 {
+  private const string TicketTypeField = "TicketType";
+  private const string TicketStatusField = "TicketStatus";
+  private const string TicketPriorityField = "TicketPriority";
+
   private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenantService;
   private readonly INotificationService _notificationService;
@@ -56,6 +61,103 @@ public class TicketsController : ControllerBase
     return $"{bytes / 1048576} MB";
   }
 
+  private async Task<bool> IsMasterValueAllowedAsync(
+      string field,
+      string value)
+  {
+    var hasRows = await _context.TicketFieldMasters
+        .AnyAsync(x => x.Field == field);
+
+    if (!hasRows)
+      return true;
+
+    return await _context.TicketFieldMasters
+        .AnyAsync(x =>
+            x.Field == field &&
+            x.IsActive &&
+            x.Value == value);
+  }
+
+  private static bool TryParseTicketStatus(string? input, out TicketStatus status)
+  {
+    status = default;
+    if (string.IsNullOrWhiteSpace(input))
+      return false;
+
+    var value = input.Trim();
+
+    if (Enum.TryParse<TicketStatus>(value, true, out var parsed) &&
+        Enum.IsDefined(parsed))
+    {
+      status = parsed;
+      return true;
+    }
+
+    var compact = CompactEnumToken(value);
+    if (compact == "close")
+    {
+      status = TicketStatus.Closed;
+      return true;
+    }
+
+    foreach (var name in Enum.GetNames<TicketStatus>())
+    {
+      if (CompactEnumToken(name) == compact)
+      {
+        status = Enum.Parse<TicketStatus>(name, true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static bool TryParseTicketPriority(string? input, out TicketPriority priority)
+  {
+    priority = default;
+    if (string.IsNullOrWhiteSpace(input))
+      return false;
+
+    var value = input.Trim();
+
+    if (Enum.TryParse<TicketPriority>(value, true, out var parsed) &&
+        Enum.IsDefined(parsed))
+    {
+      priority = parsed;
+      return true;
+    }
+
+    var compact = CompactEnumToken(value);
+    if (compact == "urgent")
+    {
+      priority = TicketPriority.Critical;
+      return true;
+    }
+
+    foreach (var name in Enum.GetNames<TicketPriority>())
+    {
+      if (CompactEnumToken(name) == compact)
+      {
+        priority = Enum.Parse<TicketPriority>(name, true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static string CompactEnumToken(string value)
+  {
+    var sb = new StringBuilder(value.Length);
+    foreach (var ch in value)
+    {
+      if (char.IsLetterOrDigit(ch))
+        sb.Append(char.ToLowerInvariant(ch));
+    }
+
+    return sb.ToString();
+  }
+
   [HttpGet("my-status-counts")]
   public async Task<IActionResult> GetMyStatusCounts()
   {
@@ -85,7 +187,7 @@ public class TicketsController : ControllerBase
 
     var open = Get(TicketStatus.Open);
     var inProgress = Get(TicketStatus.InProgress);
-    var resolved = Get(TicketStatus.Resolved);
+    var resolved = Get(TicketStatus.Resolved) + Get(TicketStatus.ResolvedOnBeta);
     var closed = Get(TicketStatus.Closed);
 
     var pending = Get(TicketStatus.Pending);
@@ -423,7 +525,7 @@ public class TicketsController : ControllerBase
       Title = dto.Title?.Trim() ?? "",
       Description = dto.Description ?? "",
       Category = dto.Category ?? "General",
-      Priority = Enum.TryParse<TicketPriority>(
+      Priority = TryParseTicketPriority(
             dto.Priority, out var p)
             ? p : TicketPriority.Medium,
       Status = TicketStatus.Open,
@@ -435,6 +537,28 @@ public class TicketsController : ControllerBase
       AgentGroupId = groupId,
       TicketNumber = lastNum + 1
     };
+
+    if (!await IsMasterValueAllowedAsync(
+        TicketPriorityField,
+        ticket.Priority.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Priority {ticket.Priority} is not active in ticket master"
+      });
+    }
+
+    var normalizedTicketType = (ticket.TicketType ?? "Support").Trim();
+    if (!await IsMasterValueAllowedAsync(
+        TicketTypeField,
+        normalizedTicketType))
+    {
+      return BadRequest(new
+      {
+        message = $"Ticket Type {normalizedTicketType} is not active in ticket master"
+      });
+    }
+    ticket.TicketType = normalizedTicketType;
 
     ticket.SlaDeadline = _slaService
         .CalculateSlaDeadline(
@@ -480,14 +604,37 @@ public class TicketsController : ControllerBase
     if (dto.Category != null)
       ticket.Category = dto.Category;
     if (dto.TicketType != null)
-      ticket.TicketType = dto.TicketType;
+    {
+      var normalizedTicketType = dto.TicketType.Trim();
+      if (!await IsMasterValueAllowedAsync(
+          TicketTypeField,
+          normalizedTicketType))
+      {
+        return BadRequest(new
+        {
+          message = $"Ticket Type {normalizedTicketType} is not active in ticket master"
+        });
+      }
+
+      ticket.TicketType = normalizedTicketType;
+    }
     if (dto.Tags != null)
       ticket.Tags = dto.Tags;
 
     if (!string.IsNullOrEmpty(dto.Priority) &&
-        Enum.TryParse<TicketPriority>(
+      TryParseTicketPriority(
             dto.Priority, out var newP))
     {
+      if (!await IsMasterValueAllowedAsync(
+          TicketPriorityField,
+          newP.ToString()))
+      {
+        return BadRequest(new
+        {
+          message = $"Priority {newP} is not active in ticket master"
+        });
+      }
+
       ticket.Priority = newP;
       ticket.SlaDeadline = _slaService
           .CalculateSlaDeadline(
@@ -498,11 +645,23 @@ public class TicketsController : ControllerBase
     }
 
     if (!string.IsNullOrEmpty(dto.Status) &&
-        Enum.TryParse<TicketStatus>(
+      TryParseTicketStatus(
             dto.Status, out var newS))
     {
-      if (newS == TicketStatus.Resolved &&
-          ticket.Status != TicketStatus.Resolved)
+      if (!await IsMasterValueAllowedAsync(
+          TicketStatusField,
+          newS.ToString()))
+      {
+        return BadRequest(new
+        {
+          message = $"Status {newS} is not active in ticket master"
+        });
+      }
+
+      if ((newS == TicketStatus.Resolved ||
+           newS == TicketStatus.ResolvedOnBeta) &&
+          ticket.Status != TicketStatus.Resolved &&
+          ticket.Status != TicketStatus.ResolvedOnBeta)
         ticket.ResolvedAt = DateTime.UtcNow;
       ticket.Status = newS;
     }
@@ -823,17 +982,28 @@ public class TicketsController : ControllerBase
 
     if (ticket == null) return NotFound();
     var statusStr = dto.Status?.Trim() ?? "";
-    if (!Enum.TryParse<TicketStatus>(
-        statusStr, true, out var newStatus))
+    if (!TryParseTicketStatus(
+        statusStr, out var newStatus))
       return BadRequest(new
       {
         message = $"Invalid status: {statusStr}"
       });
 
+    if (!await IsMasterValueAllowedAsync(
+        TicketStatusField,
+        newStatus.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Status {newStatus} is not active in ticket master"
+      });
+    }
+
     ticket.Status = newStatus;
     ticket.UpdatedAt = DateTime.UtcNow;
 
-    if (newStatus == TicketStatus.Resolved &&
+    if ((newStatus == TicketStatus.Resolved ||
+         newStatus == TicketStatus.ResolvedOnBeta) &&
         !ticket.ResolvedAt.HasValue)
       ticket.ResolvedAt = DateTime.UtcNow;
 
@@ -1051,9 +1221,19 @@ public class TicketsController : ControllerBase
         .FindAsync(id);
     if (ticket == null) return NotFound();
 
-    if (!Enum.TryParse<TicketPriority>(
+    if (!TryParseTicketPriority(
         dto.Priority, out var newP))
       return BadRequest();
+
+    if (!await IsMasterValueAllowedAsync(
+        TicketPriorityField,
+        newP.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Priority {newP} is not active in ticket master"
+      });
+    }
 
     ticket.Priority = newP;
     ticket.UpdatedAt = DateTime.UtcNow;
@@ -1077,7 +1257,18 @@ public class TicketsController : ControllerBase
         .FindAsync(id);
     if (ticket == null) return NotFound();
 
-    ticket.TicketType = dto.TicketType;
+    var normalizedTicketType = dto.TicketType.Trim();
+    if (!await IsMasterValueAllowedAsync(
+        TicketTypeField,
+        normalizedTicketType))
+    {
+      return BadRequest(new
+      {
+        message = $"Ticket Type {normalizedTicketType} is not active in ticket master"
+      });
+    }
+
+    ticket.TicketType = normalizedTicketType;
     ticket.UpdatedAt = DateTime.UtcNow;
     await _context.SaveChangesAsync();
     return Ok(new { message = "Type updated" });
@@ -1258,9 +1449,21 @@ public class TicketsController : ControllerBase
     foreach (var t in tickets)
     {
       if (!string.IsNullOrEmpty(dto.Status) &&
-          Enum.TryParse<TicketStatus>(
+          TryParseTicketStatus(
               dto.Status, out var s))
+      {
+        if (!await IsMasterValueAllowedAsync(
+            TicketStatusField,
+            s.ToString()))
+        {
+          return BadRequest(new
+          {
+            message = $"Status {s} is not active in ticket master"
+          });
+        }
+
         t.Status = s;
+      }
 
       if (dto.AssignedToUserId.HasValue)
         t.AssignedToUserId =
@@ -1301,14 +1504,14 @@ public class TicketsController : ControllerBase
 
     if (!string.IsNullOrEmpty(status) &&
         status != "All" &&
-        Enum.TryParse<TicketStatus>(
+      TryParseTicketStatus(
             status, out var sFilter))
       query = query.Where(t =>
           t.Status == sFilter);
 
     if (!string.IsNullOrEmpty(priority) &&
         priority != "All" &&
-        Enum.TryParse<TicketPriority>(
+      TryParseTicketPriority(
             priority, out var pFilter))
       query = query.Where(t =>
           t.Priority == pFilter);
@@ -1365,14 +1568,14 @@ public class TicketsController : ControllerBase
 
     if (!string.IsNullOrEmpty(status) &&
         status != "All" &&
-        Enum.TryParse<TicketStatus>(
+      TryParseTicketStatus(
             status, out var sf))
       tickets = tickets.Where(t =>
           t.Status == sf);
 
     if (!string.IsNullOrEmpty(priority) &&
         priority != "All" &&
-        Enum.TryParse<TicketPriority>(
+      TryParseTicketPriority(
             priority, out var pf))
       tickets = tickets.Where(t =>
           t.Priority == pf);

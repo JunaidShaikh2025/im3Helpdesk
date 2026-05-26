@@ -160,6 +160,17 @@
           </span>
           <span>Overview</span>
         </a>
+        <a class="nav-item" routerLink="/admin/leads" routerLinkActive="active">
+          <span class="nav-icon" data-im3-icon-color="primary">
+            <span class="icon-emoji">📩</span>
+            <span class="icon-fa"><i class="fa-solid fa-inbox"></i></span>
+            <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          </span>
+          <span>Leads</span>
+          <span class="badge" *ngIf="superAdminPendingLeadsCount > 0">
+            {{ superAdminPendingLeadsCount > 99 ? '99+' : superAdminPendingLeadsCount }}
+          </span>
+        </a>
         <a class="nav-item" routerLink="/admin/organizations" routerLinkActive="active">
           <span class="nav-icon" data-im3-icon-color="primary">
             <span class="icon-emoji">🏢</span>
@@ -241,6 +252,12 @@
         <span class="super-label">Platform Core Operations</span>
         <div class="super-nav">
           <a class="super-nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Overview</a>
+          <a class="super-nav-item" routerLink="/admin/leads" routerLinkActive="active">
+            Leads
+            <span class="super-nav-badge" *ngIf="superAdminPendingLeadsCount > 0">
+              {{ superAdminPendingLeadsCount > 99 ? '99+' : superAdminPendingLeadsCount }}
+            </span>
+          </a>
           <a class="super-nav-item" routerLink="/admin/organizations" routerLinkActive="active">Organizations</a>
           <a class="super-nav-item" routerLink="/admin/users" routerLinkActive="active">Users Ecosystem</a>
         </div>
@@ -495,6 +512,8 @@
             </div>
             <span class="profile-incomplete-dot" *ngIf="profileCompletion < 100"
               title="Profile {{ profileCompletion }}% complete — click to finish setup"></span>
+            <span class="smtp-incomplete-dot" *ngIf="isCompanyAdmin && smtpSetupChecked && smtpSetupIncomplete"
+              title="Workspace email setup incomplete — click Profile to finish"></span>
           </div>
           <div class="profile-dropdown" *ngIf="showProfileDropdown" (click)="$event.stopPropagation()">
             <div class="profile-header">
@@ -516,6 +535,19 @@
                 <div class="pcb-fill" [style.width.%]="profileCompletion"></div>
               </div>
               <p class="pcb-hint">Click to complete your profile</p>
+            </div>
+
+            <div class="profile-completion-banner"
+              *ngIf="isCompanyAdmin && smtpSetupChecked && smtpSetupIncomplete"
+              (click)="goToMailboxOnboarding()">
+              <div class="pcb-top">
+                <div class="pcb-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                  <span>Workspace email setup</span>
+                </div>
+                <div class="pcb-pct">Action</div>
+              </div>
+              <p class="pcb-hint">Complete SMTP/IMAP to enable email-to-ticket</p>
             </div>
             <div class="profile-link-item" (click)="goToMainSettings()">
               <span class="profile-link-icon" data-im3-icon-color="primary">

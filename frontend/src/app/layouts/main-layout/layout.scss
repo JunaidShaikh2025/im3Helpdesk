@@ -922,3 +922,37 @@
   }
   .gs-trigger span { display: none; }
 }
+
+/* ── SMTP setup notification dot (CompanyAdmin) ── */
+.smtp-incomplete-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ui-color-danger);
+  border: 2px solid var(--ui-color-bg-surface);
+  z-index: 10;
+  animation: smtp-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes smtp-dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  50%       { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+}
+
+.super-nav-badge {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ui-color-danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 99px;
+  min-width: 18px;
+  line-height: 1;
+}

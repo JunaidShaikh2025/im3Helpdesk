@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -15,6 +16,8 @@ namespace iM3Helpdesk.API.Controllers;
 [Authorize]
 public class CustomerController : ControllerBase
 {
+  private const string TicketPriorityField = "TicketPriority";
+
   private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenantService;
   private readonly INotificationService _notificationService;
@@ -30,6 +33,67 @@ public class CustomerController : ControllerBase
     _tenantService = tenantService;
     _notificationService = notificationService;
     _emailService = emailService;
+  }
+
+  private async Task<bool> IsPriorityAllowedAsync(string value)
+  {
+    var hasRows = await _context.TicketFieldMasters
+        .AnyAsync(x => x.Field == TicketPriorityField);
+
+    if (!hasRows)
+      return true;
+
+    return await _context.TicketFieldMasters
+        .AnyAsync(x =>
+            x.Field == TicketPriorityField &&
+            x.IsActive &&
+            x.Value == value);
+  }
+
+  private static bool TryParseTicketPriority(string? input, out TicketPriority priority)
+  {
+    priority = default;
+    if (string.IsNullOrWhiteSpace(input))
+      return false;
+
+    var value = input.Trim();
+
+    if (Enum.TryParse<TicketPriority>(value, true, out var parsed) &&
+        Enum.IsDefined(parsed))
+    {
+      priority = parsed;
+      return true;
+    }
+
+    var compact = CompactEnumToken(value);
+    if (compact == "urgent")
+    {
+      priority = TicketPriority.Critical;
+      return true;
+    }
+
+    foreach (var name in Enum.GetNames<TicketPriority>())
+    {
+      if (CompactEnumToken(name) == compact)
+      {
+        priority = Enum.Parse<TicketPriority>(name, true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static string CompactEnumToken(string value)
+  {
+    var sb = new StringBuilder(value.Length);
+    foreach (var ch in value)
+    {
+      if (char.IsLetterOrDigit(ch))
+        sb.Append(char.ToLowerInvariant(ch));
+    }
+
+    return sb.ToString();
   }
 
   [HttpGet("my-tickets")]
@@ -114,12 +178,35 @@ public class CustomerController : ControllerBase
     var userId = GetUserId();
     if (userId == Guid.Empty) return Unauthorized();
 
+    var priorityRaw = string.IsNullOrWhiteSpace(dto.Priority)
+        ? TicketPriority.Medium.ToString()
+        : dto.Priority.Trim();
+
+    if (!TryParseTicketPriority(
+        priorityRaw,
+        out var parsedPriority))
+    {
+      return BadRequest(new
+      {
+        message = "Invalid priority"
+      });
+    }
+
+    if (!await IsPriorityAllowedAsync(
+        parsedPriority.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Priority {parsedPriority} is not active in ticket master"
+      });
+    }
+
     var ticket = new Ticket
     {
       Title = dto.Title,
       Description = dto.Description,
       Category = dto.Category,
-      Priority = TicketPriority.Medium,
+      Priority = parsedPriority,
       OrganizationId = _tenantService.OrganizationId!.Value,
       CreatedByUserId = userId,
       Status = TicketStatus.Open
@@ -195,6 +282,7 @@ public class SubmitTicketDto
   public string Title { get; set; } = string.Empty;
   public string Description { get; set; } = string.Empty;
   public string Category { get; set; } = "General";
+  public string Priority { get; set; } = "Medium";
 }
 
 public class AddReplyDto

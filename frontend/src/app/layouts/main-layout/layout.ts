@@ -56,6 +56,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.showProfileDropdown = !this.showProfileDropdown;
     if (this.showProfileDropdown) {
+      if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
       setTimeout(() => {
         window.addEventListener('click', this.closeProfileDropdown, { once: true });
         window.addEventListener('keydown', this.handleProfileDropdownEsc, { once: true });
@@ -105,6 +106,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
     if (saved === null) return true;
     return saved === 'true';
   })();
+
+  isCompanyAdmin = false;
+  smtpSetupIncomplete = false;
+  smtpSetupChecked = false;
   chatUnreadCount    = 0;
   missedCallCount    = 0;
   userName           = '';
@@ -187,6 +192,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   profileCompletion = 100;
 
+  superAdminPendingLeadsCount = 0;
+
   // ──────────────────────────────────────────────
   // Todo
   // ──────────────────────────────────────────────
@@ -229,7 +236,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   refreshHeaderCounts() {
-    if (this.isSuperAdmin) return;
+    if (this.isSuperAdmin) {
+      this.loadSuperAdminPendingLeadsCount();
+      return;
+    }
 
     // Topbar modules exist only for internal users.
     if (!this.isCustomer) {
@@ -242,6 +252,20 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     // Ticket counts are useful for both internal users and customers.
     this.loadMyTicketCounts();
+  }
+
+  private loadSuperAdminPendingLeadsCount() {
+    // Avoid depending on /admin/leads/summary (may not exist on older backends).
+    // Use the list endpoint and compute pending count.
+    this.http.get<any[]>(`${environment.apiUrl}/admin/leads`).subscribe({
+      next: (rows) => {
+        const list = Array.isArray(rows) ? rows : [];
+        // Backend stores numeric enum values; 0 == Pending.
+        this.superAdminPendingLeadsCount = list.filter(x => x?.status === 0).length;
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
   }
 
   // ──────────────────────────────────────────────
@@ -397,6 +421,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.userRole = this.authService.getUserRole();
     this.isSuperAdmin = this.userRole === 'SuperAdmin';
     this.isCustomer = this.userRole === 'Customer';
+    this.isCompanyAdmin = this.userRole === 'CompanyAdmin';
 
     const savedEmail = localStorage.getItem('im3_email');
     if (savedEmail && savedEmail === this.userEmail) {
@@ -434,6 +459,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     });
 
     this.loadProfile();
+    if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
     this.loadNotifications();
     this.refreshHeaderCounts();
 
@@ -452,6 +478,36 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     // Live counters (near real-time) without full page reload.
     interval(15000).pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshHeaderCounts());
+  }
+
+  private loadMailboxSetupStatus() {
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+      next: (org) => {
+        const smtpPasswordSet = Boolean(org?.smtpPasswordSet);
+        const complete = Boolean(
+          org?.smtpHost &&
+          org?.smtpPort &&
+          org?.smtpFromEmail &&
+          org?.smtpUsername &&
+          smtpPasswordSet &&
+          org?.imapHost &&
+          org?.imapPort
+        );
+        this.smtpSetupIncomplete = !complete;
+        this.smtpSetupChecked = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.smtpSetupChecked = true;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  goToMailboxOnboarding() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/onboarding']);
+    this.cdr.detectChanges();
   }
   private updateActivePageFromUrl(url: string) {
     const clean = (url || '').split('?')[0] || '';

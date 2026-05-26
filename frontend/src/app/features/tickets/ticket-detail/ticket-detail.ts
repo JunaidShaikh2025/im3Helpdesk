@@ -27,6 +27,7 @@ import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
 import { DomSanitizer } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
+import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -58,6 +59,7 @@ export class TicketDetailComponent
   private fb = inject(FormBuilder);
   private destroy$ = new Subject<void>();
   private sanitizer = inject(DomSanitizer);
+  private ticketMasterService = inject(TicketMasterService);
 
   @ViewChild('replyEditor')
     replyEditorRef!: ElementRef;
@@ -111,10 +113,9 @@ export class TicketDetailComponent
   timeline: any[] = [];
   showTimeline = true;
 
-  statuses = [
-    'Open', 'InProgress', 'Pending',
-    'Resolved', 'Closed'
-  ];
+  statuses: TicketMasterOption[] = [];
+  priorities: TicketMasterOption[] = [];
+  ticketTypes: TicketMasterOption[] = [];
 
   // ─────────────────────────────────────
   // HELPERS
@@ -212,12 +213,23 @@ export class TicketDetailComponent
     this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin'].includes(role);
 
     this.loadTicket();
+    this.loadMasterOptions();
     this.loadAttachments();
     this.loadAgents();
     this.loadGroups();
     this.loadAgentSignature();
     this.loadTimeline();
     this.loadCustomFieldValues();
+  }
+
+  loadMasterOptions() {
+    this.ticketMasterService.getAll(true).subscribe({
+      next: (data) => {
+        this.ticketTypes = data.ticketTypes || [];
+        this.statuses = data.ticketStatuses || [];
+        this.priorities = data.ticketPriorities || [];
+      }
+    });
   }
 
   ngAfterViewInit() {

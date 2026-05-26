@@ -146,9 +146,29 @@ public class EmailService : IEmailService
     var host = smtp["Host"] ?? "smtp.gmail.com";
     var port = smtp.GetValue<int>("Port", 587);
 
-    if (string.IsNullOrEmpty(fromEmail) ||
-        string.IsNullOrEmpty(password))
-      return;
+    // Optional explicit username (some SMTP providers require it)
+    var username = smtp["Username"] ?? fromEmail;
+
+    if (string.IsNullOrWhiteSpace(host))
+      throw new InvalidOperationException(
+          "SMTP is not configured (missing Host).");
+
+    if (string.IsNullOrWhiteSpace(fromEmail))
+      throw new InvalidOperationException(
+          "SMTP is not configured (missing FromEmail).");
+
+    if (string.IsNullOrWhiteSpace(username))
+      throw new InvalidOperationException(
+          "SMTP is not configured (missing Username).");
+
+    if (string.IsNullOrWhiteSpace(password))
+      throw new InvalidOperationException(
+          "SMTP is not configured (missing Password).");
+
+    // Gmail + many providers: 587 = StartTLS, 465 = SSL on connect
+    var socketOptions = port == 465
+        ? MailKit.Security.SecureSocketOptions.SslOnConnect
+        : MailKit.Security.SecureSocketOptions.StartTls;
 
     var msg = new MimeMessage();
     msg.From.Add(new MailboxAddress(fromName, fromEmail));
@@ -164,9 +184,9 @@ public class EmailService : IEmailService
 
     using var client = new SmtpClient();
     await client.ConnectAsync(
-        host, port,
-        MailKit.Security.SecureSocketOptions.StartTls);
-    await client.AuthenticateAsync(fromEmail, password);
+      host, port,
+      socketOptions);
+    await client.AuthenticateAsync(username, password);
     await client.SendAsync(msg);
     await client.DisconnectAsync(true);
   }

@@ -604,31 +604,9 @@
               [(ngModel)]="ticket.ticketType"
               (change)="updateTicketType()">
               <option value="">-- Select --</option>
-              <option value="Question">Question</option>
-              <option value="Incident">Incident</option>
-              <option value="Problem">Problem</option>
-              <option value="Feature Request">
-                Feature Request
+              <option *ngFor="let t of ticketTypes" [value]="t.value">
+                {{ t.label }}
               </option>
-              <option value="Request">Request</option>
-              <option value="Support">Support</option>
-              <option value="Data">Data</option>
-              <option value="Customer Training">
-                Customer Training
-              </option>
-              <option value="Backend Script">
-                Backend Script
-              </option>
-              <option value="System Gap">
-                System Gap
-              </option>
-              <option value="Release">Release</option>
-              <option value="Information Only">
-                Information Only
-              </option>
-              <option value="On Hold">On Hold</option>
-              <option value="Bug">Bug</option>
-              <option value="Billing">Billing</option>
             </select>
           </div>
 
@@ -642,7 +620,7 @@
               (change)="
                 updateStatus(ticket.status)">
               <option *ngFor="let s of statuses"
-                [value]="s">{{ s }}</option>
+                [value]="s.value">{{ s.label }}</option>
             </select>
           </div>
 
@@ -653,13 +631,8 @@
               [(ngModel)]="ticket.priority"
               (change)="
                 updatePriority(ticket.priority)">
-              <option value="Low">● Low</option>
-              <option value="Medium">
-                ● Medium
-              </option>
-              <option value="High">● High</option>
-              <option value="Critical">
-                ● Critical
+              <option *ngFor="let p of priorities" [value]="p.value">
+                ● {{ p.label }}
               </option>
             </select>
           </div>
