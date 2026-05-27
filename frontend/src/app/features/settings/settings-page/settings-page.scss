@@ -20,7 +20,7 @@ $red-bg:      var(--ui-color-danger-bg);
 .settings-wrapper {
   display: flex;
   height: 100%;
-  background: $slate-50;
+  background: $white;
   font-family: var(--ui-font-family);
   -webkit-font-smoothing: antialiased;
 }
@@ -278,7 +278,7 @@ $red-bg:      var(--ui-color-danger-bg);
 .settings-content {
   flex: 1;
   overflow-y: auto;
-  background: $slate-50;
+  background: $white;
   padding: 14px 20px;
 }
 

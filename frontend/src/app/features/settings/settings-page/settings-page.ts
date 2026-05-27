@@ -21,7 +21,6 @@ import { WhatsappSettingsComponent } from '../whatsapp-settings/whatsapp-setting
 import { IntegrationsComponent } from '../integrations/integrations';
 import { AgentGroupsSettingsComponent } from '../agent-groups-settings/agent-groups-settings';
 import { TicketMastersComponent } from '../ticket-masters/ticket-masters';
-import { TimezonePickerComponent } from '../../../shared/components/timezone-picker/timezone-picker.component';
 
 @Component({
   selector: 'app-settings-page',
@@ -40,8 +39,7 @@ import { TimezonePickerComponent } from '../../../shared/components/timezone-pic
     TicketMastersComponent,
     WhatsappSettingsComponent,
     IntegrationsComponent,
-    AgentGroupsSettingsComponent,
-    TimezonePickerComponent
+    AgentGroupsSettingsComponent
   ],
   templateUrl: './settings-page.html',
   styleUrls: ['./settings-page.scss']
