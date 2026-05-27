@@ -1235,6 +1235,8 @@
   color: var(--fd-accent, #2563eb);
   .ec-to-lbl { color: var(--fd-sub); margin-right: 6px; }
   .ec-to-val { word-break: break-all; }
+  .ec-cc-lbl { margin-left: 12px; }
+  .ec-cc-val { color: var(--fd-text); }
 }
 
 /* ------------------------------------------
@@ -2023,6 +2025,140 @@ textarea:focus-visible,
     color: var(--ui-color-danger);
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   Reply / Note recipient meta-row (To / Cc / Bcc / Notified-to)
+   Mirrors the inbound email's `.ec-to-row` styling so the
+   conversation tells you *who* received each message.
+════════════════════════════════════════════════════════════ */
+.fr-recipients {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 16px 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--fd-sub);
+
+  .fr-rec-lbl {
+    color: var(--fd-sub);
+    font-weight: 600;
+    margin-right: 2px;
+  }
+
+  .fr-rec-val {
+    color: var(--fd-text);
+    word-break: break-word;
+    margin-right: 8px;
+  }
+
+  &.is-note-rec {
+    color: #8a5a00;
+    .fr-rec-lbl { color: #8a5a00; }
+    .fr-rec-val { color: var(--ui-color-primary); font-weight: 600; }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Action-bar viewer badge — red round count with hover tooltip
+   Replaces the old avatar stack. Sits to the right of Delete.
+════════════════════════════════════════════════════════════ */
+.fd-viewers-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  height: 30px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: help;
+  box-shadow:
+    0 1px 2px rgba(220, 38, 38, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.12s ease, box-shadow 0.18s ease;
+  white-space: pre-line;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 6px 16px rgba(220, 38, 38, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .vb-eye { font-size: 13px; line-height: 1; }
+  .vb-count { line-height: 1; }
+}
+
+/* System-created ticket gets a different icon tile color */
+.fd-mail-ic.is-system {
+  background: var(--ui-color-info-soft, #e0f2fe);
+  color: var(--ui-color-info, #0284c7);
+}
+
+/* Clickable avatar / name → contacts page */
+.ec-av.is-clickable,
+.fr-av.is-clickable,
+.ec-name.is-clickable,
+.fr-name.is-clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, color 0.15s ease, box-shadow 0.18s ease;
+}
+.ec-av.is-clickable:hover,
+.fr-av.is-clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+.ec-name.is-clickable:hover,
+.fr-name.is-clickable:hover {
+  color: var(--ui-color-primary);
+  text-decoration: underline;
+}
+.ec-av.is-clickable:focus-visible,
+.fr-av.is-clickable:focus-visible,
+.ec-name.is-clickable:focus-visible,
+.fr-name.is-clickable:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   Title row → Delete + viewer badge live on the right side
+   (replaces the removed `.fd-action-bar`).
+════════════════════════════════════════════════════════════ */
+.fd-title {
+  align-items: center;
+  justify-content: flex-start;
+
+  .fd-title-txt {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .fd-title-actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+}
+
+/* Compact viewer count pill (no eye icon, just the number) */
+.fd-viewers-badge {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 12px;
+  justify-content: center;
+  .vb-count { font-size: 13px; font-weight: 800; }
+}
+
+
 
 
 

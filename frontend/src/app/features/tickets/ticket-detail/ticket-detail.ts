@@ -28,6 +28,7 @@ import { LayoutComponent }
 import { DomSanitizer } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
+import { TopbarContextService } from '../../../core/services/topbar-context.service';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -60,6 +61,7 @@ export class TicketDetailComponent
   private destroy$ = new Subject<void>();
   private sanitizer = inject(DomSanitizer);
   private ticketMasterService = inject(TicketMasterService);
+  private topbarCtx = inject(TopbarContextService);
 
   @ViewChild('replyEditor')
     replyEditorRef!: ElementRef;
@@ -219,6 +221,48 @@ export class TicketDetailComponent
     );
   }
 
+  /** Sender email for a comment (registered user, inbound, or empty). */
+  commentEmail(c: any): string {
+    if (!c) return '';
+    return c.user?.email || c.fromEmail || '';
+  }
+
+  /** True when the ticket was opened via inbound email (no creator user). */
+  isEmailTicket(): boolean {
+    const t: any = this.ticket;
+    if (!t) return false;
+    return !!t.fromEmail || !!t.inboundMessageId || !t.createdBy;
+  }
+
+  /**
+   * Navigate to the Contacts page filtered for the supplied identifier.
+   * Prefers the email so we land on the matching contact card directly.
+   */
+  openContact(emailOrName: string | null | undefined) {
+    const q = (emailOrName || '').trim();
+    if (!q) return;
+    this.router.navigate(['/contacts'], { queryParams: { q } });
+  }
+
+  // ─── Viewer badge helpers ────────────────────────────────
+  /** Unique viewers by userId (fallback userName) so multiple visits collapse. */
+  uniqueViewers(): any[] {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const v of this.viewers || []) {
+      const key = String(v?.userId ?? v?.userName ?? '').toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(v);
+    }
+    return out;
+  }
+  uniqueViewerNames(): string {
+    return this.uniqueViewers()
+      .map(v => v?.userName || 'Unknown')
+      .join('\n');
+  }
+
   /** "11 days ago", "3 hours ago", "just now". */
   timeAgo(value: string | Date | null | undefined): string {
     if (!value) return '';
@@ -251,6 +295,43 @@ export class TicketDetailComponent
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
   }
+
+  /** Comma-separated email field → trimmed unique list. */
+  private splitEmails(raw: any): string[] {
+    if (!raw) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    String(raw).split(',').forEach(p => {
+      const e = p.trim();
+      if (!e) return;
+      const k = e.toLowerCase();
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push(e);
+    });
+    return out;
+  }
+  getCcList(c: any): string[] { return this.splitEmails(c?.cc); }
+  getBccList(c: any): string[] { return this.splitEmails(c?.bcc); }
+  getTicketCcList(): string[] {
+    return this.ticket ? this.splitEmails(this.ticket.ccEmails) : [];
+  }
+  /**
+   * "To:" line for an agent reply / outbound comment — addressed back to the
+   * ticket sender. For inbound replies (customer email) we show the org
+   * support address instead.
+   */
+  getReplyToList(c: any): string[] {
+    if (!c) return [];
+    // Inbound email from the customer side → goes to our support address.
+    if (c.source === 'email' && !c.user?.isAgent) {
+      return this.orgSupportEmail ? [this.orgSupportEmail] : [];
+    }
+    // Agent outbound → addressed back to the ticket sender.
+    const to = this.ticket?.fromEmail;
+    return to ? [to] : [];
+  }
+
 
   /** Note edit/delete are allowed only within 1 hour of creation. */
   canEditNote(c: any): boolean {
@@ -402,6 +483,7 @@ export class TicketDetailComponent
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    this.topbarCtx.clear();
   }
 
   startPolling() {
@@ -431,6 +513,11 @@ loadTicket() {
           this.selectedGroupId = data.agentGroup.id;
         this.loadViewers();
         this.refreshForwardPrefill();
+        this.prefillReplyCcFromTicket();
+        // Surface ticket number as a topbar breadcrumb suffix
+        // (e.g. "Tickets › #TN1007") while this detail page is open.
+        if (data?.ticketNumber)
+          this.topbarCtx.set('#TN' + data.ticketNumber);
       },
       error: (err) => {
         this.setLoading(false);
@@ -829,6 +916,37 @@ loadTicket() {
     this.ccInput = '';
   }
   removeCc(i: number) { this.replyCc.splice(i, 1); }
+
+  /**
+   * Pre-populate the reply Cc list from the ticket's stored CcEmails
+   * (captured from the original inbound email and merged on each inbound
+   * reply). Filters out our own support address and the ticket sender so
+   * we never echo them back into the loop. Runs once per ticket load —
+   * after that, the agent's manual edits on the Cc chips are preserved.
+   */
+  private prefillReplyCcFromTicket() {
+    if (!this.ticket) return;
+    const raw: string = String(this.ticket.ccEmails || '').trim();
+    if (!raw) return;
+    const support = (this.orgSupportEmail || '').toLowerCase();
+    const sender = (this.ticket.fromEmail || '').toLowerCase();
+    const merged = new Set<string>(this.replyCc.map(e => e.toLowerCase()));
+    const next = [...this.replyCc];
+    raw.split(',').forEach(part => {
+      const e = part.trim();
+      if (!e) return;
+      const k = e.toLowerCase();
+      if (k === support || k === sender || merged.has(k)) return;
+      if (!this.isValidEmail(e)) return;
+      merged.add(k);
+      next.push(e);
+    });
+    if (next.length !== this.replyCc.length) {
+      this.replyCc = next;
+      this.showCc = true;
+    }
+  }
+
   addBcc() {
     const v = (this.bccInput || '').trim();
     if (!v) return;

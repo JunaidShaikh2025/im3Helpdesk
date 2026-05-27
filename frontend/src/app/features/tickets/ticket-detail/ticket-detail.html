@@ -10,57 +10,41 @@
       <!-- LEFT MAIN -->
       <div class="fd-main">
 
-        <!-- Action Bar -->
-        <div class="fd-action-bar">
-          <div class="ab-left">
-            <button class="ab-back"
-              (click)="router.navigate(['/tickets'])">
-              ← Back
-            </button>
-            <span class="fd-ticket-num">
-              #TN{{ ticket.ticketNumber }}
-            </span>
-            <span class="fd-status-badge"
-              [class]="'st-' +
-                ticket.status?.toLowerCase()">
-              {{ ticket.status }}
-            </span>
-          </div>
-          <div class="ab-right">
-            <div class="fd-viewers"
-              *ngIf="viewers.length > 0">
-              <span class="v-eye">👁</span>
-              <div class="v-stack">
-                <div class="v-av"
-                  *ngFor="let v of
-                    viewers.slice(0,3)"
-                  [title]="v.userName"
-                  [style.background]="
-                    getAvatarColor(v.userName)">
-                  {{ v.userName?.charAt(0)
-                    ?.toUpperCase() }}
-                </div>
-              </div>
-            </div>
+        <!-- Title: source-aware icon + (right) Delete + viewer count badge -->
+        <h1 class="fd-title">
+          <span class="fd-mail-ic"
+            [class.is-system]="!isEmailTicket()"
+            [title]="isEmailTicket()
+              ? 'Created from inbound email'
+              : 'Created in the system'"
+            aria-hidden="true">
+            {{ isEmailTicket() ? '✉' : '🎫' }}
+          </span>
+          <span class="fd-title-txt">{{ ticket.title }}</span>
+          <span class="fd-title-actions">
             <button class="ab-del"
               *ngIf="isAgent"
               type="button"
               (click)="deleteTicket()">
               🗑 Delete
             </button>
-          </div>
-        </div>
-
-        <!-- Title with envelope icon (Image 1) -->
-        <h1 class="fd-title">
-          <span class="fd-mail-ic" aria-hidden="true">✉</span>
-          <span class="fd-title-txt">{{ ticket.title }}</span>
+            <div class="fd-viewers-badge"
+              *ngIf="uniqueViewers().length > 0"
+              [title]="'Viewed by:\n' + uniqueViewerNames()">
+              <span class="vb-count">{{ uniqueViewers().length }}</span>
+            </div>
+          </span>
         </h1>
 
         <!-- Original Email -->
         <div class="fd-email-card">
           <div class="ec-header">
-            <div class="ec-av"
+            <div class="ec-av is-clickable"
+              role="button"
+              tabindex="0"
+              [title]="'Open contact: ' + (senderEmail() || senderName())"
+              (click)="openContact(senderEmail() || senderName())"
+              (keydown.enter)="openContact(senderEmail() || senderName())"
               [style.background]="
                 ticket.createdBy?.photoUrl
                   ? 'transparent'
@@ -76,7 +60,14 @@
             </div>
             <div class="ec-info">
               <div class="ec-name-row">
-                <span class="ec-name">{{ senderName() }}</span>
+                <span class="ec-name is-clickable"
+                  role="button"
+                  tabindex="0"
+                  [title]="'Open contact: ' + (senderEmail() || senderName())"
+                  (click)="openContact(senderEmail() || senderName())"
+                  (keydown.enter)="openContact(senderEmail() || senderName())">
+                  {{ senderName() }}
+                </span>
                 <span class="ec-via">reported via email</span>
                 <span class="ec-dot">·</span>
                 <span class="ec-time"
@@ -91,6 +82,12 @@
                   &quot;{{ orgSupportName || 'Support' }}&quot;
                   &lt;{{ orgSupportEmail }}&gt;
                 </span>
+                <ng-container *ngIf="getTicketCcList().length > 0">
+                  <span class="ec-to-lbl ec-cc-lbl">Cc:</span>
+                  <span class="ec-to-val ec-cc-val">
+                    {{ getTicketCcList().join(', ') }}
+                  </span>
+                </ng-container>
               </div>
             </div>
           </div>
@@ -135,14 +132,24 @@
             <div class="fd-reply"
               *ngIf="!c.isInternal">
               <div class="fr-header">
-                <div class="fr-av"
+                <div class="fr-av is-clickable"
+                  role="button"
+                  tabindex="0"
+                  [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                  (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))"
                   [style.background]="
                     getAvatarColor(
                       commentAuthor(c))">
                   {{ getInitials(commentAuthor(c)) }}
                 </div>
                 <div class="fr-info">
-                  <span class="fr-name">
+                  <span class="fr-name is-clickable"
+                    role="button"
+                    tabindex="0"
+                    [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                    (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                    (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
                     {{ commentAuthor(c) }}
                   </span>
                   <span class="fr-agent"
@@ -158,14 +165,40 @@
                       *ngIf="c.source === 'forward'">
                       · forwarded
                     </ng-container>
+                    <ng-container
+                      *ngIf="c.source !== 'email' && c.source !== 'forward'">
+                      · replied
+                    </ng-container>
                   </span>
                 </div>
-                <span class="fr-time">
+                <span class="fr-time"
+                  [title]="c.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
+                  {{ timeAgo(c.createdAt) }}
+                  ·
                   {{ c.createdAt
-                    | date:'EEE, dd MMM yyyy,
-                      hh:mm a':'Asia/Kolkata' }}
+                    | date:'EEE, dd MMM yyyy, hh:mm a':'Asia/Kolkata' }}
                 </span>
               </div>
+
+              <!-- To / Cc / Bcc recipients (like inbound email) -->
+              <div class="fr-recipients"
+                *ngIf="getReplyToList(c).length
+                  || getCcList(c).length
+                  || getBccList(c).length">
+                <ng-container *ngIf="getReplyToList(c).length > 0">
+                  <span class="fr-rec-lbl">To:</span>
+                  <span class="fr-rec-val">{{ getReplyToList(c).join(', ') }}</span>
+                </ng-container>
+                <ng-container *ngIf="getCcList(c).length > 0">
+                  <span class="fr-rec-lbl">Cc:</span>
+                  <span class="fr-rec-val">{{ getCcList(c).join(', ') }}</span>
+                </ng-container>
+                <ng-container *ngIf="getBccList(c).length > 0">
+                  <span class="fr-rec-lbl">Bcc:</span>
+                  <span class="fr-rec-val">{{ getBccList(c).join(', ') }}</span>
+                </ng-container>
+              </div>
+
               <div class="fr-body"
                 [innerHTML]="
                   sanitizeHtml(c.comment)">
@@ -201,26 +234,28 @@
             <div class="fd-reply is-note"
               *ngIf="c.isInternal && isAgent">
               <div class="fr-header">
-                <div class="fr-av"
+                <div class="fr-av is-clickable"
+                  role="button"
+                  tabindex="0"
+                  [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                  (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))"
                   [style.background]="
                     getAvatarColor(
                       commentAuthor(c))">
                   {{ getInitials(commentAuthor(c)) }}
                 </div>
                 <div class="fr-info">
-                  <span class="fr-name note-name">
+                  <span class="fr-name note-name is-clickable"
+                    role="button"
+                    tabindex="0"
+                    [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                    (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                    (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
                     {{ commentAuthor(c) }}
                   </span>
                   <span class="fr-note-lbl">
                     added a private note
-                  </span>
-                  <span class="fr-via">
-                    <ng-container *ngIf="getNotifiedList(c).length > 0">
-                      · Notified to:
-                      <span class="fr-notified">
-                        {{ getNotifiedList(c).join(', ') }}
-                      </span>
-                    </ng-container>
                   </span>
                 </div>
                 <span class="fr-time"
@@ -245,6 +280,13 @@
                     🗑
                   </button>
                 </div>
+              </div>
+
+              <!-- Notified-to recipients (note) -->
+              <div class="fr-recipients is-note-rec"
+                *ngIf="getNotifiedList(c).length > 0">
+                <span class="fr-rec-lbl">Notified to:</span>
+                <span class="fr-rec-val">{{ getNotifiedList(c).join(', ') }}</span>
               </div>
               <div class="fr-body"
                 [innerHTML]="

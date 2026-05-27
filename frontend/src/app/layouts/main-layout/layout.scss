@@ -853,6 +853,27 @@
   border-radius: 999px;
 }
 
+.tc-sep {
+  color: var(--ui-color-text-muted);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  margin: 0 2px;
+}
+
+.tc-suffix {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--ui-color-primary-soft, #e6f4f1);
+  color: var(--ui-color-primary, #029888);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
 /* Compact global search trigger beside New Ticket */
 .global-search-anchor {
   position: relative;

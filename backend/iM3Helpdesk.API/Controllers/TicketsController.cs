@@ -435,6 +435,7 @@ public class TicketsController : ControllerBase
       ticket.FromEmail,
       ticket.FromName,
       ticket.InboundMessageId,
+      CcEmails = ticket.CcEmails,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
       TicketType = ticket.TicketType,

@@ -241,7 +241,11 @@
 
       <div class="topbar-context" *ngIf="!isSuperAdmin && !isCustomer">
         <span class="tc-title">{{ activePageTitle }}</span>
-        <span class="tc-badge" *ngIf="isTicketsSection && unresolvedMyCount > 0">
+        <ng-container *ngIf="topbarCtx.suffix() as ctxSuffix">
+          <span class="tc-sep" *ngIf="ctxSuffix">›</span>
+          <span class="tc-suffix" *ngIf="ctxSuffix">{{ ctxSuffix }}</span>
+        </ng-container>
+        <span class="tc-badge" *ngIf="isTicketsSection && unresolvedMyCount > 0 && !topbarCtx.suffix()">
           {{ unresolvedMyCount > 99 ? '99+' : unresolvedMyCount }}
         </span>
       </div>

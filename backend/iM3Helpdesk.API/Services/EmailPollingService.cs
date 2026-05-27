@@ -315,12 +315,16 @@ public class EmailPollingService : BackgroundService
         ?? 1000;
     var nameTag = MakeTag(fromName);
 
+    // ── Capture inbound Cc recipients (exclude own org addresses + sender) ──
+    var inboundCc = ExtractExternalCc(message, fromEmail, org);
+
     var ticket = new Ticket
     {
       Title = subject,
       Description = description,
       FromEmail = fromEmail,
       FromName = fromName,
+      CcEmails = inboundCc.Count > 0 ? string.Join(",", inboundCc) : null,
       InboundMessageId = NormalizeMsgId(message.MessageId ?? string.Empty),
       Category = "General",
       Priority = TicketPriority.Medium,
@@ -492,6 +496,40 @@ public class EmailPollingService : BackgroundService
     return s.Trim();
   }
 
+  /// <summary>
+  /// Extract external Cc addresses from an inbound message, excluding our own
+  /// org's support / SMTP addresses and the original sender. Returned in arrival
+  /// order, lowercased &amp; deduplicated.
+  /// </summary>
+  private List<string> ExtractExternalCc(
+      MimeMessage message,
+      string fromEmail,
+      Organization org)
+  {
+    var ownEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    void AddOwn(string? e)
+    {
+      if (!string.IsNullOrWhiteSpace(e)) ownEmails.Add(e.Trim());
+    }
+    AddOwn(org.SupportEmail);
+    AddOwn(org.SmtpFromEmail);
+    AddOwn(org.SmtpUsername);
+    AddOwn(_config["SmtpSettings:FromEmail"]);
+    AddOwn(fromEmail);
+
+    var result = new List<string>();
+    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    foreach (var box in message.Cc.Mailboxes)
+    {
+      var addr = (box.Address ?? string.Empty).Trim();
+      if (string.IsNullOrEmpty(addr)) continue;
+      if (ownEmails.Contains(addr)) continue;
+      if (!seen.Add(addr)) continue;
+      result.Add(addr);
+    }
+    return result;
+  }
+
   private async Task AddReplyToTicketAsync(
       MimeMessage message,
       Guid ticketId,
@@ -533,6 +571,9 @@ public class EmailPollingService : BackgroundService
             .Where(s => !string.IsNullOrWhiteSpace(s)))
         : null;
 
+    // ── Capture this reply's Cc and merge into ticket-level CcEmails ──
+    var replyCc = ExtractExternalCc(message, fromEmail, org);
+
     var comment = new TicketComment
     {
       TicketId = ticketId,
@@ -544,6 +585,7 @@ public class EmailPollingService : BackgroundService
       OrganizationId = org.Id,
       EmailMessageId = inboundMsgId,
       Source = "email",
+      Cc = replyCc.Count > 0 ? string.Join(",", replyCc) : null,
       InReplyTo = string.IsNullOrWhiteSpace(inReplyTo) ? null : inReplyTo,
       References = string.IsNullOrWhiteSpace(references) ? null : references
     };
@@ -560,6 +602,25 @@ public class EmailPollingService : BackgroundService
       ticket.UpdatedAt = DateTime.UtcNow;
       if (ticket.Status == TicketStatus.Closed)
         ticket.Status = TicketStatus.Open;
+
+      // Merge any new external Cc recipients onto the ticket
+      // so future agent replies include them by default.
+      if (replyCc.Count > 0)
+      {
+        var existing = (ticket.CcEmails ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(e => e.Trim())
+            .Where(e => e.Length > 0)
+            .ToList();
+        var merged = existing
+            .Concat(replyCc)
+            .Where(e => !string.IsNullOrWhiteSpace(e) &&
+                        !e.Equals(ticket.FromEmail ?? string.Empty,
+                            StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        ticket.CcEmails = merged.Count > 0 ? string.Join(",", merged) : null;
+      }
     }
 
     await context.SaveChangesAsync(ct);

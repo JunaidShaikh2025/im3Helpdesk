@@ -27,6 +27,7 @@ import { TranslationService } from '../../core/services/translation'; // ✅ ADD
 import { environment } from '../../../environments/environment';
 import { GlobalCallNotificationService } from '../../core/services/global-call-notification.service';
 import { GlobalCallPopupComponent } from '../../shared/components/global-call-popup/global-call-popup.component';
+import { TopbarContextService } from '../../core/services/topbar-context.service';
 
 @Component({
   selector: 'app-layout',
@@ -99,7 +100,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private chatService    = inject(ChatService);
   private globalCallSvc  = inject(GlobalCallNotificationService);
   public  tr             = inject(TranslationService); // ✅ ADD — 'tr' naam se template mein use hoga
-
+  public  topbarCtx      = inject(TopbarContextService);
   isSidebarCollapsed = (() => {
     const saved = localStorage.getItem('im3_sidebar_collapsed');
     // Freshdesk-style compact sidebar by default (only when user has never chosen).
