@@ -432,6 +432,9 @@ public class TicketsController : ControllerBase
       ticket.Title,
       ticket.Description,
       ticket.Category,
+      ticket.FromEmail,
+      ticket.FromName,
+      ticket.InboundMessageId,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
       TicketType = ticket.TicketType,
@@ -480,6 +483,11 @@ public class TicketsController : ControllerBase
               c.IsInternal,
               Source = c.Source ?? "web",
               c.EmailMessageId,
+              c.Cc,
+              c.Bcc,
+              c.NotifiedTo,
+              c.FromName,
+              c.FromEmail,
               User = c.User == null ? null : new
               {
                 c.User.Id,
@@ -1070,6 +1078,53 @@ public class TicketsController : ControllerBase
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Id == userId);
 
+    // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
+    var commentMsgIds = await _context.TicketComments
+        .Where(c => c.TicketId == id &&
+                    !string.IsNullOrEmpty(c.EmailMessageId))
+        .OrderBy(c => c.CreatedAt)
+        .Select(c => c.EmailMessageId!)
+        .ToListAsync();
+
+    var referenceChain = new List<string>();
+    if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
+      referenceChain.Add(ticket.InboundMessageId);
+    referenceChain.AddRange(commentMsgIds);
+
+    // In-Reply-To = most recent message in the chain
+    var lastMsgId = referenceChain.LastOrDefault();
+
+    // ── Resolve notified users (private notes) ──
+    string? notifiedTo = null;
+    var notifyMailList = new List<string>();
+    if (dto.IsInternal)
+    {
+      if (dto.NotifyUserIds is { Count: > 0 })
+      {
+        var users = await _context.Users
+            .Where(u => dto.NotifyUserIds.Contains(u.Id))
+            .Select(u => u.Email)
+            .ToListAsync();
+        notifyMailList.AddRange(users);
+      }
+      if (dto.NotifyEmails is { Count: > 0 })
+        notifyMailList.AddRange(dto.NotifyEmails);
+      notifyMailList = notifyMailList
+          .Where(e => !string.IsNullOrWhiteSpace(e))
+          .Select(e => e.Trim())
+          .Distinct(StringComparer.OrdinalIgnoreCase)
+          .ToList();
+      if (notifyMailList.Count > 0)
+        notifiedTo = string.Join(",", notifyMailList);
+    }
+
+    var ccList = (dto.Cc ?? new List<string>())
+        .Where(e => !string.IsNullOrWhiteSpace(e))
+        .Select(e => e.Trim()).ToList();
+    var bccList = (dto.Bcc ?? new List<string>())
+        .Where(e => !string.IsNullOrWhiteSpace(e))
+        .Select(e => e.Trim()).ToList();
+
     var comment = new TicketComment
     {
       TicketId = id,
@@ -1078,7 +1133,13 @@ public class TicketsController : ControllerBase
       IsInternal = dto.IsInternal,
       Source = "web",
       OrganizationId =
-            _tenantService.OrganizationId!.Value
+            _tenantService.OrganizationId!.Value,
+      Cc = ccList.Count > 0 ? string.Join(",", ccList) : null,
+      Bcc = bccList.Count > 0 ? string.Join(",", bccList) : null,
+      NotifiedTo = notifiedTo,
+      InReplyTo = !dto.IsInternal ? lastMsgId : null,
+      References = !dto.IsInternal && referenceChain.Count > 0
+          ? string.Join(" ", referenceChain) : null
     };
 
     _context.TicketComments.Add(comment);
@@ -1090,24 +1151,61 @@ public class TicketsController : ControllerBase
     await _context.SaveChangesAsync();
 
     // ✅ Send email if public reply
-    if (!dto.IsInternal &&
-        ticket.CreatedBy?.Email != null)
+    if (!dto.IsInternal)
     {
-      try
+      var replyTo = !string.IsNullOrWhiteSpace(ticket.FromEmail)
+          ? ticket.FromEmail.Trim()
+          : ticket.CreatedBy?.Email;
+      if (!string.IsNullOrWhiteSpace(replyTo))
       {
-        await _emailService.SendReplyAsync(
-            ticket.CreatedBy.Email,
-            ticket.Title,
-            dto.Comment,
-            $"#TN{ticket.TicketNumber}",
-            agent?.FullName ?? "Support",
-            agent?.Signature ?? "",
-            ticket.OrganizationId);
+        try
+        {
+          var outboundMsgId = await _emailService.SendReplyAsync(
+              replyTo,
+              ticket.Title,
+              dto.Comment,
+              $"#TN{ticket.TicketNumber}",
+              agent?.FullName ?? "Support",
+              agent?.Signature ?? "",
+              ticket.OrganizationId,
+              cc: ccList,
+              bcc: bccList,
+              inReplyTo: lastMsgId,
+              references: referenceChain);
+
+          if (!string.IsNullOrEmpty(outboundMsgId))
+          {
+            comment.EmailMessageId = outboundMsgId;
+            await _context.SaveChangesAsync();
+          }
+        }
+        catch (Exception ex)
+        {
+          _logger.LogWarning(ex,
+              "Reply email failed");
+        }
       }
-      catch (Exception ex)
+    }
+
+    // ✅ Notify mentioned agents for private notes
+    if (dto.IsInternal && notifyMailList.Count > 0)
+    {
+      foreach (var em in notifyMailList)
       {
-        _logger.LogWarning(ex,
-            "Reply email failed");
+        try
+        {
+          await _emailService.SendAsync(
+              em,
+              $"🔒 Note on #TN{ticket.TicketNumber}: {ticket.Title}",
+              $"<p><strong>{agent?.FullName ?? "Agent"}</strong> added a private note:</p>" +
+              $"<blockquote style='border-left:3px solid #f59e0b;padding:8px 12px;background:#fff7ed'>{dto.Comment}</blockquote>",
+              organizationId: ticket.OrganizationId,
+              ticketNumberTag: $"#TN{ticket.TicketNumber}");
+        }
+        catch (Exception ex)
+        {
+          _logger.LogWarning(ex, "Note notify email failed for {Email}", em);
+        }
       }
     }
 
@@ -1371,12 +1469,30 @@ public class TicketsController : ControllerBase
   <div>{dto.Message ?? ticket.Description}</div>
 </div>";
 
-      await _emailService.SendAsync(
+      // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
+      var commentMsgIds = await _context.TicketComments
+          .Where(c => c.TicketId == id &&
+                      !string.IsNullOrEmpty(c.EmailMessageId))
+          .OrderBy(c => c.CreatedAt)
+          .Select(c => c.EmailMessageId!)
+          .ToListAsync();
+
+      var referenceChain = new List<string>();
+      if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
+        referenceChain.Add(ticket.InboundMessageId);
+      referenceChain.AddRange(commentMsgIds);
+      var lastMsgId = referenceChain.LastOrDefault();
+
+      await _emailService.SendForwardAsync(
           dto.ToEmail,
           $"[Forwarded] {ticket.Title}" +
           $" #TN{ticket.TicketNumber}",
           html,
-          organizationId: ticket.OrganizationId);
+          organizationId: ticket.OrganizationId,
+          cc: dto.Cc,
+          bcc: dto.Bcc,
+          inReplyTo: lastMsgId,
+          references: referenceChain);
 
       return Ok(new
       {
@@ -1675,6 +1791,15 @@ public class AddCommentDto
 {
   public string Comment { get; set; } = string.Empty;
   public bool IsInternal { get; set; } = false;
+
+  // Public reply CC / BCC (comma-separated emails OR list).
+  public List<string>? Cc { get; set; }
+  public List<string>? Bcc { get; set; }
+
+  // Private note: who was notified (user IDs to look up agents).
+  public List<Guid>? NotifyUserIds { get; set; }
+  // Optional ad-hoc email recipients for note notifications.
+  public List<string>? NotifyEmails { get; set; }
 }
 
 public class AssignTicketDto
@@ -1725,4 +1850,6 @@ public class ForwardTicketDto
 {
   public string ToEmail { get; set; } = string.Empty;
   public string? Message { get; set; }
+  public List<string>? Cc { get; set; }
+  public List<string>? Bcc { get; set; }
 }

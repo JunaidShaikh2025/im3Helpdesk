@@ -82,6 +82,9 @@ export class TicketDetailComponent
   activeComposerTab:
     'reply' | 'note' | 'forward' = 'reply';
 
+  /** Composer starts collapsed (small one-line input). Expands on click. */
+  composerExpanded = false;
+
   quickReplyText = '';
   noteText = '';
   noteIsPrivate = true;
@@ -89,6 +92,23 @@ export class TicketDetailComponent
   forwardText = '';
   pendingFiles: File[] = [];
   attachments: any[] = [];
+
+  // ── Reply Cc / Bcc ──────────────────
+  showCc = false;
+  showBcc = false;
+  replyCc: string[] = [];
+  replyBcc: string[] = [];
+  ccInput = '';
+  bccInput = '';
+
+  // ── Forward Cc / Bcc + prefill ────────────
+  showFwdCc = false;
+  showFwdBcc = false;
+  fwdCc: string[] = [];
+  fwdBcc: string[] = [];
+  fwdCcInput = '';
+  fwdBccInput = '';
+  forwardPrefillHtml = '';
 
   // ─── Notify ──────────────────────────
   notifyTo = '';
@@ -101,8 +121,7 @@ export class TicketDetailComponent
   newTag = '';
 
   // ─── Org / Signature ─────────────────
-  orgSupportEmail = '';
-  agentSignature = '';
+  orgSupportEmail = '';  orgSupportName = '';  agentSignature = '';
 
   // ─── Custom Fields ───────────────────
   customFields: any[] = [];
@@ -147,6 +166,145 @@ export class TicketDetailComponent
     ];
     return colors[
       (name?.charCodeAt(0) || 0) % colors.length];
+  }
+
+  /** Returns up to 2 uppercase initials (e.g. "Aadil Khan" => "AK"). */
+  getInitials(name?: string): string {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    const first = parts[0]?.charAt(0) || '';
+    const second = parts.length > 1
+      ? parts[parts.length - 1].charAt(0) : '';
+    return (first + second).toUpperCase();
+  }
+
+  /**
+   * Display name for the ticket creator.
+   * Priority:
+   *  1. Registered user (UI-submitted ticket) → CreatedBy.FullName
+   *  2. Email-originated ticket → FromName captured at polling time
+   *  3. Fallback → local part of FromEmail
+   */
+  senderName(): string {
+    const t: any = this.ticket;
+    if (!t) return '';
+    return (
+      t.createdBy?.fullName ||
+      t.fromName ||
+      (t.fromEmail ? String(t.fromEmail).split('@')[0] : '') ||
+      'Unknown'
+    );
+  }
+
+  /** Email address of the ticket creator (registered user OR email sender). */
+  senderEmail(): string {
+    const t: any = this.ticket;
+    return t?.fromEmail || t?.createdBy?.email || '';
+  }
+
+  /**
+   * Display name for a comment author.
+   * Handles three sources:
+   *  - Registered user (UI reply / note) -> comment.user.fullName
+   *  - Inbound email reply (no user)     -> comment.fromName
+   *  - Last-ditch fallback                -> local part of fromEmail
+   */
+  commentAuthor(c: any): string {
+    if (!c) return '';
+    return (
+      c.user?.fullName ||
+      c.fromName ||
+      (c.fromEmail ? String(c.fromEmail).split('@')[0] : '') ||
+      'Unknown'
+    );
+  }
+
+  /** "11 days ago", "3 hours ago", "just now". */
+  timeAgo(value: string | Date | null | undefined): string {
+    if (!value) return '';
+    const then = new Date(value).getTime();
+    if (Number.isNaN(then)) return '';
+    const diff = Math.max(0, Date.now() - then);
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return 'just now';
+    const min = Math.floor(sec / 60);
+    if (min < 60)
+      return `${min} minute${min === 1 ? '' : 's'} ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24)
+      return `${hr} hour${hr === 1 ? '' : 's'} ago`;
+    const d = Math.floor(hr / 24);
+    if (d === 1) return 'a day ago';
+    if (d < 30) return `${d} days ago`;
+    const mo = Math.floor(d / 30);
+    if (mo < 12)
+      return `${mo} month${mo === 1 ? '' : 's'} ago`;
+    const yr = Math.floor(d / 365);
+    return `${yr} year${yr === 1 ? '' : 's'} ago`;
+  }
+
+  /** Returns parsed Notified-To recipients for a note comment. */
+  getNotifiedList(c: any): string[] {
+    if (!c?.notifiedTo) return [];
+    return String(c.notifiedTo)
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
+  }
+
+  /** Note edit/delete are allowed only within 1 hour of creation. */
+  canEditNote(c: any): boolean {
+    if (!c?.isInternal || !this.isAgent) return false;
+    const created = c?.createdAt ? new Date(c.createdAt).getTime() : 0;
+    if (!created) return false;
+    const oneHourMs = 60 * 60 * 1000;
+    return Date.now() - created < oneHourMs;
+  }
+
+  /** Inline edit of a private note (within 1 hour). */
+  editNote(c: any) {
+    if (!this.canEditNote(c)) return;
+    const stripped = String(c.comment || '')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    const next = window.prompt('Edit note:', stripped);
+    if (next == null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === stripped) return;
+
+    this.http.put(
+      `${environment.apiUrl}/Tickets/${this.ticketId}/comments/${c.id}`,
+      { comment: trimmed, isInternal: true }
+    ).subscribe({
+      next: () => {
+        c.comment = trimmed;
+        this.showToast('success', 'Note updated');
+      },
+      error: (err) => {
+        this.showToast('error',
+          err?.error?.message || 'Failed to update note');
+      }
+    });
+  }
+
+  /** Delete a private note (within 1 hour). */
+  deleteNote(c: any) {
+    if (!this.canEditNote(c)) return;
+    if (!window.confirm('Delete this private note? This cannot be undone.')) return;
+
+    this.http.delete(
+      `${environment.apiUrl}/Tickets/${this.ticketId}/comments/${c.id}`
+    ).subscribe({
+      next: () => {
+        this.ticket.comments =
+          (this.ticket.comments || []).filter((x: any) => x.id !== c.id);
+        this.showToast('success', 'Note deleted');
+      },
+      error: (err) => {
+        this.showToast('error',
+          err?.error?.message || 'Failed to delete note');
+      }
+    });
   }
 
   getTagsArray(): string[] {
@@ -272,6 +430,7 @@ loadTicket() {
         if (data.agentGroup?.id)
           this.selectedGroupId = data.agentGroup.id;
         this.loadViewers();
+        this.refreshForwardPrefill();
       },
       error: (err) => {
         this.setLoading(false);
@@ -346,9 +505,29 @@ loadTicket() {
     ).subscribe({
       next: (data) => {
         this.orgSupportEmail =
+          data.smtpFromEmail ||
           data.supportEmail || '';
+        this.orgSupportName =
+          data.smtpFromName ||
+          data.name || 'iM3 Support';
+        // Prefill forward body once we know the ticket
+        this.refreshForwardPrefill();
       }
     });
+  }
+
+  private refreshForwardPrefill() {
+    if (!this.ticket) { this.forwardPrefillHtml = ''; return; }
+    const num = this.ticket.ticketNumber;
+    const name = this.senderName() || 'the customer';
+    const email = this.senderEmail();
+    this.forwardPrefillHtml =
+      `<p>Please take a look at ticket ` +
+      `<a href="javascript:void(0)">#${num}</a> ` +
+      `raised by <strong>${name}</strong>` +
+      (email ? ` (<a href="mailto:${email}">${email}</a>)` : '') +
+      `.</p>`;
+    this.forwardText = this.forwardPrefillHtml;
   }
 
   loadAgentSignature() {
@@ -484,6 +663,23 @@ loadTicket() {
       .subscribe({ next: () => this.loadTicket() });
   }
 
+  /** Stage a tag locally — commits on next Update click. */
+  stageAddTag() {
+    if (!this.newTag.trim() || !this.ticket) return;
+    const tags = this.getTagsArray();
+    const tag = this.newTag.trim().toLowerCase();
+    if (!tags.includes(tag)) tags.push(tag);
+    this.ticket.tags = tags.join(',');
+    this.newTag = '';
+  }
+
+  /** Stage a tag removal locally — commits on next Update click. */
+  stageRemoveTag(tag: string) {
+    if (!this.ticket) return;
+    const tags = this.getTagsArray().filter(t => t !== tag);
+    this.ticket.tags = tags.join(',');
+  }
+
   deleteTicket() {
     if (!confirm(
       'Delete this ticket permanently?')) return;
@@ -522,11 +718,93 @@ loadTicket() {
     document.execCommand(command, false, value);
   }
 
+  /** Apply a block-level format such as H1, H2, P, PRE, BLOCKQUOTE. */
+  applyBlock(tag: string) {
+    document.execCommand('formatBlock', false, tag);
+  }
+
+  /** Open color picker and apply foreColor. */
+  pickColor(kind: 'fore' | 'back') {
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = kind === 'fore' ? '#000000' : '#ffff00';
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    input.addEventListener('change', () => {
+      const v = input.value;
+      const cmd = kind === 'fore' ? 'foreColor' : 'hiliteColor';
+      document.execCommand(cmd, false, v);
+      document.body.removeChild(input);
+    });
+    document.body.appendChild(input);
+    input.click();
+  }
+
   insertLink() {
     const url = prompt('Enter URL:');
     if (url)
       document.execCommand(
         'createLink', false, url);
+  }
+
+  /** Insert inline image from URL prompt or local file. */
+  insertImage() {
+    const url = prompt('Image URL (leave blank to upload a file):');
+    if (url && url.trim()) {
+      document.execCommand('insertImage', false, url.trim());
+      return;
+    }
+    const fi = document.createElement('input');
+    fi.type = 'file';
+    fi.accept = 'image/*';
+    fi.addEventListener('change', () => {
+      const f = fi.files?.[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        if (dataUrl)
+          document.execCommand('insertImage', false, dataUrl);
+      };
+      reader.readAsDataURL(f);
+    });
+    fi.click();
+  }
+
+  /** Insert a basic HTML table at the cursor. */
+  insertTable() {
+    const raw = prompt('Rows x Cols (e.g. 3x3):', '3x3');
+    if (!raw) return;
+    const m = raw.match(/^(\d+)\s*[xX*]\s*(\d+)$/);
+    if (!m) return;
+    const rows = Math.min(20, Math.max(1, parseInt(m[1], 10)));
+    const cols = Math.min(10, Math.max(1, parseInt(m[2], 10)));
+    let html = '<table style="border-collapse:collapse;width:100%;">';
+    for (let r = 0; r < rows; r++) {
+      html += '<tr>';
+      for (let c = 0; c < cols; c++) {
+        const tag = r === 0 ? 'th' : 'td';
+        html += `<${tag} style="border:1px solid #d0d7de;padding:6px 10px;">&nbsp;</${tag}>`;
+      }
+      html += '</tr>';
+    }
+    html += '</table><p></p>';
+    document.execCommand('insertHTML', false, html);
+  }
+
+  /** Insert a <pre><code> block at the cursor with the current selection. */
+  insertCodeBlock() {
+    const sel = window.getSelection()?.toString() || '';
+    const html = `<pre style="background:#0f172a;color:#e2e8f0;padding:10px 12px;border-radius:6px;overflow:auto;"><code>${
+      sel ? sel.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[ch]) : 'code'
+    }</code></pre><p></p>`;
+    document.execCommand('insertHTML', false, html);
+  }
+
+  /** Remove formatting from the current selection. */
+  clearFormatting() {
+    document.execCommand('removeFormat');
+    document.execCommand('unlink');
   }
 
   onFileSelect(event: any) {
@@ -539,12 +817,50 @@ loadTicket() {
     this.pendingFiles.splice(index, 1);
   }
 
+  // ── Cc / Bcc handlers (reply) ──────────────
+  private isValidEmail(v: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+  }
+  addCc() {
+    const v = (this.ccInput || '').trim();
+    if (!v) return;
+    if (this.isValidEmail(v) && !this.replyCc.includes(v))
+      this.replyCc.push(v);
+    this.ccInput = '';
+  }
+  removeCc(i: number) { this.replyCc.splice(i, 1); }
+  addBcc() {
+    const v = (this.bccInput || '').trim();
+    if (!v) return;
+    if (this.isValidEmail(v) && !this.replyBcc.includes(v))
+      this.replyBcc.push(v);
+    this.bccInput = '';
+  }
+  removeBcc(i: number) { this.replyBcc.splice(i, 1); }
+
+  // ── Cc / Bcc handlers (forward) ────────────
+  addFwdCc() {
+    const v = (this.fwdCcInput || '').trim();
+    if (!v) return;
+    if (this.isValidEmail(v) && !this.fwdCc.includes(v))
+      this.fwdCc.push(v);
+    this.fwdCcInput = '';
+  }
+  addFwdBcc() {
+    const v = (this.fwdBccInput || '').trim();
+    if (!v) return;
+    if (this.isValidEmail(v) && !this.fwdBcc.includes(v))
+      this.fwdBcc.push(v);
+    this.fwdBccInput = '';
+  }
+
   clearReply() {
     this.quickReplyText = '';
     if (this.replyEditorRef?.nativeElement)
       this.replyEditorRef.nativeElement.innerHTML
         = '';
     this.pendingFiles = [];
+    this.composerExpanded = false;
   }
 
   clearComposer() {
@@ -557,6 +873,21 @@ loadTicket() {
     if (this.noteEditorRef?.nativeElement)
       this.noteEditorRef.nativeElement.innerHTML
         = '';
+    this.composerExpanded = false;
+  }
+
+  /** Expand composer when user clicks the collapsed input/tabs. */
+  expandComposer(tab?: 'reply' | 'note' | 'forward') {
+    if (tab) this.activeComposerTab = tab;
+    this.composerExpanded = true;
+    // Focus the editor of the selected tab after Angular renders.
+    setTimeout(() => {
+      const ref =
+        this.activeComposerTab === 'reply' ? this.replyEditorRef
+        : this.activeComposerTab === 'note' ? this.noteEditorRef
+        : this.forwardEditorRef;
+      ref?.nativeElement?.focus?.();
+    }, 0);
   }
 
 // ✅ Remove ngZone dependency
@@ -582,7 +913,12 @@ async sendReply() {
     const res: any = await this.http.post(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/comments`,
-      { comment: content, isInternal: false }
+      {
+        comment: content,
+        isInternal: false,
+        cc: this.replyCc,
+        bcc: this.replyBcc
+      }
     ).toPromise();
 
     const commentId = res?.commentId;
@@ -603,6 +939,10 @@ async sendReply() {
     }
 
     this.clearReply();
+    this.replyCc = [];
+    this.replyBcc = [];
+    this.showCc = false;
+    this.showBcc = false;
     setTimeout(() => {
       this.updating = false;
     }, 0);
@@ -636,7 +976,11 @@ async sendNote() {
       `/${this.ticketId}/comments`,
       {
         comment: content,
-        isInternal: this.noteIsPrivate
+        isInternal: this.noteIsPrivate,
+        notifyUserIds: this.notifyAgents.map(a => a.id),
+        notifyEmails: this.notifyAgents
+          .map(a => a.email)
+          .filter((e: string) => !!e)
       },
       {}
     ).toPromise();
@@ -663,6 +1007,8 @@ async sendNote() {
       this.noteEditorRef.nativeElement.innerHTML
         = '';
     this.pendingFiles = [];
+    this.notifyAgents = [];
+    this.notifyTo = '';
 
     setTimeout(() => {
       this.updating = false;
@@ -682,35 +1028,37 @@ async sendNote() {
 
 updateAllProps() {
   if (this.updating) return;
+  if (!this.ticket) return;
 
   setTimeout(() => { this.updating = true; }, 0);
 
-  const p1 = this.http.put(
-    `${environment.apiUrl}/Tickets` +
-    `/${this.ticketId}/assign`,
-    { agentId: this.selectedAgentId || null }
-  ).toPromise();
+  const base = `${environment.apiUrl}/Tickets/${this.ticketId}`;
 
-  const p2 = this.http.put(
-    `${environment.apiUrl}/Tickets` +
-    `/${this.ticketId}/group`,
-    { agentGroupId:
-        this.selectedGroupId || null }
-  ).toPromise();
+  const calls: Promise<any>[] = [
+    this.http.put(`${base}/status`,
+      { status: this.ticket.status }).toPromise(),
+    this.http.put(`${base}/priority`,
+      { priority: this.ticket.priority }).toPromise(),
+    this.http.put(`${base}/type`,
+      { ticketType: this.ticket.ticketType }).toPromise(),
+    this.http.put(`${base}/assign`,
+      { agentId: this.selectedAgentId || null }).toPromise(),
+    this.http.put(`${base}/group`,
+      { agentGroupId: this.selectedGroupId || null }).toPromise(),
+    this.ticketService
+      .updateTags(this.ticketId, this.getTagsArray())
+      .toPromise()
+  ];
 
-  Promise.all([p1, p2]).then(() => {
-    setTimeout(() => {
-      this.updating = false;
-    }, 0);
-    this.showToast('success',
-      'Updated successfully!');
+  Promise.all(calls).then(() => {
+    setTimeout(() => { this.updating = false; }, 0);
+    this.showToast('success', 'Updated successfully!');
     this.loadTicket();
     this.loadTimeline();
   }).catch(() => {
-    setTimeout(() => {
-      this.updating = false;
-    }, 0);
+    setTimeout(() => { this.updating = false; }, 0);
     this.showToast('error', 'Update failed');
+    this.loadTicket();
   });
 }
 
@@ -733,13 +1081,20 @@ updateAllProps() {
       `/${this.ticketId}/forward`,
       {
         toEmail: this.forwardEmail,
-        message: this.forwardText
+        message: this.forwardText,
+        cc: this.fwdCc,
+        bcc: this.fwdBcc
       }
     ).subscribe({
       next: () => {
         this.forwardEmail = '';
         this.forwardText = '';
+        this.fwdCc = [];
+        this.fwdBcc = [];
+        this.showFwdCc = false;
+        this.showFwdBcc = false;
         this.activeComposerTab = 'reply';
+        this.composerExpanded = false;
         if (this.forwardEditorRef?.nativeElement)
           this.forwardEditorRef.nativeElement
             .innerHTML = '';

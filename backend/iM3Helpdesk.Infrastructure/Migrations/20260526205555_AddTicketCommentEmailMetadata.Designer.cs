@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260526205555_AddTicketCommentEmailMetadata")]
+    partial class AddTicketCommentEmailMetadata
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -880,7 +883,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("CreatedByUserId")
+                    b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
@@ -888,12 +891,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FromEmail")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FromName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("InboundMessageId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsSlaBreached")
@@ -996,7 +993,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("UploadedByUserId")
+                    b.Property<Guid>("UploadedByUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1028,12 +1025,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("EmailMessageId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("FromEmail")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FromName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("InReplyTo")
@@ -1059,12 +1050,10 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<Guid>("TicketId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("EmailMessageId");
 
                     b.HasIndex("TicketId");
 
@@ -1570,7 +1559,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("iM3Helpdesk.Domain.Entities.Organization", "Organization")
                         .WithMany()
@@ -1598,7 +1588,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "UploadedBy")
                         .WithMany()
                         .HasForeignKey("UploadedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Ticket");
 
@@ -1616,7 +1607,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Ticket");
 

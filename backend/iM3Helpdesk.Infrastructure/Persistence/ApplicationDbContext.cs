@@ -256,8 +256,10 @@ public class ApplicationDbContext : DbContext
       e.HasOne(c => c.User)
           .WithMany()
           .HasForeignKey(c => c.UserId)
+          .IsRequired(false)
           .OnDelete(
               DeleteBehavior.Restrict);
+      e.HasIndex(c => c.EmailMessageId);
     });
 
     // ── Notification ──────────────

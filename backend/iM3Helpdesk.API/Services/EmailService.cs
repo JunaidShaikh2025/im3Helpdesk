@@ -1,5 +1,6 @@
 using MailKit.Net.Smtp;
 using MimeKit;
+using MimeKit.Utils;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
@@ -20,17 +21,33 @@ public interface IEmailService
       string htmlBody,
       string? replyTo = null,
       Guid? organizationId = null,
-      bool wrapInMasterTemplate = true);
+      bool wrapInMasterTemplate = true,
+      string? ticketNumberTag = null);
  
-  // Agent reply to customer
-  Task SendReplyAsync(
+  // Agent reply to customer (extended)
+  Task<string?> SendReplyAsync(
       string to,
       string subject,
       string htmlBody,
       string ticketNumber,
       string agentName,
       string agentSignature,
-      Guid? organizationId = null);
+      Guid? organizationId = null,
+      IEnumerable<string>? cc = null,
+      IEnumerable<string>? bcc = null,
+      string? inReplyTo = null,
+      IEnumerable<string>? references = null);
+
+  // Forward (with optional cc/bcc + threading)
+  Task<string?> SendForwardAsync(
+      string to,
+      string subject,
+      string htmlBody,
+      Guid? organizationId = null,
+      IEnumerable<string>? cc = null,
+      IEnumerable<string>? bcc = null,
+      string? inReplyTo = null,
+      IEnumerable<string>? references = null);
  
   // Ticket lifecycle emails
   Task SendTicketCreatedAsync(
@@ -293,29 +310,83 @@ public class EmailService : IEmailService
       string htmlBody,
       string? replyTo = null,
       Guid? organizationId = null,
-      bool wrapInMasterTemplate = true)
+      bool wrapInMasterTemplate = true,
+      string? ticketNumberTag = null)
+  {
+    await SendInternalAsync(
+        to, subject, htmlBody, replyTo,
+        organizationId, wrapInMasterTemplate,
+        cc: null, bcc: null,
+        inReplyTo: null, references: null,
+        ticketNumberTag: ticketNumberTag);
+  }
+
+  // ════════════════════════════════════
+  // Internal send (cc/bcc + threading)
+  // ════════════════════════════════════
+  private async Task<string?> SendInternalAsync(
+      string to,
+      string subject,
+      string htmlBody,
+      string? replyTo,
+      Guid? organizationId,
+      bool wrapInMasterTemplate,
+      IEnumerable<string>? cc,
+      IEnumerable<string>? bcc,
+      string? inReplyTo,
+      IEnumerable<string>? references,
+      string? ticketNumberTag = null)
   {
     var smtpProfile = await ResolveSmtpProfileAsync(organizationId);
     if (smtpProfile == null)
-      return;
- 
+      return null;
+
     var msg = new MimeMessage();
     msg.From.Add(new MailboxAddress(
         smtpProfile.FromName,
         smtpProfile.FromEmail));
     msg.To.Add(MailboxAddress.Parse(to));
+    AddRecipients(msg.Cc, cc);
+    AddRecipients(msg.Bcc, bcc);
     msg.Subject = subject;
- 
+
     if (replyTo != null)
       msg.ReplyTo.Add(MailboxAddress.Parse(replyTo));
- 
+
+    // ── Generate our own Message-Id BEFORE send so we can persist the
+    // exact value the recipient will see. (Gmail SMTP can rewrite an
+    // auto-generated id, but it preserves an explicitly-set one.)
+    msg.MessageId = MimeUtils.GenerateMessageId("im3helpdesk.local");
+
+    // ── Custom anchor header (survives all reply paths) ──
+    if (!string.IsNullOrWhiteSpace(ticketNumberTag))
+      msg.Headers.Add("X-iM3-Ticket", ticketNumberTag);
+
+    // ── RFC 5322 threading headers ───────────────
+    if (!string.IsNullOrWhiteSpace(inReplyTo))
+      msg.InReplyTo = NormalizeMessageId(inReplyTo);
+
+    if (references != null)
+    {
+      foreach (var r in references)
+      {
+        if (string.IsNullOrWhiteSpace(r)) continue;
+        msg.References.Add(NormalizeMessageId(r));
+      }
+    }
+
+    _logger.LogInformation(
+        "[Email-Out] To={To} Subj=\"{Subj}\" MsgId={MsgId} InReplyTo={IRT} RefCount={RC}",
+        to, subject, msg.MessageId, inReplyTo ?? "(none)",
+        msg.References?.Count ?? 0);
+
     var finalHtml = wrapInMasterTemplate
       ? WrapInMasterTemplate(htmlBody, smtpProfile.FromName)
       : htmlBody;
- 
+
     var body = new BodyBuilder { HtmlBody = finalHtml };
     msg.Body = body.ToMessageBody();
- 
+
     using var client = new SmtpClient();
     await client.ConnectAsync(
         smtpProfile.Host,
@@ -326,8 +397,31 @@ public class EmailService : IEmailService
         smtpProfile.Password);
     await client.SendAsync(msg);
     await client.DisconnectAsync(true);
+
+    return msg.MessageId; // outbound Message-Id for thread chain
   }
- 
+
+  private static void AddRecipients(
+      InternetAddressList list,
+      IEnumerable<string>? addresses)
+  {
+    if (addresses == null) return;
+    foreach (var a in addresses)
+    {
+      if (string.IsNullOrWhiteSpace(a)) continue;
+      if (MailboxAddress.TryParse(a.Trim(), out var mb))
+        list.Add(mb);
+    }
+  }
+
+  private static string NormalizeMessageId(string id)
+  {
+    id = id.Trim();
+    if (id.StartsWith("<") && id.EndsWith(">"))
+      return id.Substring(1, id.Length - 2);
+    return id;
+  }
+
   // ════════════════════════════════════
   // ✅ Email Verification
   // ════════════════════════════════════
@@ -591,40 +685,93 @@ public class EmailService : IEmailService
   // ════════════════════════════════════
   // Agent reply to customer
   // ════════════════════════════════════
-  public async Task SendReplyAsync(
+  public async Task<string?> SendReplyAsync(
       string to,
       string subject,
       string htmlBody,
       string ticketNumber,
       string agentName,
       string agentSignature,
-      Guid? organizationId = null)
+      Guid? organizationId = null,
+      IEnumerable<string>? cc = null,
+      IEnumerable<string>? bcc = null,
+      string? inReplyTo = null,
+      IEnumerable<string>? references = null)
   {
-    var fullSubject = $"Re: {subject} [{ticketNumber}]";
- 
+    // Gmail / Outlook thread by Message-Id headers + normalized subject.
+    // Adding a tag like "[#TN1008]" changes the normalized subject and
+    // forces a new thread even when In-Reply-To/References are correct.
+    // Keep the subject identical to the original (only the "Re: " prefix
+    // is added when missing). The ticket-number tag stays in the body /
+    // ticket lookup is done via Message-Id chain instead.
+    var fullSubject = subject.StartsWith("Re:",
+        StringComparison.OrdinalIgnoreCase)
+      ? subject
+      : $"Re: {subject}";
+
     var content = PrepareReplyBody(htmlBody);
- 
-    await SendAsync(
+
+    return await SendInternalAsync(
         to,
         fullSubject,
         content,
+        replyTo: null,
         organizationId: organizationId,
-        wrapInMasterTemplate: false);
+        wrapInMasterTemplate: false,
+        cc: cc,
+        bcc: bcc,
+        inReplyTo: inReplyTo,
+        references: references,
+        ticketNumberTag: ticketNumber);
+  }
+
+  // ════════════════════════════════════
+  // Forward to another agent / external
+  // ════════════════════════════════════
+  public async Task<string?> SendForwardAsync(
+      string to,
+      string subject,
+      string htmlBody,
+      Guid? organizationId = null,
+      IEnumerable<string>? cc = null,
+      IEnumerable<string>? bcc = null,
+      string? inReplyTo = null,
+      IEnumerable<string>? references = null)
+  {
+    return await SendInternalAsync(
+        to,
+        subject,
+        htmlBody,
+        replyTo: null,
+        organizationId: organizationId,
+        wrapInMasterTemplate: false,
+        cc: cc,
+        bcc: bcc,
+        inReplyTo: inReplyTo,
+        references: references);
   }
  
   private static readonly Regex HtmlTagRegex = new(
       "<[^>]+>",
       RegexOptions.Compiled);
- 
+
+  // Detect HTML entities (&nbsp; &amp; &#39; etc.) so an entity-only body
+  // (e.g. "Thanks Brother&nbsp;") is not double-encoded into "&amp;nbsp;".
+  private static readonly Regex HtmlEntityRegex = new(
+      @"&(?:[a-zA-Z]{2,8}|#\d{1,5}|#x[0-9a-fA-F]{1,4});",
+      RegexOptions.Compiled);
+
   private static string PrepareReplyBody(string? body)
   {
     if (string.IsNullOrWhiteSpace(body))
       return "<p>(No content)</p>";
- 
+
     var trimmed = body.Trim();
-    if (HtmlTagRegex.IsMatch(trimmed))
+    // Treat as HTML if it has any tag OR any HTML entity.
+    if (HtmlTagRegex.IsMatch(trimmed) ||
+        HtmlEntityRegex.IsMatch(trimmed))
       return trimmed;
- 
+
     var encoded = WebUtility.HtmlEncode(trimmed)
         .Replace("\r\n", "<br>")
         .Replace("\n", "<br>")

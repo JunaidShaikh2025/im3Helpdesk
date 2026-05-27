@@ -9,11 +9,16 @@ public class Ticket : IMustHaveTenant
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? FromEmail { get; set; }
+    /// <summary>Sender display name when ticket was created from email (CreatedByUserId is null).</summary>
+    public string? FromName { get; set; }
+    /// <summary>RFC-5322 Message-Id of the original inbound email — anchor for the reply thread.</summary>
+    public string? InboundMessageId { get; set; }
     public string Category { get; set; } = string.Empty;
     public TicketStatus Status { get; set; } = TicketStatus.Open;
     public TicketPriority Priority { get; set; } = TicketPriority.Medium;
     public Guid OrganizationId { get; set; }
-    public Guid CreatedByUserId { get; set; }
+    /// <summary>Null when ticket originated from an inbound email (no registered user).</summary>
+    public Guid? CreatedByUserId { get; set; }
     public Guid? AssignedToUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
