@@ -1,6 +1,32 @@
 <app-layout>
   <div class="dash-page">
 
+    <!-- Events Strip (holidays + birthdays today/tomorrow) -->
+    <div class="events-strip" *ngIf="events.length > 0">
+      <div class="es-head">
+        <span class="es-pulse"></span>
+        <span class="es-label">Upcoming Events</span>
+        <span class="es-count">{{ events.length }}</span>
+      </div>
+      <div class="es-track">
+        <div class="es-row">
+          <div class="es-card"
+               *ngFor="let e of events; trackBy: trackEvent"
+               [style.--es-color]="e.color"
+               (click)="router.navigate(['/calendar'])">
+            <span class="es-icon">{{ e.icon }}</span>
+            <div class="es-meta">
+              <div class="es-title">{{ e.title }}</div>
+              <div class="es-sub">{{ e.subtitle }}</div>
+            </div>
+            <span class="es-chip" [class.is-tom]="e.when === 'tomorrow'">
+              {{ e.when === 'today' ? 'Today' : 'Tomorrow' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Trial Banner -->
     <div class="trial-banner" *ngIf="stats.trialDaysLeft <= 30">
       <div class="trial-left">

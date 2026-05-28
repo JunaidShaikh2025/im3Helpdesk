@@ -33,6 +33,8 @@ export interface CalendarEvent {
   reminderSent?: boolean;
   createdAt: string;
   isBirthday?: boolean;
+  isHoliday?: boolean;
+  isFloatingHoliday?: boolean;
 }
 
 interface DayCell {
@@ -82,6 +84,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   private ticketsRangeKey = '';
 
   private birthdaysRangeKey = '';
+  private holidaysRangeKey = '';
   calendarDays: DayCell[] = [];
   weekDays: DayCell[] = [];
   agendaItems: { date: Date; events: CalendarEvent[]; tickets: any[] }[] = [];
@@ -199,6 +202,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       next: (events) => {
         this.allEvents = events || [];
         this.ensureBirthdaysLoaded();
+        this.ensureHolidaysLoaded();
         this.checkReminders();
         this.buildCalendar();
         this.loading = false;
@@ -209,6 +213,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
         const saved = localStorage.getItem('im3_calendar_events');
         this.allEvents = saved ? JSON.parse(saved) : [];
         this.ensureBirthdaysLoaded();
+        this.ensureHolidaysLoaded();
         this.checkReminders();
         this.buildCalendar();
         this.loading = false;
@@ -250,6 +255,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────
   buildCalendar() {
     this.ensureBirthdaysLoaded();
+    this.ensureHolidaysLoaded();
     this.ensureTicketsLoaded();
     if (this.currentView === 'month') this.buildMonthView();
     else if (this.currentView === 'week') this.buildWeekView();
@@ -330,6 +336,43 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       error: () => {
         // Retry later (important if API was restarted).
         if (this.birthdaysRangeKey === key) this.birthdaysRangeKey = '';
+      }
+    });
+  }
+
+  /** Loads org holidays in the current view range as read-only events. */
+  private ensureHolidaysLoaded() {
+    const { start, end } = this.getViewRange();
+    const key = `${this.formatDateOnly(start)}|${this.formatDateOnly(end)}`;
+    if (key === this.holidaysRangeKey) return;
+    this.holidaysRangeKey = key;
+
+    const qs = new URLSearchParams({
+      start: this.formatDateOnly(start),
+      end: this.formatDateOnly(end)
+    });
+
+    this.http.get<any[]>(
+      `${environment.apiUrl}/Holidays/calendar?${qs.toString()}`
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (items) => {
+        const holidays = (items || []).map(e => ({
+          ...e,
+          isHoliday: true,
+          isFloatingHoliday: !!e.isFloatingHoliday,
+          allDay: true,
+          type: 'event',
+          priority: 'low',
+          isCompleted: false
+        } as CalendarEvent));
+
+        // Replace existing holiday events.
+        this.allEvents = this.allEvents.filter(e => !e.isHoliday).concat(holidays);
+        this.buildCalendar();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        if (this.holidaysRangeKey === key) this.holidaysRangeKey = '';
       }
     });
   }
@@ -595,6 +638,10 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       this.toastr.info('Birthday events are read-only');
       return;
     }
+    if (event.isHoliday) {
+      this.toastr.info('Holiday events are read-only. Edit them from Holiday Setup.');
+      return;
+    }
     this.newEvent = {
       ...event,
       startDate: new Date(event.startDate).toISOString().slice(0, 16),
@@ -673,6 +720,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
   deleteEvent(event: CalendarEvent) {
     if (event.isBirthday) return;
+    if (event.isHoliday) return;
     if (!confirm(`Delete "${event.title}"?`)) return;
     this.http.delete(
       `${environment.apiUrl}/CalendarEvents/${event.id}`
@@ -694,6 +742,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
   toggleComplete(event: CalendarEvent) {
     if (event.isBirthday) return;
+    if (event.isHoliday) return;
     event.isCompleted = !event.isCompleted;
     this.http.put(
       `${environment.apiUrl}/CalendarEvents/${event.id}`, event
@@ -707,7 +756,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   }
 
   private saveLocal() {
-    const persistable = this.allEvents.filter(e => !e.isBirthday);
+    const persistable = this.allEvents.filter(e => !e.isBirthday && !e.isHoliday);
     localStorage.setItem('im3_calendar_events', JSON.stringify(persistable));
   }
 
@@ -850,6 +899,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // ── Send reminder manually ─────────────────────────
   async sendReminderNow(ev: CalendarEvent) {
     if (ev.isBirthday) return;
+    if (ev.isHoliday) return;
     if (this.sendingReminder) return;
     this.sendingReminder = true;
     this.cdr.detectChanges();

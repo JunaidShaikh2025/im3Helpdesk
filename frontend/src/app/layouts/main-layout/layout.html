@@ -399,42 +399,58 @@
           </span>
         </div>
 
-        <div class="notif-bell birthday-bell" *ngIf="!isSuperAdmin && !isCustomer && (birthdayBadgeCount > 0 || showBirthdayDropdown)" (click)="toggleBirthdayDropdown($event)">
-          <span class="bell-icon" [title]="birthdayTooltip" data-im3-icon-color="success">
-            <span class="icon-emoji">🎁</span>
-            <span class="icon-fa"><i class="fa-solid fa-gift"></i></span>
+        <div class="notif-bell birthday-bell" *ngIf="!isSuperAdmin && !isCustomer && (eventsBadgeCount > 0 || showBirthdayDropdown)" (click)="toggleBirthdayDropdown($event)">
+          <span class="bell-icon" [title]="eventsTooltip" data-im3-icon-color="success">
+            <span class="icon-emoji">🎉</span>
+            <span class="icon-fa"><i class="fa-solid fa-calendar-day"></i></span>
             <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 12 20 22 4 22 4 12"/>
-              <rect x="2" y="7" width="20" height="5"/>
-              <line x1="12" y1="22" x2="12" y2="7"/>
-              <path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z"/>
-              <path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/>
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+              <line x1="16" x2="16" y1="2" y2="6"/>
+              <line x1="8" x2="8" y1="2" y2="6"/>
+              <line x1="3" x2="21" y1="10" y2="10"/>
+              <path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/>
+              <path d="M8 18h.01"/><path d="M12 18h.01"/>
             </svg>
           </span>
-          <span class="notif-count-badge" *ngIf="birthdayBadgeCount > 0">
-            {{ birthdayBadgeCount > 99 ? '99+' : birthdayBadgeCount }}
+          <span class="notif-count-badge" *ngIf="eventsBadgeCount > 0">
+            {{ eventsBadgeCount > 99 ? '99+' : eventsBadgeCount }}
           </span>
 
           <div class="notif-dropdown birthday-dropdown" *ngIf="showBirthdayDropdown" (click)="$event.stopPropagation()">
             <div class="nd-header">
-              <span>Birthdays</span>
+              <span>Events</span>
               <button (click)="goToCalendarFromBirthday()">Open Calendar</button>
             </div>
 
-            <div class="nd-empty" *ngIf="birthdayItems.length === 0">
-              No birthdays today or tomorrow.
+            <div class="nd-empty" *ngIf="birthdayItems.length === 0 && holidayItems.length === 0">
+              No birthdays or holidays today or tomorrow.
             </div>
 
-            <div class="nd-scroll-area" *ngIf="birthdayItems.length > 0">
+            <div class="nd-scroll-area" *ngIf="holidayItems.length > 0 || birthdayItems.length > 0">
+              <!-- Holidays first -->
+              <div class="nd-item" *ngFor="let h of holidayItems" (click)="goToCalendarFromBirthday()">
+                <div class="bd-av" style="background: #10b981; color: #fff;">
+                  <span>🎉</span>
+                </div>
+                <div class="nd-content">
+                  <div class="nd-title">{{ h.occasion }}</div>
+                  <div class="nd-msg">
+                    {{ h.when === 'today' ? 'Holiday today' : 'Holiday tomorrow' }}
+                    <span *ngIf="h.isFloating"> · Floating</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Birthdays -->
               <div class="nd-item" *ngFor="let b of birthdayItems" (click)="goToCalendarFromBirthday()">
                 <div class="bd-av" [style.background]="b.photoUrl ? 'var(--ui-color-bg-surface)' : getAvatarColor(b.fullName)">
                   <img *ngIf="b.photoUrl" [src]="getBirthdayPhotoUrl(b.photoUrl)" [alt]="b.fullName" (error)="b.photoUrl = ''" class="bd-avatar-img"/>
                   <span *ngIf="!b.photoUrl">{{ getInitials(b.fullName) }}</span>
                 </div>
                 <div class="nd-content">
-                  <div class="nd-title">{{ b.fullName }}</div>
+                  <div class="nd-title">🎂 {{ b.fullName }}</div>
                   <div class="nd-msg">
-                    {{ b.when === 'today' ? 'Today' : 'Tomorrow' }}
+                    {{ b.when === 'today' ? 'Birthday today' : 'Birthday tomorrow' }}
                   </div>
                 </div>
               </div>
@@ -576,6 +592,14 @@
                 <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/><path d="M14 9h5a2 2 0 0 1 2 2v10"/><path d="M3 21h18"/><path d="M7 9h.01"/><path d="M7 13h.01"/><path d="M7 17h.01"/><path d="M11 9h.01"/><path d="M11 13h.01"/><path d="M11 17h.01"/><path d="M17 13h.01"/><path d="M17 17h.01"/></svg>
               </span>
               <span>Organization Profile</span>
+            </div>
+            <div class="profile-link-item" *ngIf="isCompanyAdmin || isSuperAdmin" (click)="goToHolidaySetup()">
+              <span class="profile-link-icon" data-im3-icon-color="success">
+                <span class="icon-emoji">🎉</span>
+                <span class="icon-fa"><i class="fa-solid fa-calendar-check"></i></span>
+                <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+              </span>
+              <span>Holiday Setup</span>
             </div>
             <div class="profile-link-item" *ngIf="isCompanyAdmin" (click)="goToRecycleBin()">
               <span class="profile-link-icon" data-im3-icon-color="primary">

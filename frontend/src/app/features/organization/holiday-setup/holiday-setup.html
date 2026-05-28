@@ -1,0 +1,210 @@
+<app-layout>
+  <div class="hs-page">
+
+    <!-- Header -->
+    <div class="hs-header">
+      <div class="hs-title-block">
+        <h1 class="hs-title">🎉 Holiday Setup</h1>
+        <p class="hs-subtitle">
+          Publish your organisation's yearly holiday list. Holidays appear on every
+          user's calendar and surface as reminders in the topbar Events badge.
+        </p>
+      </div>
+      <button type="button" class="hs-btn hs-btn-primary" (click)="toggleNewYearPanel()">
+        + New Year
+      </button>
+    </div>
+
+    <!-- New Year inline panel -->
+    <div class="hs-card hs-new-year" *ngIf="showNewYearPanel">
+      <div class="hs-row">
+        <label class="hs-label">Year</label>
+        <input type="number"
+               min="2000" max="2100"
+               class="hs-input"
+               [(ngModel)]="newYearValue" />
+        <button type="button" class="hs-btn hs-btn-primary" (click)="createYear()">Create</button>
+        <button type="button" class="hs-btn hs-btn-ghost" (click)="toggleNewYearPanel()">Cancel</button>
+      </div>
+      <p class="hs-hint">An empty list will be created. Add holidays below or upload a reference PDF.</p>
+    </div>
+
+    <!-- Loading -->
+    <div class="hs-loading" *ngIf="loading">
+      <div class="hs-spinner"></div>
+    </div>
+
+    <!-- Body: two-column layout -->
+    <div class="hs-body" *ngIf="!loading">
+
+      <!-- Years list (left) -->
+      <aside class="hs-years">
+        <div class="hs-card-title">Years</div>
+
+        <div class="hs-empty" *ngIf="years.length === 0">
+          No holiday years yet. Click <strong>+ New Year</strong> above to start.
+        </div>
+
+        <button type="button"
+                class="hs-year-card"
+                *ngFor="let y of years"
+                [class.is-active]="selectedYear === y.year"
+                (click)="selectYear(y.year)">
+          <div class="hyc-year">{{ y.year }}</div>
+          <div class="hyc-meta">
+            <span class="hyc-count">{{ y.holidayCount }} holidays</span>
+            <span class="hyc-pdf" *ngIf="y.pdfFileUrl" title="PDF attached">📄</span>
+          </div>
+        </button>
+      </aside>
+
+      <!-- Year detail (right) -->
+      <section class="hs-detail" *ngIf="detail; else noYear">
+        <div class="hs-card">
+          <div class="hs-card-title with-actions">
+            <span>HOLIDAY LIST {{ detail.setup.year }}</span>
+            <span class="hs-card-actions">
+              <a *ngIf="detail.setup.pdfFileUrl"
+                 class="hs-btn hs-btn-ghost"
+                 [href]="pdfHref(detail.setup.pdfFileUrl)"
+                 target="_blank" rel="noopener">
+                📄 View PDF
+              </a>
+              <label class="hs-btn hs-btn-ghost hs-file-label">
+                {{ uploadingPdf ? 'Uploading…' : (detail.setup.pdfFileUrl ? 'Replace PDF' : 'Upload PDF') }}
+                <input type="file" accept="application/pdf" hidden (change)="onPdfPicked($event)" />
+              </label>
+              <button type="button" class="hs-btn hs-btn-danger" (click)="deleteYear()">
+                Delete year
+              </button>
+            </span>
+          </div>
+
+          <!-- Holiday table -->
+          <div class="hs-table-wrap">
+            <table class="hs-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">SR</th>
+                  <th style="width: 150px;">DATE</th>
+                  <th>OCCASION</th>
+                  <th style="width: 200px;">DAY</th>
+                  <th style="width: 110px;">FLOATING</th>
+                  <th style="width: 120px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rows; let i = index" [class.is-editing]="row.editing">
+                  <td>{{ i + 1 }}</td>
+
+                  <td *ngIf="!row.editing">{{ row.date | date:'dd-MMM-yy' }}</td>
+                  <td *ngIf="row.editing">
+                    <input type="date" class="hs-input sm" [(ngModel)]="row.date" />
+                  </td>
+
+                  <td *ngIf="!row.editing">{{ row.occasion }}</td>
+                  <td *ngIf="row.editing">
+                    <input type="text" class="hs-input sm" [(ngModel)]="row.occasion" placeholder="Occasion" />
+                  </td>
+
+                  <td *ngIf="!row.editing">{{ row.day || dayPreview(row) }}</td>
+                  <td *ngIf="row.editing">
+                    <input type="text" class="hs-input sm" [(ngModel)]="row.day"
+                           [placeholder]="dayPreview(row)" />
+                  </td>
+
+                  <td>
+                    <label class="hs-check">
+                      <input type="checkbox" [(ngModel)]="row.isFloating" [disabled]="!row.editing" />
+                      <span>Floating</span>
+                    </label>
+                  </td>
+
+                  <td class="hs-row-actions">
+                    <ng-container *ngIf="!row.editing">
+                      <button type="button" class="hs-icon-btn" title="Edit" (click)="editRow(row)">✎</button>
+                      <button type="button" class="hs-icon-btn danger" title="Delete" (click)="deleteRow(row)">🗑</button>
+                    </ng-container>
+                    <ng-container *ngIf="row.editing">
+                      <button type="button" class="hs-icon-btn" title="Save"
+                              [disabled]="row.saving" (click)="saveRow(row)">✓</button>
+                      <button type="button" class="hs-icon-btn" title="Cancel"
+                              (click)="cancelEdit(row)">✕</button>
+                    </ng-container>
+                  </td>
+                </tr>
+
+                <!-- New row -->
+                <tr class="hs-new-row">
+                  <td>{{ rows.length + 1 }}</td>
+                  <td>
+                    <input type="date" class="hs-input sm" [(ngModel)]="newRow.date" />
+                  </td>
+                  <td>
+                    <input type="text" class="hs-input sm" [(ngModel)]="newRow.occasion"
+                           placeholder="e.g. Diwali" />
+                  </td>
+                  <td>
+                    <input type="text" class="hs-input sm" [(ngModel)]="newRow.day"
+                           [placeholder]="dayPreview(newRow)" />
+                  </td>
+                  <td>
+                    <label class="hs-check">
+                      <input type="checkbox" [(ngModel)]="newRow.isFloating" />
+                      <span>Floating</span>
+                    </label>
+                  </td>
+                  <td class="hs-row-actions">
+                    <button type="button" class="hs-btn hs-btn-primary sm" (click)="addRow()">Add</button>
+                  </td>
+                </tr>
+
+                <tr *ngIf="rows.length === 0">
+                  <td colspan="6" class="hs-empty">No holidays yet. Add one above.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Floating Holiday Policy -->
+        <div class="hs-card">
+          <div class="hs-card-title">Floating Holiday Policy</div>
+          <div class="hs-card-body">
+            <div class="hs-row">
+              <label class="hs-label">Floating allowance</label>
+              <input type="number" min="0" max="50"
+                     class="hs-input sm"
+                     [(ngModel)]="editFloatingAllowance" />
+              <span class="hs-hint">Number of floating holidays an employee may take.</span>
+            </div>
+            <div class="hs-row">
+              <label class="hs-label">Policy text</label>
+              <textarea class="hs-textarea" rows="4"
+                        [(ngModel)]="editPolicyText"
+                        placeholder="e.g. Out of 2 floating holidays, employee is entitled to take only 1 day off…"></textarea>
+            </div>
+            <div class="hs-row hs-row-end">
+              <button type="button"
+                      class="hs-btn hs-btn-primary"
+                      [disabled]="saving"
+                      (click)="saveYearLevel()">
+                {{ saving ? 'Saving…' : 'Save policy' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <ng-template #noYear>
+        <section class="hs-detail">
+          <div class="hs-card">
+            <div class="hs-empty hs-empty-big">
+              Select a year from the left or create a new one.
+            </div>
+          </div>
+        </section>
+      </ng-template>
+    </div>
+  </div>
+</app-layout>

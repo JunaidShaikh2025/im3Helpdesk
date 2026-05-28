@@ -90,6 +90,11 @@ public class ApplicationDbContext : DbContext
 
   public DbSet<CalendarEvent> CalendarEvents { get; set; }
 
+  // ✅ NEW — Holidays
+  public DbSet<Holiday> Holidays => Set<Holiday>();
+  public DbSet<HolidayYearSetup> HolidayYearSetups
+      => Set<HolidayYearSetup>();
+
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
@@ -717,6 +722,44 @@ public class ApplicationDbContext : DbContext
         x.CreatedByUserId,
         x.StartDate
       });
+    });
+
+    // ── Holiday ───────────────────
+    modelBuilder.Entity<Holiday>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Occasion)
+          .HasMaxLength(300)
+          .IsRequired();
+      e.Property(x => x.Day)
+          .HasMaxLength(60);
+      e.HasIndex(x => new
+      {
+        x.OrganizationId,
+        x.Year,
+        x.Date
+      });
+      e.HasQueryFilter(h =>
+          _isSuperAdmin ||
+          h.OrganizationId == _currentTenantId);
+    });
+
+    // ── HolidayYearSetup ──────────
+    modelBuilder.Entity<HolidayYearSetup>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.PdfFileUrl).HasMaxLength(500);
+      e.Property(x => x.PdfFileName).HasMaxLength(300);
+      e.Property(x => x.PolicyText)
+          .HasColumnType("nvarchar(max)");
+      e.HasIndex(x => new
+      {
+        x.OrganizationId,
+        x.Year
+      }).IsUnique();
+      e.HasQueryFilter(h =>
+          _isSuperAdmin ||
+          h.OrganizationId == _currentTenantId);
     });
 
     // ── ChatGroupMember ───────────

@@ -3,6 +3,184 @@
   padding: 24px;
 }
 
+/* ===== EVENTS STRIP (today/tomorrow holidays + birthdays) ===== */
+.events-strip {
+  position: relative;
+  border-radius: 14px;
+  padding: 14px 18px 16px;
+  margin-bottom: 16px;
+  background:
+    linear-gradient(
+      120deg,
+      var(--ui-color-bg-surface) 0%,
+      var(--ui-color-primary-soft, rgba(99, 102, 241, 0.10)) 100%
+    );
+  border: 1px solid var(--ui-color-border);
+  overflow: hidden;
+  animation: es-fade-slide 0.45s ease-out both;
+}
+
+.events-strip::before {
+  // Soft animated gradient sheen behind the cards.
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 35%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: es-sheen 5.5s linear infinite;
+  pointer-events: none;
+}
+
+.es-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; position: relative;
+  font-weight: 600; font-size: 13px;
+  color: var(--ui-color-text-primary);
+  letter-spacing: 0.4px; text-transform: uppercase;
+}
+
+.es-pulse {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  animation: es-pulse 1.8s ease-out infinite;
+}
+
+.es-label { color: var(--ui-color-text-primary); }
+
+.es-count {
+  background: var(--ui-color-bg-page);
+  color: var(--ui-color-text-secondary);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.es-track {
+  position: relative;
+  overflow: hidden;
+}
+
+.es-row {
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+
+.es-card {
+  --es-color: #10b981;
+  flex: 1 1 240px;
+  min-width: 220px;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--ui-color-bg-surface);
+  border: 1px solid var(--ui-color-border);
+  border-left: 3px solid var(--es-color);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 200ms cubic-bezier(.2,.7,.2,1),
+              box-shadow 200ms ease,
+              border-color 200ms ease;
+  animation: es-pop-in 0.5s ease-out both;
+}
+
+@for $i from 1 through 12 {
+  .es-card:nth-child(#{$i}) { animation-delay: #{$i * 70}ms; }
+}
+
+.es-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.22);
+  border-left-color: var(--es-color);
+}
+
+.es-icon {
+  font-size: 26px;
+  line-height: 1;
+  display: inline-flex;
+  width: 38px; height: 38px;
+  align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--es-color) 14%, transparent);
+  animation: es-wiggle 2.6s ease-in-out infinite;
+}
+
+.es-meta { flex: 1; min-width: 0; }
+
+.es-title {
+  font-weight: 600; font-size: 14px;
+  color: var(--ui-color-text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.es-sub {
+  font-size: 12px;
+  color: var(--ui-color-text-secondary);
+  margin-top: 2px;
+}
+
+.es-chip {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--es-color) 18%, transparent);
+  color: var(--es-color);
+  letter-spacing: 0.3px;
+}
+
+.es-chip.is-tom {
+  background: var(--ui-color-bg-page);
+  color: var(--ui-color-text-secondary);
+  border: 1px solid var(--ui-color-border);
+}
+
+@keyframes es-fade-slide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes es-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes es-sheen {
+  0%   { background-position: 250% 0; }
+  100% { background-position: -50% 0; }
+}
+
+@keyframes es-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes es-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20%      { transform: rotate(-8deg); }
+  40%      { transform: rotate(8deg); }
+  60%      { transform: rotate(-4deg); }
+  80%      { transform: rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .events-strip,
+  .es-card,
+  .es-icon,
+  .es-pulse,
+  .events-strip::before {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .es-card { flex: 1 1 100%; }
+}
+
 /* ===== TRIAL BANNER ===== */
 .trial-banner {
   display: flex;

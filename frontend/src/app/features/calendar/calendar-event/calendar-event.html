@@ -632,7 +632,7 @@
           </div>
           <div class="dmi-right">
             <button class="ha-btn"
-              *ngIf="!e.isBirthday"
+              *ngIf="!e.isBirthday && !e.isHoliday"
               (click)="$event.stopPropagation(); toggleComplete(e)">
               {{ e.isCompleted ? '↩' : '✓' }}
             </button>
