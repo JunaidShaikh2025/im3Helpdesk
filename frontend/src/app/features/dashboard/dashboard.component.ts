@@ -62,19 +62,77 @@ export class DashboardComponent implements OnInit, OnDestroy {
     recentTickets: []
   };
 
+  // Today/tomorrow events surfaced as an animated strip above the trial banner.
+  events: Array<{
+    kind: 'holiday' | 'birthday';
+    title: string;
+    subtitle: string;
+    when: 'today' | 'tomorrow';
+    icon: string;
+    color: string;
+  }> = [];
+  eventsLoaded = false;
+
   ngOnInit(): void {
     this.initUserFromToken();
     this.loadAll();
+    this.loadEvents();
 
     interval(REFRESH_INTERVAL_MS)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadAll());
+      .subscribe(() => { this.loadAll(); this.loadEvents(); });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
+
+  /** Loads today/tomorrow holidays + birthdays for the dashboard event strip. */
+  loadEvents(): void {
+    const holidays$ = this.http.get<any>(`${API_BASE}/Holidays/reminders`).pipe(
+      catchError(() => of(null))
+    );
+    const birthdays$ = this.http.get<any>(`${API_BASE}/Birthdays/reminders`).pipe(
+      catchError(() => of(null))
+    );
+
+    forkJoin({ holidays: holidays$, birthdays: birthdays$ })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ holidays, birthdays }) => {
+        const out: typeof this.events = [];
+
+        const hItems = Array.isArray(holidays?.items) ? holidays.items : [];
+        for (const h of hItems) {
+          out.push({
+            kind: 'holiday',
+            title: h.occasion,
+            subtitle: h.when === 'today' ? 'Holiday today' : 'Holiday tomorrow',
+            when: h.when,
+            icon: h.isFloating ? '🎊' : '🎉',
+            color: h.isFloating ? '#f59e0b' : '#10b981'
+          });
+        }
+
+        const bItems = Array.isArray(birthdays?.items) ? birthdays.items : [];
+        for (const b of bItems) {
+          out.push({
+            kind: 'birthday',
+            title: b.fullName,
+            subtitle: b.when === 'today' ? 'Birthday today' : 'Birthday tomorrow',
+            when: b.when,
+            icon: '🎂',
+            color: '#ec4899'
+          });
+        }
+
+        this.events = out;
+        this.eventsLoaded = true;
+        this.cdr.detectChanges();
+      });
+  }
+
+  trackEvent = (_: number, e: { kind: string; title: string }) => `${e.kind}|${e.title}`;
 
   private initUserFromToken(): void {
     this.userName = this.authService.getUserName() || 'User';

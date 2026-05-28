@@ -93,6 +93,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/organization-profile']);
   }
 
+  public goToHolidaySetup() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/holiday-setup']);
+  }
+
   public goToRecycleBin() {
     this.showProfileDropdown = false;
     this.router.navigate(['/recycle-bin']);
@@ -194,6 +199,17 @@ export class LayoutComponent implements OnInit, OnDestroy {
     date: string;
   }> = [];
 
+  // Holidays surfaced in the unified "Events" topbar dropdown alongside birthdays.
+  holidayItems: Array<{
+    id: string;
+    occasion: string;
+    when: 'today' | 'tomorrow';
+    date: string;
+    isFloating: boolean;
+  }> = [];
+  holidaySummary = { todayCount: 0, tomorrowCount: 0 };
+  private holidayLastLoadedAt = 0;
+
   myTicketCounts = {
     open: 0,
     inProgress: 0,
@@ -260,6 +276,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.loadTodoCount();
       this.loadKbUnread();
       this.loadBirthdayReminders();
+      this.loadHolidayReminders();
       this.loadMissedCallCount();
     }
 
@@ -289,6 +306,25 @@ export class LayoutComponent implements OnInit, OnDestroy {
            (this.birthdaySummary.tomorrowCount || 0);
   }
 
+  get holidayBadgeCount(): number {
+    return (this.holidaySummary.todayCount || 0) +
+           (this.holidaySummary.tomorrowCount || 0);
+  }
+
+  /** Topbar "Events" badge — birthdays + holidays combined. */
+  get eventsBadgeCount(): number {
+    return this.birthdayBadgeCount + this.holidayBadgeCount;
+  }
+
+  get eventsTooltip(): string {
+    const parts: string[] = [];
+    if (this.birthdaySummary.todayCount) parts.push(`${this.birthdaySummary.todayCount} birthday(s) today`);
+    if (this.birthdaySummary.tomorrowCount) parts.push(`${this.birthdaySummary.tomorrowCount} birthday(s) tomorrow`);
+    if (this.holidaySummary.todayCount) parts.push(`${this.holidaySummary.todayCount} holiday(s) today`);
+    if (this.holidaySummary.tomorrowCount) parts.push(`${this.holidaySummary.tomorrowCount} holiday(s) tomorrow`);
+    return parts.length === 0 ? 'No upcoming events' : parts.join(' · ');
+  }
+
   get birthdayTooltip(): string {
     const t = this.birthdaySummary.todayCount || 0;
     const tm = this.birthdaySummary.tomorrowCount || 0;
@@ -310,6 +346,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.showBirthdayDropdown = !this.showBirthdayDropdown;
     if (this.showBirthdayDropdown) {
       this.loadBirthdayReminders(true);
+      this.loadHolidayReminders(true);
       setTimeout(() => {
         window.addEventListener('click', this.closeBirthdayDropdown, { once: true });
         window.addEventListener('keydown', this.handleBirthdayDropdownEsc, { once: true });
@@ -366,6 +403,39 @@ export class LayoutComponent implements OnInit, OnDestroy {
       error: () => {
         // Allow retry on next refresh.
         if (force) this.birthdayLastLoadedAt = 0;
+      }
+    });
+  }
+
+  /**
+   * Loads today/tomorrow holidays for the unified Events badge.
+   * Throttled to once every 30 seconds unless `force` is true.
+   */
+  loadHolidayReminders(force = false) {
+    const now = Date.now();
+    if (!force && now - this.holidayLastLoadedAt < 30 * 1000) return;
+
+    this.http.get<any>(
+      `${environment.apiUrl}/Holidays/reminders`
+    ).subscribe({
+      next: (data) => {
+        this.holidayLastLoadedAt = now;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        this.holidayItems = items.map((i: any) => ({
+          id: i.id,
+          occasion: i.occasion,
+          when: i.when,
+          date: i.date,
+          isFloating: !!i.isFloating
+        }));
+        this.holidaySummary = {
+          todayCount: Number(data?.todayCount ?? 0),
+          tomorrowCount: Number(data?.tomorrowCount ?? 0)
+        };
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        if (force) this.holidayLastLoadedAt = 0;
       }
     });
   }

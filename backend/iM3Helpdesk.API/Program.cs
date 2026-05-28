@@ -56,6 +56,9 @@ builder.Services.AddHostedService<RecycleBinPurgeWorker>();
 builder.Services.Configure<BirthdayPostOptions>(
   builder.Configuration.GetSection("BirthdayPosts"));
 builder.Services.AddHostedService<BirthdayPostWorker>();
+builder.Services.Configure<HolidayPostOptions>(
+  builder.Configuration.GetSection("HolidayPosts"));
+builder.Services.AddHostedService<HolidayPostWorker>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

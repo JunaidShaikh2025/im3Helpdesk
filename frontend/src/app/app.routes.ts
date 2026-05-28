@@ -143,6 +143,14 @@ export const routes: Routes = [
     canActivate: [authGuard, companyAdminGuard]
   },
   {
+    path: 'holiday-setup',
+    loadComponent: () =>
+      import('./features/organization/holiday-setup/holiday-setup').then(
+        m => m.HolidaySetupComponent
+      ),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
     path: 'recycle-bin',
     loadComponent: () =>
       import('./features/recycle-bin/recycle-bin-page/recycle-bin-page').then(
