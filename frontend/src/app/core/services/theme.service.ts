@@ -3,6 +3,11 @@ import { Injectable, signal } from '@angular/core';
 type ThemeId =
   | 'theme-blue'
   | 'theme-dark'
+  | 'theme-midnight'
+  | 'theme-obsidian'
+  | 'theme-graphite'
+  | 'theme-nocturne'
+  | 'theme-eclipse'
   | 'theme-green'
   | 'theme-purple'
   | 'theme-orange'
@@ -27,6 +32,11 @@ export class ThemeService {
   readonly themes: ThemeOption[] = [
     { id: 'theme-blue', name: 'Ocean Blue', color: '#2563eb' },
     { id: 'theme-dark', name: 'Dark Mode', color: '#1a1a2e' },
+    { id: 'theme-midnight', name: 'Midnight Indigo', color: '#0b1220' },
+    { id: 'theme-obsidian', name: 'Obsidian Emerald', color: '#0a0f0d' },
+    { id: 'theme-graphite', name: 'Graphite Violet', color: '#161623' },
+    { id: 'theme-nocturne', name: 'Nocturne Rose', color: '#160c14' },
+    { id: 'theme-eclipse', name: 'Eclipse Amber', color: '#0f0d0a' },
     { id: 'theme-green', name: 'Forest Green', color: '#2e7d32' },
     { id: 'theme-purple', name: 'Royal Purple', color: '#6a1b9a' },
     { id: 'theme-orange', name: 'Cosmic Orange', color: '#e85d04' },

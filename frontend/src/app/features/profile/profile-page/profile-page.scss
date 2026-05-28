@@ -2,6 +2,12 @@
    PROFILE PAGE â€” Redesigned
 ============================================= */
 
+/* -- Page wrapper (white surface to match dashboard/team) -- */
+.page-container {
+  background: var(--ui-color-bg-surface);
+  min-height: 100%;
+}
+
 /* -- Page Header -- */
 .page-header {
   display: flex;

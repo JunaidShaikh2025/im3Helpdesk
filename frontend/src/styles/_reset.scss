@@ -4,6 +4,21 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
+  /* Smooth scrolling globally (honoured by user preference below) */
+  scroll-behavior: smooth;
+  /* Avoid scroll-chaining bouncing into the body on inner scrollers */
+  overscroll-behavior-y: none;
+  /* Crisper text in WebKit / Firefox */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Remove default mobile tap flash */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* Avoid micro layout shifts when a page goes from scroll → no-scroll */
+  scrollbar-gutter: stable;
 }
 
 * {
@@ -12,21 +27,82 @@ body {
   padding: 0;
 }
 
+*,
+*::before,
+*::after {
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-color-text-faint) transparent;
+}
+
 a {
   text-decoration: none;
   color: inherit;
 }
 
+img,
+svg,
+video,
+canvas {
+  /* Prevent inline gap + keep media crisp on HiDPI */
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Keyboard-only focus ring (mouse clicks stay clean) */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Premium scrollbars (WebKit / Chromium) ─── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--ui-color-bg-surface);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--ui-color-text-faint);
-  border-radius: 3px;
+  border-radius: 999px;
+  /* Floating thumb illusion via transparent border */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-color-text-muted);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Respect the user's OS-level reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

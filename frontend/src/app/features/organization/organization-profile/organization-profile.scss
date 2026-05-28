@@ -1,6 +1,7 @@
 // Organization Settings page \u2014 mirrors profile-page visual tokens
 // (rainbow strip, section-head icon badges, form-grid) so the workspace
 // feels consistent across "My Profile" and "Organization Profile".
+@use 'sass:color';
 
 :host { display: block; }
 
@@ -58,8 +59,8 @@ button {
   gap: 7px;
   &:disabled { opacity: .55; cursor: not-allowed; }
 }
-.btn-edit  { background: $brand;       color: #fff; &:hover:not(:disabled) { background: darken($brand, 6%); } }
-.btn-save  { background: $ok;          color: #fff; &:hover:not(:disabled) { background: darken($ok, 6%); } }
+.btn-edit  { background: $brand;       color: #fff; &:hover:not(:disabled) { background: color.adjust($brand, $lightness: -6%); } }
+.btn-save  { background: $ok;          color: #fff; &:hover:not(:disabled) { background: color.adjust($ok, $lightness: -6%); } }
 .btn-cancel{ background: #fff; color: $ink-soft; border: 1px solid $line; &:hover:not(:disabled) { background: $bg-soft; } }
 
 /* ============ Loading / banner ============ */
@@ -193,7 +194,7 @@ button {
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0,0,0,.18);
-  &:hover { background: darken($brand, 6%); }
+  &:hover { background: color.adjust($brand, $lightness: -6%); }
   i { font-size: 12px; }
 }
 .identity-name {
@@ -254,7 +255,18 @@ button {
   margin-bottom: 18px;
 
   h3 { margin: 0 0 2px; font-size: 15.5px; font-weight: 700; }
-  .sec-desc { margin: 0; font-size: 12.5px; color: $muted; }
+  .sec-desc {
+    margin: 0;
+    font-size: 12.5px;
+    color: $muted;
+    .inline-link {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 6px;
+      &:hover { text-decoration: underline; }
+    }
+  }
 }
 .sec-icon {
   width: 38px; height: 38px;

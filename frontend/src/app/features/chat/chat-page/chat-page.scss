@@ -9,7 +9,7 @@
   --accent: var(--ui-color-primary);
   --accent-light: var(--ui-color-primary-soft);
   --border: var(--ui-color-border);
-  --bg: var(--ui-color-bg-subtle);
+  --bg: var(--ui-color-bg-surface);
   --white: var(--ui-color-bg-surface);
   --text: var(--ui-color-text-primary);
   --sub: var(--ui-color-text-muted);
@@ -617,7 +617,6 @@
   gap: 8px;
   padding: 9px 12px;
   border-bottom: 1px solid var(--border);
-  background: var(--ui-color-bg-subtle);
   flex-shrink: 0;
 
   span { color: var(--muted); font-size: 13px; }
@@ -1076,7 +1075,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: var(--ui-color-bg-subtle);
   scrollbar-width: thin;
   scrollbar-color: var(--ui-color-border) transparent;
 }

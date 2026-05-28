@@ -82,8 +82,7 @@
               <div class="ec-to-row" *ngIf="orgSupportEmail">
                 <span class="ec-to-lbl">To:</span>
                 <span class="ec-to-val">
-                  &quot;{{ orgSupportName || 'Support' }}&quot;
-                  &lt;{{ orgSupportEmail }}&gt;
+                  {{ orgSupportEmail }}
                 </span>
                 <ng-container *ngIf="getTicketCcList().length > 0">
                   <span class="ec-to-lbl ec-cc-lbl">Cc:</span>
@@ -109,24 +108,38 @@
           <div class="ec-attachments"
             *ngIf="getTicketAttachments().length > 0">
             <div class="att-row">
-              <a class="att-chip"
-                *ngFor="let a of
-                  getTicketAttachments()"
-                [href]="baseUrl
-                  + a.fileUrl"
-                target="_blank">
-                <span class="att-ic">
-                  {{ getFileIcon(a.contentType) }}
-                </span>
-                <div>
-                  <div class="att-name">
-                    {{ a.fileName }}
+              <ng-container *ngFor="let a of
+                  getTicketAttachments(); trackBy: trackById">
+                <a class="att-chip"
+                  *ngIf="!isAudioAttachment(a); else descAudioTpl"
+                  [href]="baseUrl
+                    + a.fileUrl"
+                  target="_blank">
+                  <span class="att-ic">
+                    {{ getFileIcon(a.contentType) }}
+                  </span>
+                  <div>
+                    <div class="att-name">
+                      {{ a.fileName }}
+                    </div>
+                    <div class="att-sz">
+                      {{ a.sizeFormatted }}
+                    </div>
                   </div>
-                  <div class="att-sz">
-                    {{ a.sizeFormatted }}
+                </a>
+                <ng-template #descAudioTpl>
+                  <div class="att-audio">
+                    <span class="att-ic">🎤</span>
+                    <audio controls preload="metadata"
+                      [src]="baseUrl + a.fileUrl"></audio>
+                    <a class="att-audio-dl"
+                      [href]="baseUrl + a.fileUrl"
+                      target="_blank"
+                      [download]="a.fileName"
+                      title="Download">⬇</a>
                   </div>
-                </div>
-              </a>
+                </ng-template>
+              </ng-container>
             </div>
           </div>
         </div>
@@ -134,8 +147,19 @@
         <!-- ─── CONVERSATION ─── -->
         <div class="fd-convo">
 
+          <!-- Collapse pill (Freshdesk-style) -->
+          <div class="fd-convo-collapse"
+            *ngIf="hiddenConversationsCount > 0">
+            <button type="button"
+              class="fd-convo-collapse-pill"
+              (click)="expandConversations()">
+              <span class="fd-convo-collapse-ic">▾</span>
+              +{{ hiddenConversationsCount }} conversation{{ hiddenConversationsCount === 1 ? '' : 's' }}
+            </button>
+          </div>
+
           <ng-container
-            *ngFor="let c of ticket.comments">
+            *ngFor="let c of visibleComments; trackBy: trackById">
 
             <!-- Public Reply -->
             <div class="fd-reply"
@@ -216,25 +240,39 @@
                 *ngIf="getCommentAttachments(c.id)
                   .length > 0">
                 <div class="att-row">
-                  <a class="att-chip"
-                    *ngFor="let a of
-                      getCommentAttachments(c.id)"
-                    [href]="baseUrl
-                      + a.fileUrl"
-                    target="_blank">
-                    <span class="att-ic">
-                      {{ getFileIcon(
-                        a.contentType) }}
-                    </span>
-                    <div>
-                      <div class="att-name">
-                        {{ a.fileName }}
+                  <ng-container *ngFor="let a of
+                      getCommentAttachments(c.id); trackBy: trackById">
+                    <a class="att-chip"
+                      *ngIf="!isAudioAttachment(a); else replyAudioTpl"
+                      [href]="baseUrl
+                        + a.fileUrl"
+                      target="_blank">
+                      <span class="att-ic">
+                        {{ getFileIcon(
+                          a.contentType) }}
+                      </span>
+                      <div>
+                        <div class="att-name">
+                          {{ a.fileName }}
+                        </div>
+                        <div class="att-sz">
+                          {{ a.sizeFormatted }}
+                        </div>
                       </div>
-                      <div class="att-sz">
-                        {{ a.sizeFormatted }}
+                    </a>
+                    <ng-template #replyAudioTpl>
+                      <div class="att-audio">
+                        <span class="att-ic">🎤</span>
+                        <audio controls preload="metadata"
+                          [src]="baseUrl + a.fileUrl"></audio>
+                        <a class="att-audio-dl"
+                          [href]="baseUrl + a.fileUrl"
+                          target="_blank"
+                          [download]="a.fileName"
+                          title="Download">⬇</a>
                       </div>
-                    </div>
-                  </a>
+                    </ng-template>
+                  </ng-container>
                 </div>
               </div>
             </div>
@@ -305,25 +343,39 @@
                 *ngIf="getCommentAttachments(c.id)
                   .length > 0">
                 <div class="att-row">
-                  <a class="att-chip"
-                    *ngFor="let a of
-                      getCommentAttachments(c.id)"
-                    [href]="baseUrl
-                      + a.fileUrl"
-                    target="_blank">
-                    <span class="att-ic">
-                      {{ getFileIcon(
-                        a.contentType) }}
-                    </span>
-                    <div>
-                      <div class="att-name">
-                        {{ a.fileName }}
+                  <ng-container *ngFor="let a of
+                      getCommentAttachments(c.id); trackBy: trackById">
+                    <a class="att-chip"
+                      *ngIf="!isAudioAttachment(a); else noteAudioTpl"
+                      [href]="baseUrl
+                        + a.fileUrl"
+                      target="_blank">
+                      <span class="att-ic">
+                        {{ getFileIcon(
+                          a.contentType) }}
+                      </span>
+                      <div>
+                        <div class="att-name">
+                          {{ a.fileName }}
+                        </div>
+                        <div class="att-sz">
+                          {{ a.sizeFormatted }}
+                        </div>
                       </div>
-                      <div class="att-sz">
-                        {{ a.sizeFormatted }}
+                    </a>
+                    <ng-template #noteAudioTpl>
+                      <div class="att-audio">
+                        <span class="att-ic">🎤</span>
+                        <audio controls preload="metadata"
+                          [src]="baseUrl + a.fileUrl"></audio>
+                        <a class="att-audio-dl"
+                          [href]="baseUrl + a.fileUrl"
+                          target="_blank"
+                          [download]="a.fileName"
+                          title="Download">⬇</a>
                       </div>
-                    </div>
-                  </a>
+                    </ng-template>
+                  </ng-container>
                 </div>
               </div>
             </div>
@@ -367,16 +419,52 @@
                 activeComposerTab = 'forward'">
               ↗ Forward
             </button>
+            <button class="fdc-tab"
+              type="button"
+              [class.active-voice]="
+                activeComposerTab === 'voice'"
+              (click)="
+                activeComposerTab = 'voice'; composerExpanded = true">
+              🎤 Voice
+            </button>
 
-            <!-- Note visibility -->
-            <div class="fdc-vis"
-              *ngIf="activeComposerTab === 'note'"
-              (click)="noteIsPrivate =
-                !noteIsPrivate">
-              🔒 {{ noteIsPrivate
-                ? 'Not visible to contact'
-                : 'Visible to contact' }}
-              <span>▾</span>
+            <!-- Note visibility (dropdown) -->
+            <div class="fdc-vis-wrap"
+              *ngIf="activeComposerTab === 'note'">
+              <button type="button"
+                class="fdc-vis"
+                (click)="noteVisOpen = !noteVisOpen">
+                🔒 {{ noteIsPrivate
+                  ? 'Not visible to contact'
+                  : 'Visible to contact' }}
+                <span>▾</span>
+              </button>
+              <div class="fdc-vis-menu"
+                *ngIf="noteVisOpen">
+                <div class="fdc-vis-menu-hdr">Mark note as</div>
+                <button type="button"
+                  class="fdc-vis-item"
+                  [class.sel]="!noteIsPrivate"
+                  (click)="noteIsPrivate = false; noteVisOpen = false">
+                  <span class="fdc-vis-ico">🌐</span>
+                  <div class="fdc-vis-txt">
+                    <strong>Public</strong>
+                    <small>Visible to contact</small>
+                  </div>
+                  <span class="fdc-vis-chk" *ngIf="!noteIsPrivate">✓</span>
+                </button>
+                <button type="button"
+                  class="fdc-vis-item"
+                  [class.sel]="noteIsPrivate"
+                  (click)="noteIsPrivate = true; noteVisOpen = false">
+                  <span class="fdc-vis-ico">🔒</span>
+                  <div class="fdc-vis-txt">
+                    <strong>Private</strong>
+                    <small>Not visible to contact</small>
+                  </div>
+                  <span class="fdc-vis-chk" *ngIf="noteIsPrivate">✓</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -413,10 +501,7 @@
             <div class="fdc-hdr-row">
               <span class="fdc-hdr-lbl">From&nbsp;:</span>
               <span class="fdc-hdr-val readonly">
-                {{ orgSupportName || 'Support' }}
-                <span class="fdc-hdr-email">
-                  ({{ orgSupportEmail || '—' }})
-                </span>
+                {{ orgSupportEmail || '—' }}
               </span>
             </div>
 
@@ -480,6 +565,8 @@
               </span>
             </div>
 
+            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
+
             <div class="fdc-editor"
               contenteditable="true"
               #replyEditor
@@ -496,10 +583,11 @@
             <div class="fdc-pending"
               *ngIf="pendingFiles.length > 0">
               <div class="fdc-pf"
+                [class.is-voice]="isPendingVoiceNote(f)"
                 *ngFor="let f of pendingFiles;
                   let i = index">
                 {{ getFileIcon(f.type) }}
-                <span>{{ f.name }}</span>
+                <span>{{ isPendingVoiceNote(f) ? voiceNoteLabel(f) : f.name }}</span>
                 <span class="fdc-pf-sz">
                   ({{ formatFileSize(f.size) }})
                 </span>
@@ -509,6 +597,7 @@
               </div>
             </div>
             <ng-container *ngTemplateOutlet="editorToolbar"></ng-container>
+            <ng-container *ngTemplateOutlet="voiceRecorderPanel"></ng-container>
             <div class="fdc-footer">
               <div class="fdc-fl">
                 <label class="fdc-attach">
@@ -518,6 +607,12 @@
                     (change)="
                       onFileSelect($event)"/>
                 </label>
+                <button type="button"
+                  class="fdc-attach fdc-mic"
+                  [class.is-recording]="isRecording && recordingOwnerTab !== 'forward'"
+                  [title]="isRecording ? 'Recording…' : 'Record voice note'"
+                  [disabled]="isRecording"
+                  (click)="startRecording()">🎤</button>
               </div>
               <div class="fdc-fr">
                 <span class="fdc-saved">Saved</span>
@@ -529,7 +624,7 @@
                 <button type="button"
                   class="fdc-send reply-btn"
                   [class.is-loading]="updating"
-                  [disabled]="updating"
+                  [disabled]="updating || isRecording"
                   (click)="sendReply()">
                   <span class="btn-spinner" *ngIf="updating"></span>
                   <span class="btn-label">
@@ -544,59 +639,7 @@
           <ng-container
             *ngIf="composerExpanded && activeComposerTab === 'note'
               && isAgent">
-            <div class="fdc-note-vis-row">
-              <div class="fdc-nv"
-                [class.sel]="!noteIsPrivate"
-                (click)="noteIsPrivate = false">
-                <span>🌐</span>
-                <div>
-                  <strong>Public</strong>
-                  <small>Visible to contact</small>
-                </div>
-                <span class="fdc-nv-chk"
-                  *ngIf="!noteIsPrivate">✓</span>
-              </div>
-              <div class="fdc-nv"
-                [class.sel]="noteIsPrivate"
-                (click)="noteIsPrivate = true">
-                <span>🔒</span>
-                <div>
-                  <strong>Private</strong>
-                  <small>
-                    Not visible to contact
-                  </small>
-                </div>
-                <span class="fdc-nv-chk"
-                  *ngIf="noteIsPrivate">✓</span>
-              </div>
-            </div>
-            <div class="fdc-to-row">
-              <span class="fdc-lbl">Notify:</span>
-              <div class="fdc-notify-wrap">
-                <span class="fdc-ntag"
-                  *ngFor="let a of notifyAgents">
-                  {{ a.fullName }}
-                  <button type="button"
-                    (click)="removeNotify(a)">
-                    ×
-                  </button>
-                </span>
-                <input class="fdc-mention"
-                  [(ngModel)]="notifyTo"
-                  placeholder="@mention..."
-                  (input)="
-                    searchAgentsForMention(
-                      $event)"/>
-              </div>
-              <div class="fdc-mention-dd"
-                *ngIf="mentionResults.length > 0">
-                <div class="fdc-m-item"
-                  *ngFor="let a of mentionResults"
-                  (click)="addMention(a)">
-                  {{ a.fullName }}
-                </div>
-              </div>
-            </div>
+            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
             <div class="fdc-editor"
               [class.note-editor-bg]="noteIsPrivate"
               contenteditable="true"
@@ -606,13 +649,15 @@
                 "Add a note, @mention...">
             </div>
             <ng-container *ngTemplateOutlet="editorToolbar"></ng-container>
+            <ng-container *ngTemplateOutlet="voiceRecorderPanel"></ng-container>
             <div class="fdc-pending"
               *ngIf="pendingFiles.length > 0">
               <div class="fdc-pf"
+                [class.is-voice]="isPendingVoiceNote(f)"
                 *ngFor="let f of pendingFiles;
                   let i = index">
                 {{ getFileIcon(f.type) }}
-                <span>{{ f.name }}</span>
+                <span>{{ isPendingVoiceNote(f) ? voiceNoteLabel(f) : f.name }}</span>
                 <button type="button"
                   (click)="
                     removePendingFile(i)">×</button>
@@ -628,6 +673,12 @@
                     (change)="
                       onFileSelect($event)"/>
                 </label>
+                <button type="button"
+                  class="fdc-attach fdc-mic"
+                  [class.is-recording]="isRecording && recordingOwnerTab === 'note'"
+                  [title]="isRecording ? 'Recording…' : 'Record voice note'"
+                  [disabled]="isRecording"
+                  (click)="startRecording()">🎤</button>
               </div>
               <div class="fdc-fr">
                 <button type="button"
@@ -638,7 +689,7 @@
                 <button type="button"
                   class="fdc-send note-btn"
                   [class.is-loading]="updating"
-                  [disabled]="updating"
+                  [disabled]="updating || isRecording"
                   (click)="sendNote()">
                   <span class="btn-spinner" *ngIf="updating"></span>
                   <span class="btn-label">
@@ -658,10 +709,7 @@
             <div class="fdc-hdr-row">
               <span class="fdc-hdr-lbl">From&nbsp;:</span>
               <span class="fdc-hdr-val readonly">
-                {{ orgSupportName || 'Support' }}
-                <span class="fdc-hdr-email">
-                  ({{ orgSupportEmail || '—' }})
-                </span>
+                {{ orgSupportEmail || '—' }}
               </span>
             </div>
 
@@ -713,6 +761,8 @@
               </div>
             </div>
 
+            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
+
             <div class="fdc-editor"
               contenteditable="true"
               #forwardEditor
@@ -721,6 +771,19 @@
               data-placeholder="Add a message...">
             </div>
             <ng-container *ngTemplateOutlet="editorToolbar"></ng-container>
+            <ng-container *ngTemplateOutlet="voiceRecorderPanel"></ng-container>
+            <div class="fdc-pending"
+              *ngIf="pendingFiles.length > 0">
+              <div class="fdc-pf"
+                [class.is-voice]="isPendingVoiceNote(f)"
+                *ngFor="let f of pendingFiles;
+                  let i = index">
+                {{ getFileIcon(f.type) }}
+                <span>{{ isPendingVoiceNote(f) ? voiceNoteLabel(f) : f.name }}</span>
+                <button type="button"
+                  (click)="removePendingFile(i)">×</button>
+              </div>
+            </div>
             <div class="fdc-footer">
               <div class="fdc-fl">
                 <label class="fdc-attach">
@@ -729,21 +792,114 @@
                     multiple
                     (change)="onFileSelect($event)"/>
                 </label>
+                <button type="button"
+                  class="fdc-attach fdc-mic"
+                  [class.is-recording]="isRecording && recordingOwnerTab === 'forward'"
+                  [title]="isRecording ? 'Recording…' : 'Record voice note'"
+                  [disabled]="isRecording"
+                  (click)="startRecording()">🎤</button>
               </div>
               <div class="fdc-fr">
                 <button type="button"
                   class="fdc-cancel"
-                  (click)="activeComposerTab='reply'; composerExpanded=false">
+                  (click)="activeComposerTab='note'; composerExpanded=false">
                   Cancel
                 </button>
                 <button type="button"
                   class="fdc-send fwd-btn"
                   [class.is-loading]="forwarding"
-                  [disabled]="forwarding"
+                  [disabled]="forwarding || isRecording"
                   (click)="doForward()">
                   <span class="btn-spinner" *ngIf="forwarding"></span>
                   <span class="btn-label">
                     {{ forwarding ? 'Forwarding…' : '↗ Forward' }}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- ── VOICE BODY (standalone voice note) ── -->
+          <ng-container
+            *ngIf="composerExpanded && activeComposerTab === 'voice'">
+
+            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
+
+            <!-- Visibility toggle (only meaningful for agents) -->
+            <div class="fdc-voice-vis" *ngIf="isAgent">
+              <label class="fdc-voice-vis-opt"
+                [class.sel]="!voiceIsPrivate">
+                <input type="radio" name="voiceVis"
+                  [value]="false" [(ngModel)]="voiceIsPrivate"/>
+                <span>🌐 Reply to contact</span>
+              </label>
+              <label class="fdc-voice-vis-opt"
+                [class.sel]="voiceIsPrivate">
+                <input type="radio" name="voiceVis"
+                  [value]="true" [(ngModel)]="voiceIsPrivate"/>
+                <span>🔒 Private note</span>
+              </label>
+            </div>
+
+            <!-- Idle state: big record CTA -->
+            <div class="fdc-voice-stage"
+              *ngIf="!isRecording && !voiceFile">
+              <button type="button"
+                class="fdc-voice-mic"
+                title="Start recording"
+                (click)="startRecording('voice')">
+                🎤
+              </button>
+              <div class="fdc-voice-hint">
+                Tap the mic to record a voice message
+              </div>
+            </div>
+
+            <!-- Live recording (shared bar) -->
+            <ng-container *ngIf="isRecording && recordingOwnerTab === 'voice'">
+              <ng-container *ngTemplateOutlet="voiceRecorderPanel"></ng-container>
+            </ng-container>
+
+            <!-- Preview state: captured take -->
+            <div class="fdc-voice-preview"
+              *ngIf="!isRecording && voiceFile">
+              <span class="fdc-voice-ic">🎤</span>
+              <audio controls preload="metadata"
+                [src]="voicePreviewUrl"></audio>
+              <span class="fdc-voice-dur">
+                {{ formatRecordingTime(voiceDuration) }}
+              </span>
+              <button type="button"
+                class="fdc-voice-redo"
+                title="Re-record"
+                [disabled]="voiceSending"
+                (click)="clearVoiceTake(); startRecording('voice')">
+                ↺ Re-record
+              </button>
+            </div>
+
+            <div class="fdc-vn-error"
+              *ngIf="!isRecording && recordingError && recordingOwnerTab === null">
+              {{ recordingError }}
+            </div>
+
+            <div class="fdc-footer">
+              <div class="fdc-fl"></div>
+              <div class="fdc-fr">
+                <button type="button"
+                  class="fdc-cancel"
+                  [disabled]="voiceSending"
+                  (click)="clearVoiceTake(); composerExpanded = false">
+                  Cancel
+                </button>
+                <button type="button"
+                  class="fdc-send voice-btn"
+                  [class.is-loading]="voiceSending"
+                  [disabled]="!voiceFile || voiceSending || isRecording"
+                  (click)="sendVoiceNote()">
+                  <span class="btn-spinner" *ngIf="voiceSending"></span>
+                  <span class="btn-label">
+                    {{ voiceSending ? 'Sending…' : '✈ Send voice' }}
                   </span>
                 </button>
               </div>
@@ -947,7 +1103,7 @@
               No activity yet
             </div>
             <div class="fds-tl-item"
-              *ngFor="let t of timeline">
+              *ngFor="let t of timeline; trackBy: trackById">
               <div class="fds-tl-dot"></div>
               <div class="fds-tl-right">
                 <div class="fds-tl-text">
@@ -983,6 +1139,34 @@
        Used by Reply, Note and Forward composers.
        Buttons act on the currently-focused contenteditable.
        ───────────────────────────────────────────── -->
+  <ng-template #notifyRow>
+    <div class="fdc-to-row">
+      <span class="fdc-lbl">Notify:</span>
+      <div class="fdc-notify-wrap">
+        <span class="fdc-ntag"
+          *ngFor="let a of notifyAgents">
+          {{ a.fullName || a.email }}
+          <button type="button"
+            (click)="removeNotify(a)">×</button>
+        </span>
+        <input class="fdc-mention"
+          [(ngModel)]="notifyTo"
+          placeholder="@mention..."
+          (input)="searchAgentsForMention($event)"/>
+        <div class="fdc-mention-dd"
+          *ngIf="mentionResults.length > 0">
+          <div class="fdc-m-item"
+            *ngFor="let a of mentionResults"
+            (mousedown)="$event.preventDefault()"
+            (click)="addMention(a)">
+            <div class="fdc-m-name">{{ a.fullName }}</div>
+            <div class="fdc-m-email">{{ a.email }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+
   <ng-template #editorToolbar>
     <div class="fdc-toolbar">
       <button type="button" class="fdc-tb" title="Bold"
@@ -1067,6 +1251,50 @@
       <button type="button" class="fdc-tb" title="Clear formatting"
         (mousedown)="$event.preventDefault()"
         (click)="clearFormatting()">⌫</button>
+    </div>
+  </ng-template>
+
+  <!-- ─────────────────────────────────────────────
+       Shared voice-note recorder panel
+       Inserted above the footer of every composer.
+       Renders nothing when idle; while recording it shows a
+       WhatsApp-style live mic indicator + timer + stop/cancel.
+       ───────────────────────────────────────────── -->
+  <ng-template #voiceRecorderPanel>
+    <div class="fdc-vn-bar" *ngIf="isRecording">
+      <span class="fdc-vn-dot"
+        [class.is-paused]="isRecordingPaused"
+        aria-hidden="true"></span>
+      <span class="fdc-vn-label">
+        {{ isRecordingPaused ? 'Paused' : 'Recording' }}
+      </span>
+      <span class="fdc-vn-time">
+        {{ formatRecordingTime(recordingSeconds) }}
+      </span>
+      <span class="fdc-vn-wave" aria-hidden="true"
+        [class.is-paused]="isRecordingPaused">
+        <i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <div class="fdc-vn-actions">
+        <button type="button"
+          class="fdc-vn-btn pause"
+          [title]="isRecordingPaused ? 'Resume' : 'Pause'"
+          (click)="togglePauseRecording()">
+          {{ isRecordingPaused ? '▶' : '❚❚' }}
+        </button>
+        <button type="button"
+          class="fdc-vn-btn cancel"
+          title="Discard voice note"
+          (click)="cancelRecording()">🗑</button>
+        <button type="button"
+          class="fdc-vn-btn stop"
+          title="Stop and attach"
+          (click)="stopRecording()">✓</button>
+      </div>
+    </div>
+    <div class="fdc-vn-error"
+      *ngIf="!isRecording && recordingError">
+      {{ recordingError }}
     </div>
   </ng-template>
 </app-layout>

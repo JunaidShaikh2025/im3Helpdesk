@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { superAdminGuard } from './core/guards/super-admin-guard';
+import { companyAdminGuard } from './core/guards/company-admin.guard';
 import { setupOrgGuard } from './core/guards/setup-org.guard';
 
 export const routes: Routes = [
@@ -113,19 +114,19 @@ export const routes: Routes = [
     path: 'agents/groups',
     loadComponent: () =>
       import('./features/agents/agent-groups/agent-groups').then(m => m.AgentGroupsComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, companyAdminGuard]
   },
   {
     path: 'agents/invite',
     loadComponent: () =>
       import('./features/agents/agent-invite/agent-invite').then(m => m.AgentInviteComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, companyAdminGuard]
   },
   {
     path: 'agents',
     loadComponent: () =>
       import('./features/agents/agent-list/agent-list').then(m => m.AgentsComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, companyAdminGuard]
   },
   {
     path: 'profile',
@@ -138,6 +139,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/organization/organization-profile/organization-profile').then(
         m => m.OrganizationProfileComponent
+      ),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
+    path: 'recycle-bin',
+    loadComponent: () =>
+      import('./features/recycle-bin/recycle-bin-page/recycle-bin-page').then(
+        m => m.RecycleBinPageComponent
       ),
     canActivate: [authGuard]
   },

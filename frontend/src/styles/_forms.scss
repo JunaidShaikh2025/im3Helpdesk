@@ -87,7 +87,17 @@ app-register-customer {
 
 /* Angular Material dark mode form refinements */
 body.theme-dark,
-[data-theme="dark"] {
+body.theme-midnight,
+body.theme-obsidian,
+body.theme-graphite,
+body.theme-nocturne,
+body.theme-eclipse,
+[data-theme="dark"],
+[data-theme="midnight"],
+[data-theme="obsidian"],
+[data-theme="graphite"],
+[data-theme="nocturne"],
+[data-theme="eclipse"] {
   mat-form-field {
     .mat-mdc-text-field-wrapper {
       background: var(--ui-color-bg-subtle) !important;

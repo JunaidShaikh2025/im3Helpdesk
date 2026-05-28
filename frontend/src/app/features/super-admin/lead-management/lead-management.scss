@@ -1,7 +1,8 @@
 /* ── Leads Management Page (Super Admin) ────────────────────── */
 .lm-page {
+  /* page wrapper uses white surface to match dashboard/team look */
   padding: 28px;
-  background: var(--bg-primary, var(--ui-color-bg-subtle));
+  background: var(--ui-color-bg-surface);
   min-height: 100%;
 }
 
