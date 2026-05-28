@@ -129,7 +129,7 @@
       <div class="nav-section">
         <div class="nav-label">{{ tr.t('manage') || 'Manage' }}</div>
 
-        <a class="nav-item" routerLink="/agents" routerLinkActive="active">
+        <a class="nav-item" routerLink="/agents" routerLinkActive="active" *ngIf="isCompanyAdmin || isSuperAdmin">
           <span class="nav-icon" data-im3-icon-color="primary">
             <span class="icon-emoji">👤</span>
             <span class="icon-fa"><i class="fa-solid fa-user-group"></i></span>
@@ -569,7 +569,7 @@
               </span>
               <span>Profile Settings</span>
             </div>
-            <div class="profile-link-item" (click)="goToOrganizationProfile()">
+            <div class="profile-link-item" *ngIf="isCompanyAdmin || isSuperAdmin" (click)="goToOrganizationProfile()">
               <span class="profile-link-icon" data-im3-icon-color="primary">
                 <span class="icon-emoji">🏢</span>
                 <span class="icon-fa"><i class="fa-solid fa-building"></i></span>

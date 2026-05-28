@@ -86,6 +86,16 @@ export class TicketDetailComponent
   ticketId = '';
   isAgent = false;
 
+  /**
+   * trackBy helpers — keep `*ngFor` DOM stable across polling refreshes
+   * so embedded <audio>/<img>/iframes don't get torn down + re-fetched
+   * every 15 seconds (which caused the visible "blink").
+   */
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.fileUrl ?? item?.createdAt ?? _;
+  trackByValue = (_: number, item: any): any =>
+    item?.value ?? item?.id ?? item;
+
   // ─── Composer ────────────────────────
   // ✅ single variable controls tabs
   activeComposerTab:
@@ -458,15 +468,35 @@ export class TicketDetailComponent
 
   getCommentAttachments(commentId: string): any[] {
     if (!this.attachments) return [];
-    return this.attachments.filter(
+    // Memoise per-comment slice. Without this, every change-detection
+    // pass returns a brand-new array → embedded <audio>/<img> elements
+    // get re-created → audible/visible blink during the 15s polling.
+    const cache = this._commentAttCache;
+    if (cache.ref === this.attachments && cache.map.has(commentId)) {
+      return cache.map.get(commentId)!;
+    }
+    if (cache.ref !== this.attachments) {
+      cache.ref = this.attachments;
+      cache.map.clear();
+    }
+    const slice = this.attachments.filter(
       a => a.commentId === commentId);
+    cache.map.set(commentId, slice);
+    return slice;
   }
+  private _commentAttCache: {
+    ref: any[] | null; map: Map<string, any[]>;
+  } = { ref: null, map: new Map() };
 
   getTicketAttachments(): any[] {
     if (!this.attachments) return [];
-    return this.attachments.filter(
-      a => !a.commentId);
+    if (this._ticketAttRef === this.attachments) return this._ticketAttCache;
+    this._ticketAttRef = this.attachments;
+    this._ticketAttCache = this.attachments.filter(a => !a.commentId);
+    return this._ticketAttCache;
   }
+  private _ticketAttRef: any[] | null = null;
+  private _ticketAttCache: any[] = [];
 
   getFileIcon(type: string): string {
     if (type?.startsWith('image/')) return '🖼';
@@ -667,7 +697,15 @@ loadTicket() {
   this.ticketService.getById(this.ticketId)
     .subscribe({
       next: (data: any) => {
-        this.ticket = data;
+        // Avoid replacing the ticket object reference on every poll
+        // if nothing actually changed — that keeps Angular CD stable
+        // and prevents flicker on embedded audio / images.
+        const prevJson = this._ticketJson;
+        const nextJson = JSON.stringify(data);
+        if (prevJson !== nextJson) {
+          this.ticket = data;
+          this._ticketJson = nextJson;
+        }
         this.setLoading(false);
 
         if (data.assignedTo?.id)
@@ -689,6 +727,7 @@ loadTicket() {
       }
     });
 }
+  private _ticketJson: string | null = null;
 
   private setLoading(value: boolean) {
     queueMicrotask(() => {
@@ -702,9 +741,19 @@ loadTicket() {
       `${environment.apiUrl}/Attachments` +
       `/ticket/${this.ticketId}`
     ).subscribe({
-      next: (data) => { this.attachments = data; }
+      next: (data) => {
+        // Only swap reference when the set actually changed —
+        // otherwise <audio>/<img> chips would re-mount on each poll.
+        const sig = JSON.stringify(
+          (data || []).map(a => a.id ?? a.fileUrl));
+        if (sig !== this._attachmentsSig) {
+          this.attachments = data;
+          this._attachmentsSig = sig;
+        }
+      }
     });
   }
+  private _attachmentsSig: string | null = null;
 
   loadAgents() {
     this.agentService.getAll().subscribe({

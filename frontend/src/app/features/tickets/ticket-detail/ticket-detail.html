@@ -109,7 +109,7 @@
             *ngIf="getTicketAttachments().length > 0">
             <div class="att-row">
               <ng-container *ngFor="let a of
-                  getTicketAttachments()">
+                  getTicketAttachments(); trackBy: trackById">
                 <a class="att-chip"
                   *ngIf="!isAudioAttachment(a); else descAudioTpl"
                   [href]="baseUrl
@@ -159,7 +159,7 @@
           </div>
 
           <ng-container
-            *ngFor="let c of visibleComments">
+            *ngFor="let c of visibleComments; trackBy: trackById">
 
             <!-- Public Reply -->
             <div class="fd-reply"
@@ -241,7 +241,7 @@
                   .length > 0">
                 <div class="att-row">
                   <ng-container *ngFor="let a of
-                      getCommentAttachments(c.id)">
+                      getCommentAttachments(c.id); trackBy: trackById">
                     <a class="att-chip"
                       *ngIf="!isAudioAttachment(a); else replyAudioTpl"
                       [href]="baseUrl
@@ -344,7 +344,7 @@
                   .length > 0">
                 <div class="att-row">
                   <ng-container *ngFor="let a of
-                      getCommentAttachments(c.id)">
+                      getCommentAttachments(c.id); trackBy: trackById">
                     <a class="att-chip"
                       *ngIf="!isAudioAttachment(a); else noteAudioTpl"
                       [href]="baseUrl
@@ -1103,7 +1103,7 @@
               No activity yet
             </div>
             <div class="fds-tl-item"
-              *ngFor="let t of timeline">
+              *ngFor="let t of timeline; trackBy: trackById">
               <div class="fds-tl-dot"></div>
               <div class="fds-tl-right">
                 <div class="fds-tl-text">

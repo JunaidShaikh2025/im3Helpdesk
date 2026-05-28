@@ -1691,8 +1691,9 @@
     word-break: break-all;
 
     &.readonly {
-      color: var(--fd-text);
-      font-weight: 500;
+      color: var(--fd-sub);
+      font-weight: 400;
+      font-size: 12.5px;
     }
     .fdc-hdr-email {
       color: var(--fd-sub);
@@ -2430,6 +2431,7 @@ textarea:focus-visible,
     .fr-rec-val { color: var(--ui-color-primary); font-weight: 600; }
   }
 }
+
 
 /* ════════════════════════════════════════════════════════════
    Action-bar viewer badge — red round count with hover tooltip

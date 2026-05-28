@@ -57,7 +57,17 @@ select:-webkit-autofill:active {
 
 /* Angular Material dark mode refinements */
 body.theme-dark,
-[data-theme="dark"] {
+body.theme-midnight,
+body.theme-obsidian,
+body.theme-graphite,
+body.theme-nocturne,
+body.theme-eclipse,
+[data-theme="dark"],
+[data-theme="midnight"],
+[data-theme="obsidian"],
+[data-theme="graphite"],
+[data-theme="nocturne"],
+[data-theme="eclipse"] {
   .mat-mdc-table {
     background: var(--ui-color-bg-surface) !important;
     color: var(--ui-color-text-primary) !important;
@@ -394,4 +404,228 @@ body[data-im3-icon-style='emoji'] .app-shell .pcb-label .icon-emoji { font-size:
   @media (max-width: 768px) {
     display: block;
   }
+}
+
+/* ──────────────────────────────────────────────
+   Global Smoothness Polish
+   - Subtle route-enter fade for any direct child
+     of the main content surface
+   - Premium scroll on any explicit overflow region
+   - Form / button micro-interactions
+────────────────────────────────────────────── */
+
+/* Soft fade for every freshly mounted page */
+.content-surface > * {
+  animation: im3-page-in 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes im3-page-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Any scrollable region inside the app gets the same smooth treatment */
+.app-shell [class*="scroll"],
+.app-shell .table-wrap,
+.app-shell .list-wrap,
+.app-shell .ticket-list,
+.app-shell .chat-messages,
+.app-shell .kb-content,
+.app-shell .modal-body,
+.app-shell .dialog-body {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Buttons & interactive chips: consistent micro feedback */
+.app-shell button,
+.app-shell .btn,
+.app-shell .chip,
+.app-shell .tag {
+  transition: background-color 0.15s ease, color 0.15s ease,
+              border-color 0.15s ease, box-shadow 0.15s ease,
+              transform 0.12s ease;
+}
+.app-shell button:not(:disabled):active,
+.app-shell .btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* Inputs share one smooth focus motion */
+.app-shell input,
+.app-shell textarea,
+.app-shell select {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+              background-color 0.15s ease;
+}
+
+/* Hover image safety — block layout shifts from unsized media */
+.app-shell img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Material overlays: cleaner shadow + smoother enter */
+.cdk-overlay-pane .mat-mdc-menu-panel,
+.cdk-overlay-pane .mat-mdc-select-panel,
+.cdk-overlay-pane .mat-mdc-autocomplete-panel {
+  box-shadow: var(--ui-shadow-md) !important;
+  border-radius: 10px !important;
+}
+
+/* Reduce motion users: opt out of the entrance animation */
+@media (prefers-reduced-motion: reduce) {
+  .content-surface > * {
+    animation: none !important;
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Dark-theme readability — private note cards
+   Note cards in ticket-detail use hardcoded peach
+   surfaces (#fff8ec / #fff4e0 / #f1cf95) which wash
+   out on dark themes. These global overrides force
+   a dark amber-tinted surface + high-contrast text
+   under every dark theme, with high specificity so
+   they win against the original component CSS.
+────────────────────────────────────────────── */
+body.theme-dark .fd-reply.is-note,
+body.theme-midnight .fd-reply.is-note,
+body.theme-obsidian .fd-reply.is-note,
+body.theme-graphite .fd-reply.is-note,
+body.theme-nocturne .fd-reply.is-note,
+body.theme-eclipse .fd-reply.is-note,
+body.theme-dark .fd-note.v2 .fn-card,
+body.theme-midnight .fd-note.v2 .fn-card,
+body.theme-obsidian .fd-note.v2 .fn-card,
+body.theme-graphite .fd-note.v2 .fn-card,
+body.theme-nocturne .fd-note.v2 .fn-card,
+body.theme-eclipse .fd-note.v2 .fn-card {
+  background: linear-gradient(
+    180deg,
+    rgba(251, 191, 36, 0.10) 0%,
+    rgba(251, 191, 36, 0.05) 100%
+  ) !important;
+  border-color: rgba(251, 191, 36, 0.30) !important;
+  color: var(--ui-color-text-primary) !important;
+}
+
+body.theme-dark .fd-reply.is-note,
+body.theme-midnight .fd-reply.is-note,
+body.theme-obsidian .fd-reply.is-note,
+body.theme-graphite .fd-reply.is-note,
+body.theme-nocturne .fd-reply.is-note,
+body.theme-eclipse .fd-reply.is-note {
+  border-left-color: var(--ui-color-warning, #fbbf24) !important;
+}
+
+/* Note body / text + labels — force high contrast */
+body.theme-dark .fd-reply.is-note .fr-body,
+body.theme-midnight .fd-reply.is-note .fr-body,
+body.theme-obsidian .fd-reply.is-note .fr-body,
+body.theme-graphite .fd-reply.is-note .fr-body,
+body.theme-nocturne .fd-reply.is-note .fr-body,
+body.theme-eclipse .fd-reply.is-note .fr-body,
+body.theme-dark .fd-reply.is-note .fr-body *,
+body.theme-midnight .fd-reply.is-note .fr-body *,
+body.theme-obsidian .fd-reply.is-note .fr-body *,
+body.theme-graphite .fd-reply.is-note .fr-body *,
+body.theme-nocturne .fd-reply.is-note .fr-body *,
+body.theme-eclipse .fd-reply.is-note .fr-body *,
+body.theme-dark .fd-note.v2 .fn-body,
+body.theme-midnight .fd-note.v2 .fn-body,
+body.theme-obsidian .fd-note.v2 .fn-body,
+body.theme-graphite .fd-note.v2 .fn-body,
+body.theme-nocturne .fd-note.v2 .fn-body,
+body.theme-eclipse .fd-note.v2 .fn-body,
+body.theme-dark .fd-note.v2 .fn-body *,
+body.theme-midnight .fd-note.v2 .fn-body *,
+body.theme-obsidian .fd-note.v2 .fn-body *,
+body.theme-graphite .fd-note.v2 .fn-body *,
+body.theme-nocturne .fd-note.v2 .fn-body *,
+body.theme-eclipse .fd-note.v2 .fn-body * {
+  color: var(--ui-color-text-primary) !important;
+}
+
+/* Note muted/italic placeholders (e.g. "Voice note") */
+body.theme-dark .fd-reply.is-note em,
+body.theme-midnight .fd-reply.is-note em,
+body.theme-obsidian .fd-reply.is-note em,
+body.theme-graphite .fd-reply.is-note em,
+body.theme-nocturne .fd-reply.is-note em,
+body.theme-eclipse .fd-reply.is-note em,
+body.theme-dark .fd-note em,
+body.theme-midnight .fd-note em,
+body.theme-obsidian .fd-note em,
+body.theme-graphite .fd-note em,
+body.theme-nocturne .fd-note em,
+body.theme-eclipse .fd-note em {
+  color: var(--ui-color-text-secondary) !important;
+}
+
+/* "added a private note" label + Notified-to recipients */
+body.theme-dark .fd-reply.is-note .fr-note-lbl,
+body.theme-midnight .fd-reply.is-note .fr-note-lbl,
+body.theme-obsidian .fd-reply.is-note .fr-note-lbl,
+body.theme-graphite .fd-reply.is-note .fr-note-lbl,
+body.theme-nocturne .fd-reply.is-note .fr-note-lbl,
+body.theme-eclipse .fd-reply.is-note .fr-note-lbl,
+body.theme-dark .fd-reply.is-note .fr-recipients.is-note-rec,
+body.theme-midnight .fd-reply.is-note .fr-recipients.is-note-rec,
+body.theme-obsidian .fd-reply.is-note .fr-recipients.is-note-rec,
+body.theme-graphite .fd-reply.is-note .fr-recipients.is-note-rec,
+body.theme-nocturne .fd-reply.is-note .fr-recipients.is-note-rec,
+body.theme-eclipse .fd-reply.is-note .fr-recipients.is-note-rec,
+body.theme-dark .fd-reply.is-note .fr-recipients.is-note-rec .fr-rec-lbl,
+body.theme-midnight .fd-reply.is-note .fr-recipients.is-note-rec .fr-rec-lbl,
+body.theme-obsidian .fd-reply.is-note .fr-recipients.is-note-rec .fr-rec-lbl,
+body.theme-graphite .fd-reply.is-note .fr-recipients.is-note-rec .fr-rec-lbl,
+body.theme-nocturne .fd-reply.is-note .fr-recipients.is-note-rec .fr-rec-lbl,
+body.theme-eclipse .fd-reply.is-note .fr-recipients.is-note-rec .fr-rec-lbl {
+  color: var(--ui-color-text-secondary) !important;
+}
+
+/* Edit/delete action buttons floating on top-right */
+body.theme-dark .fd-reply.is-note .fr-actions,
+body.theme-midnight .fd-reply.is-note .fr-actions,
+body.theme-obsidian .fd-reply.is-note .fr-actions,
+body.theme-graphite .fd-reply.is-note .fr-actions,
+body.theme-nocturne .fd-reply.is-note .fr-actions,
+body.theme-eclipse .fd-reply.is-note .fr-actions,
+body.theme-dark .fd-note.v2 .fn-actions,
+body.theme-midnight .fd-note.v2 .fn-actions,
+body.theme-obsidian .fd-note.v2 .fn-actions,
+body.theme-graphite .fd-note.v2 .fn-actions,
+body.theme-nocturne .fd-note.v2 .fn-actions,
+body.theme-eclipse .fd-note.v2 .fn-actions {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(251, 191, 36, 0.30) !important;
+}
+body.theme-dark .fd-reply.is-note .fr-actions button,
+body.theme-midnight .fd-reply.is-note .fr-actions button,
+body.theme-obsidian .fd-reply.is-note .fr-actions button,
+body.theme-graphite .fd-reply.is-note .fr-actions button,
+body.theme-nocturne .fd-reply.is-note .fr-actions button,
+body.theme-eclipse .fd-reply.is-note .fr-actions button,
+body.theme-dark .fd-note.v2 .fn-actions button,
+body.theme-midnight .fd-note.v2 .fn-actions button,
+body.theme-obsidian .fd-note.v2 .fn-actions button,
+body.theme-graphite .fd-note.v2 .fn-actions button,
+body.theme-nocturne .fd-note.v2 .fn-actions button,
+body.theme-eclipse .fd-note.v2 .fn-actions button {
+  color: var(--ui-color-text-secondary) !important;
+}
+
+/* Native <audio> chips: give them a dark surface so the
+   bright player block doesn't pop on the dark note */
+body.theme-dark audio,
+body.theme-midnight audio,
+body.theme-obsidian audio,
+body.theme-graphite audio,
+body.theme-nocturne audio,
+body.theme-eclipse audio {
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 999px;
+  color-scheme: dark;
 }

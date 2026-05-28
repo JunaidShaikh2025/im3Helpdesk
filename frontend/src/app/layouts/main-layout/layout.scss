@@ -101,6 +101,9 @@
   padding: 14px 12px;
   overflow-y: auto;
   background: var(--ui-color-bg-page);
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-section {
@@ -726,6 +729,15 @@
   border-left: 1px solid var(--ui-color-border);
   overflow-y: auto;
   overflow-x: hidden;
+  /* Smooth, premium scrolling on every page */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  /* Promote to its own compositor layer → silky scroll, no paint jank */
+  will-change: scroll-position;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .customer-header, .super-label {

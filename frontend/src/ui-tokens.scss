@@ -195,6 +195,201 @@ body.theme-dark {
   color-scheme: dark;
 }
 
+/* Midnight Indigo — premium matching dark theme (deep slate-indigo + soft cyan accent) */
+body.theme-midnight,
+[data-theme="midnight"] {
+  --ui-color-primary: #7dd3fc;
+  --ui-color-primary-rgb: 125, 211, 252;
+  --ui-color-primary-hover: #38bdf8;
+  --ui-color-primary-soft: rgba(125, 211, 252, 0.12);
+  --ui-color-primary-soft-strong: rgba(125, 211, 252, 0.2);
+
+  --ui-color-bg-page: #0b1220;
+  --ui-color-bg-surface: #111a2e;
+  --ui-color-bg-subtle: #16223b;
+  --ui-color-bg-hover: #1b2742;
+
+  --ui-color-text-primary: #e6edf7;
+  --ui-color-text-secondary: #a8b3c7;
+  --ui-color-text-muted: #8693ab;
+  --ui-color-text-faint: #5d6a82;
+
+  --ui-color-border: #1f2a44;
+  --ui-color-border-soft: #17213a;
+
+  --ui-color-success: #34d399;
+  --ui-color-success-bg: rgba(52, 211, 153, 0.14);
+  --ui-color-warning: #fbbf24;
+  --ui-color-warning-bg: rgba(251, 191, 36, 0.14);
+  --ui-color-danger: #f87171;
+  --ui-color-danger-bg: rgba(248, 113, 113, 0.14);
+
+  --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ui-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --ui-shadow-md: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --ui-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.55);
+  --ui-focus-ring: 0 0 0 3px rgba(125, 211, 252, 0.18);
+
+  --toolbar-bg: #0b1220;
+  color-scheme: dark;
+}
+
+/* Obsidian Emerald — deep forest-black with soft mint accent */
+body.theme-obsidian,
+[data-theme="obsidian"] {
+  --ui-color-primary: #6ee7b7;
+  --ui-color-primary-rgb: 110, 231, 183;
+  --ui-color-primary-hover: #34d399;
+  --ui-color-primary-soft: rgba(110, 231, 183, 0.12);
+  --ui-color-primary-soft-strong: rgba(110, 231, 183, 0.2);
+
+  --ui-color-bg-page: #0a0f0d;
+  --ui-color-bg-surface: #101815;
+  --ui-color-bg-subtle: #15211c;
+  --ui-color-bg-hover: #1a2823;
+
+  --ui-color-text-primary: #e4ebe7;
+  --ui-color-text-secondary: #a4b3ac;
+  --ui-color-text-muted: #819188;
+  --ui-color-text-faint: #586862;
+
+  --ui-color-border: #1d2a25;
+  --ui-color-border-soft: #14201b;
+
+  --ui-color-success: #34d399;
+  --ui-color-success-bg: rgba(52, 211, 153, 0.14);
+  --ui-color-warning: #fbbf24;
+  --ui-color-warning-bg: rgba(251, 191, 36, 0.14);
+  --ui-color-danger: #f87171;
+  --ui-color-danger-bg: rgba(248, 113, 113, 0.14);
+
+  --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ui-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --ui-shadow-md: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --ui-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.55);
+  --ui-focus-ring: 0 0 0 3px rgba(110, 231, 183, 0.18);
+
+  --toolbar-bg: #0a0f0d;
+  color-scheme: dark;
+}
+
+/* Graphite Violet — charcoal canvas with lavender accent */
+body.theme-graphite,
+[data-theme="graphite"] {
+  --ui-color-primary: #c4b5fd;
+  --ui-color-primary-rgb: 196, 181, 253;
+  --ui-color-primary-hover: #a78bfa;
+  --ui-color-primary-soft: rgba(196, 181, 253, 0.12);
+  --ui-color-primary-soft-strong: rgba(196, 181, 253, 0.2);
+
+  --ui-color-bg-page: #161623;
+  --ui-color-bg-surface: #1d1d2e;
+  --ui-color-bg-subtle: #23233a;
+  --ui-color-bg-hover: #2a2a45;
+
+  --ui-color-text-primary: #e8e6f1;
+  --ui-color-text-secondary: #adacc4;
+  --ui-color-text-muted: #8b8aa3;
+  --ui-color-text-faint: #5e5d75;
+
+  --ui-color-border: #2a2a44;
+  --ui-color-border-soft: #20203a;
+
+  --ui-color-success: #34d399;
+  --ui-color-success-bg: rgba(52, 211, 153, 0.14);
+  --ui-color-warning: #fbbf24;
+  --ui-color-warning-bg: rgba(251, 191, 36, 0.14);
+  --ui-color-danger: #f87171;
+  --ui-color-danger-bg: rgba(248, 113, 113, 0.14);
+
+  --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ui-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --ui-shadow-md: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --ui-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.55);
+  --ui-focus-ring: 0 0 0 3px rgba(196, 181, 253, 0.2);
+
+  --toolbar-bg: #161623;
+  color-scheme: dark;
+}
+
+/* Nocturne Rose — deep wine-black with rose accent */
+body.theme-nocturne,
+[data-theme="nocturne"] {
+  --ui-color-primary: #fda4af;
+  --ui-color-primary-rgb: 253, 164, 175;
+  --ui-color-primary-hover: #fb7185;
+  --ui-color-primary-soft: rgba(253, 164, 175, 0.12);
+  --ui-color-primary-soft-strong: rgba(253, 164, 175, 0.2);
+
+  --ui-color-bg-page: #160c14;
+  --ui-color-bg-surface: #1d121b;
+  --ui-color-bg-subtle: #271924;
+  --ui-color-bg-hover: #2e1e2b;
+
+  --ui-color-text-primary: #efe7ec;
+  --ui-color-text-secondary: #c1acb9;
+  --ui-color-text-muted: #9c8794;
+  --ui-color-text-faint: #6a5965;
+
+  --ui-color-border: #2d1f2a;
+  --ui-color-border-soft: #211722;
+
+  --ui-color-success: #34d399;
+  --ui-color-success-bg: rgba(52, 211, 153, 0.14);
+  --ui-color-warning: #fbbf24;
+  --ui-color-warning-bg: rgba(251, 191, 36, 0.14);
+  --ui-color-danger: #f87171;
+  --ui-color-danger-bg: rgba(248, 113, 113, 0.14);
+
+  --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ui-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --ui-shadow-md: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --ui-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.55);
+  --ui-focus-ring: 0 0 0 3px rgba(253, 164, 175, 0.2);
+
+  --toolbar-bg: #160c14;
+  color-scheme: dark;
+}
+
+/* Eclipse Amber — near-black canvas with warm amber accent */
+body.theme-eclipse,
+[data-theme="eclipse"] {
+  --ui-color-primary: #fbbf24;
+  --ui-color-primary-rgb: 251, 191, 36;
+  --ui-color-primary-hover: #f59e0b;
+  --ui-color-primary-soft: rgba(251, 191, 36, 0.12);
+  --ui-color-primary-soft-strong: rgba(251, 191, 36, 0.2);
+
+  --ui-color-bg-page: #0f0d0a;
+  --ui-color-bg-surface: #181511;
+  --ui-color-bg-subtle: #211d17;
+  --ui-color-bg-hover: #28231c;
+
+  --ui-color-text-primary: #ece6dc;
+  --ui-color-text-secondary: #b6ad9d;
+  --ui-color-text-muted: #938a7c;
+  --ui-color-text-faint: #645c50;
+
+  --ui-color-border: #28221b;
+  --ui-color-border-soft: #1d1812;
+
+  --ui-color-success: #34d399;
+  --ui-color-success-bg: rgba(52, 211, 153, 0.14);
+  --ui-color-warning: #fbbf24;
+  --ui-color-warning-bg: rgba(251, 191, 36, 0.14);
+  --ui-color-danger: #f87171;
+  --ui-color-danger-bg: rgba(248, 113, 113, 0.14);
+
+  --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ui-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --ui-shadow-md: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --ui-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.55);
+  --ui-focus-ring: 0 0 0 3px rgba(251, 191, 36, 0.2);
+
+  --toolbar-bg: #0f0d0a;
+  color-scheme: dark;
+}
+
 /* Accent themes */
 body.theme-green {
   --ui-color-primary: #2e7d32;
