@@ -352,8 +352,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.http.get<any[]>(`${environment.apiUrl}/admin/leads`).subscribe({
       next: (rows) => {
         const list = Array.isArray(rows) ? rows : [];
-        // Backend stores numeric enum values; 0 == Pending.
-        this.superAdminPendingLeadsCount = list.filter(x => x?.status === 0).length;
+        this.superAdminPendingLeadsCount = list.filter(x => {
+          const raw = x?.status;
+          if (typeof raw === 'number') return raw === 0;
+          if (typeof raw === 'string') {
+            const v = raw.trim().toLowerCase();
+            return v === '0' || v === 'pending';
+          }
+          return false;
+        }).length;
         this.cdr.detectChanges();
       },
       error: () => {}
