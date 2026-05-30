@@ -8,41 +8,117 @@
       <div class="fd-spinner"></div>
     </div>
 
-    <div class="fd-layout" *ngIf="ticket">
+    <!-- ─── TOP TOOLBAR (Freshdesk-style) ─── -->
+    <div class="td-topbar" *ngIf="ticket">
+      <div class="td-topbar-left">
+        <button type="button" class="td-tb-icon td-tb-back"
+          title="Back to tickets"
+          (click)="goBackToList()">
+          <span aria-hidden="true">←</span>
+        </button>
+        <button type="button" class="td-tb-icon td-tb-star"
+          [class.is-on]="starred"
+          [title]="starred ? 'Unstar' : 'Star'"
+          (click)="toggleStar()">
+          <span aria-hidden="true">{{ starred ? '★' : '☆' }}</span>
+        </button>
+        <div class="td-tb-group">
+          <button type="button" class="td-tb-btn"
+            title="Reply ( r )"
+            (click)="focusComposerTab('reply')">
+            <span class="td-tb-ic" aria-hidden="true">↩</span> Reply
+          </button>
+          <button type="button" class="td-tb-btn"
+            title="Note ( n )"
+            (click)="focusComposerTab('note')">
+            <span class="td-tb-ic" aria-hidden="true">📝</span> Note
+          </button>
+          <button type="button" class="td-tb-btn"
+            title="Forward ( f )"
+            (click)="focusComposerTab('forward')">
+            <span class="td-tb-ic" aria-hidden="true">↗</span> Forward
+          </button>
+          <button type="button" class="td-tb-btn"
+            title="Close ticket"
+            (click)="closeTicketQuick()">
+            <span class="td-tb-ic" aria-hidden="true">✓</span> Close
+          </button>
+          <ng-container *hasPermission="'tickets:delete'">
+            <button type="button" class="td-tb-btn td-tb-btn--danger"
+              *ngIf="ticket && isAgent"
+              title="Delete ticket"
+              (click)="deleteTicket()">
+              <span class="td-tb-ic" aria-hidden="true">🗑</span> Delete
+            </button>
+          </ng-container>
+        </div>
+      </div>
+      <div class="td-topbar-right">
+        <div class="td-tb-viewers"
+          *ngIf="ticket && uniqueViewers().length > 0"
+          [title]="'Viewed in last hour:\n' + uniqueViewerNames()">
+          <span class="tbv-chip"
+            *ngFor="let v of uniqueViewers() | slice:0:3; trackBy: trackById"
+            [style.background]="getAvatarColor(v.userName)"
+            [title]="v.userName">
+            {{ getInitials(v.userName) }}
+          </span>
+          <span class="tbv-chip tbv-more"
+            *ngIf="uniqueViewers().length > 3">
+            +{{ uniqueViewers().length - 3 }}
+          </span>
+        </div>
+        <button type="button" class="td-tb-btn td-tb-btn--ghost"
+          [class.is-active]="activityPanelOpen"
+          title="Activities"
+          (click)="toggleActivityPanel()">
+          <span class="td-tb-ic" aria-hidden="true">⏱</span> Activities
+        </button>
+        <span class="td-tb-sep" aria-hidden="true"></span>
+        <div class="td-tb-group td-tb-group--nav">
+          <button type="button" class="td-tb-icon"
+            title="Previous ticket" disabled>‹</button>
+          <button type="button" class="td-tb-icon"
+            title="More" disabled>⋯</button>
+          <button type="button" class="td-tb-icon"
+            title="Next ticket" disabled>›</button>
+        </div>
+        <button type="button" class="td-tb-icon td-tb-rail"
+          [class.is-collapsed]="rightRailHidden"
+          [title]="rightRailHidden ? 'Expand' : 'Collapse'"
+          (click)="toggleRightRail()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="10.5" y1="3" x2="10.5" y2="13" stroke="currentColor" stroke-width="1.2"/>
+            <path *ngIf="!rightRailHidden" d="M7.5 6L5 8L7.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path *ngIf="rightRailHidden" d="M4.5 6L7 8L4.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="td-body">
+
+    <div class="fd-layout" *ngIf="ticket"
+      [class.is-rail-hidden]="rightRailHidden"
+      [class.is-activity-open]="activityPanelOpen">
 
       <!-- LEFT MAIN -->
       <div class="fd-main">
 
-        <!-- Title: source-aware icon + (right) Delete + viewer count badge -->
-        <h1 class="fd-title">
-          <span class="fd-mail-ic"
-            [class.is-system]="!isEmailTicket()"
-            [title]="isEmailTicket()
-              ? 'Created from inbound email'
-              : 'Created in the system'"
-            aria-hidden="true">
-            {{ isEmailTicket() ? '✉' : '🎫' }}
-          </span>
-          <span class="fd-title-txt">{{ ticket.title }}</span>
-          <span class="fd-title-actions">
-            <ng-container *hasPermission="'tickets:delete'">
-              <button class="ab-del"
-                *ngIf="isAgent"
-                type="button"
-                (click)="deleteTicket()">
-                🗑 Delete
-              </button>
-            </ng-container>
-            <div class="fd-viewers-badge"
-              *ngIf="uniqueViewers().length > 0"
-              [title]="'Viewed by:\n' + uniqueViewerNames()">
-              <span class="vb-count">{{ uniqueViewers().length }}</span>
-            </div>
-          </span>
-        </h1>
-
-        <!-- Original Email -->
+        <!-- Original Email — title sits inside the same card -->
         <div class="fd-email-card">
+          <div class="ec-title-row">
+            <span class="fd-mail-ic"
+              [class.is-system]="!isEmailTicket()"
+              [title]="isEmailTicket()
+                ? 'Created from inbound email'
+                : 'Created in the system'"
+              aria-hidden="true">
+              {{ isEmailTicket() ? '✉' : '🎫' }}
+            </span>
+            <h1 class="ec-title">{{ ticket.title }}</h1>
+          </div>
           <div class="ec-header">
             <div class="ec-av is-clickable"
               role="button"
@@ -103,6 +179,7 @@
           </div>
 
           <div class="ec-body"
+            (click)="onBodyClick($event)"
             [innerHTML]="sanitizeHtml(
               ticket.description)">
           </div>
@@ -166,62 +243,65 @@
                   {{ getInitials(commentAuthor(c)) }}
                 </div>
                 <div class="fr-info">
-                  <span class="fr-name is-clickable"
-                    role="button"
-                    tabindex="0"
-                    [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
-                    (click)="openContact(commentEmail(c) || commentAuthor(c))"
-                    (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
-                    {{ commentAuthor(c) }}
-                  </span>
-                  <span class="fr-agent"
-                    *ngIf="c.user?.isAgent">
-                    Support Agent
-                  </span>
-                  <span class="fr-via">
-                    <ng-container
-                      *ngIf="c.source === 'email'">
-                      · replied via email
-                    </ng-container>
-                    <ng-container
-                      *ngIf="c.source === 'forward'">
-                      · forwarded
-                    </ng-container>
-                    <ng-container
-                      *ngIf="c.source !== 'email' && c.source !== 'forward'">
-                      · replied
-                    </ng-container>
-                  </span>
-                </div>
-                <span class="fr-time"
-                  [title]="c.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
-                  {{ timeAgo(c.createdAt) }}
-                  ·
-                  {{ c.createdAt
-                    | date:'EEE, dd MMM yyyy, hh:mm a':tz }}
-                </span>
-              </div>
+                  <div class="fr-name-row">
+                    <span class="fr-name is-clickable"
+                      role="button"
+                      tabindex="0"
+                      [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                      (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
+                      {{ commentAuthor(c) }}
+                    </span>
+                    <span class="fr-agent"
+                      *ngIf="c.user?.isAgent">
+                      Support Agent
+                    </span>
+                    <span class="fr-via">
+                      <ng-container
+                        *ngIf="c.source === 'email'">
+                        · replied via email
+                      </ng-container>
+                      <ng-container
+                        *ngIf="c.source === 'forward'">
+                        · forwarded
+                      </ng-container>
+                      <ng-container
+                        *ngIf="c.source !== 'email' && c.source !== 'forward'">
+                        · replied
+                      </ng-container>
+                    </span>
+                    <span class="fr-dot">·</span>
+                    <span class="fr-time"
+                      [title]="c.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
+                      {{ timeAgo(c.createdAt) }}
+                      ({{ c.createdAt
+                        | date:'EEE, dd MMM yyyy, hh:mm a':tz }})
+                    </span>
+                  </div>
 
-              <!-- To / Cc / Bcc recipients (like inbound email) -->
-              <div class="fr-recipients"
-                *ngIf="getReplyToList(c).length
-                  || getCcList(c).length
-                  || getBccList(c).length">
-                <ng-container *ngIf="getReplyToList(c).length > 0">
-                  <span class="fr-rec-lbl">To:</span>
-                  <span class="fr-rec-val">{{ getReplyToList(c).join(', ') }}</span>
-                </ng-container>
-                <ng-container *ngIf="getCcList(c).length > 0">
-                  <span class="fr-rec-lbl">Cc:</span>
-                  <span class="fr-rec-val">{{ getCcList(c).join(', ') }}</span>
-                </ng-container>
-                <ng-container *ngIf="getBccList(c).length > 0">
-                  <span class="fr-rec-lbl">Bcc:</span>
-                  <span class="fr-rec-val">{{ getBccList(c).join(', ') }}</span>
-                </ng-container>
+                  <!-- To / Cc / Bcc recipients (under the name, like the description) -->
+                  <div class="ec-to-row fr-to-row"
+                    *ngIf="getReplyToList(c).length
+                      || getCcList(c).length
+                      || getBccList(c).length">
+                    <ng-container *ngIf="getReplyToList(c).length > 0">
+                      <span class="ec-to-lbl">To:</span>
+                      <span class="ec-to-val">{{ getReplyToList(c).join(', ') }}</span>
+                    </ng-container>
+                    <ng-container *ngIf="getCcList(c).length > 0">
+                      <span class="ec-to-lbl ec-cc-lbl">Cc:</span>
+                      <span class="ec-to-val ec-cc-val">{{ getCcList(c).join(', ') }}</span>
+                    </ng-container>
+                    <ng-container *ngIf="getBccList(c).length > 0">
+                      <span class="ec-to-lbl ec-cc-lbl">Bcc:</span>
+                      <span class="ec-to-val ec-cc-val">{{ getBccList(c).join(', ') }}</span>
+                    </ng-container>
+                  </div>
+                </div>
               </div>
 
               <div class="fr-body"
+                (click)="onBodyClick($event)"
                 [innerHTML]="
                   sanitizeHtml(c.comment)">
               </div>
@@ -274,53 +354,85 @@
                   {{ getInitials(commentAuthor(c)) }}
                 </div>
                 <div class="fr-info">
-                  <span class="fr-name note-name is-clickable"
-                    role="button"
-                    tabindex="0"
-                    [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
-                    (click)="openContact(commentEmail(c) || commentAuthor(c))"
-                    (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
-                    {{ commentAuthor(c) }}
-                  </span>
-                  <span class="fr-note-lbl">
-                    added a private note
-                  </span>
+                  <div class="fr-name-row">
+                    <span class="fr-name note-name is-clickable"
+                      role="button"
+                      tabindex="0"
+                      [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                      (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
+                      {{ commentAuthor(c) }}
+                    </span>
+                    <span class="fr-note-lbl">
+                      added a private note
+                    </span>
+                    <span class="fr-dot">·</span>
+                    <span class="fr-time"
+                      [title]="c.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
+                      {{ timeAgo(c.createdAt) }}
+                      ({{ c.createdAt
+                        | date:'EEE, dd MMM yyyy, hh:mm a':tz }})
+                    </span>
+                  </div>
+
+                  <!-- Notified-to recipients (under the name) -->
+                  <div class="ec-to-row fr-to-row"
+                    *ngIf="getNotifiedList(c).length > 0">
+                    <span class="ec-to-lbl">Notified to:</span>
+                    <span class="ec-to-val">{{ getNotifiedList(c).join(', ') }}</span>
+                  </div>
                 </div>
-                <span class="fr-time"
-                  [title]="c.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
-                  {{ timeAgo(c.createdAt) }}
-                  ·
-                  {{ c.createdAt
-                    | date:'EEE, dd MMM yyyy, hh:mm a':tz }}
-                </span>
                 <div class="fr-actions"
                   *ngIf="canEditNote(c)">
                   <button type="button"
-                    class="fr-act-btn"
-                    *hasPermission="'tickets:edit'"
-                    title="Edit note (within 1 hour)"
-                    (click)="editNote(c)">
-                    ✎
+                    class="fr-act-btn fr-kebab"
+                    title="More"
+                    (click)="toggleNoteMenu(c, $event)">
+                    <span aria-hidden="true">⋯</span>
                   </button>
-                  <button type="button"
-                    class="fr-act-btn danger"
-                    *hasPermission="'tickets:delete'"
-                    title="Delete note (within 1 hour)"
-                    (click)="deleteNote(c)">
-                    🗑
-                  </button>
+                  <div class="fr-menu"
+                    *ngIf="noteMenuOpenId === c.id"
+                    (click)="$event.stopPropagation()">
+                    <button type="button"
+                      class="fr-menu-item"
+                      (click)="startEditNote(c, $event)">
+                      <span class="fr-menu-ic" aria-hidden="true">✎</span> Edit
+                    </button>
+                    <button type="button"
+                      class="fr-menu-item is-danger"
+                      [disabled]="deletingNoteId === c.id"
+                      (click)="deleteNote(c); closeNoteMenu()">
+                      <span class="fr-menu-ic" aria-hidden="true">🗑</span>
+                      {{ deletingNoteId === c.id ? 'Deleting…' : 'Delete' }}
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <!-- Notified-to recipients (note) -->
-              <div class="fr-recipients is-note-rec"
-                *ngIf="getNotifiedList(c).length > 0">
-                <span class="fr-rec-lbl">Notified to:</span>
-                <span class="fr-rec-val">{{ getNotifiedList(c).join(', ') }}</span>
-              </div>
               <div class="fr-body"
+                *ngIf="editingNoteId !== c.id"
+                (click)="onBodyClick($event)"
                 [innerHTML]="
                   sanitizeHtml(c.comment)">
+              </div>
+              <div class="fr-edit"
+                *ngIf="editingNoteId === c.id"
+                (click)="$event.stopPropagation()">
+                <textarea class="fr-edit-area"
+                  rows="4"
+                  [(ngModel)]="editingNoteText"
+                  placeholder="Edit note..."></textarea>
+                <div class="fr-edit-bar">
+                  <button type="button"
+                    class="fr-edit-btn"
+                    [disabled]="savingNoteId === c.id"
+                    (click)="cancelNoteEdit()">Cancel</button>
+                  <button type="button"
+                    class="fr-edit-btn is-primary"
+                    [disabled]="!editingNoteText.trim() || savingNoteId === c.id"
+                    (click)="saveNoteEdit(c)">
+                    {{ savingNoteId === c.id ? 'Saving…' : 'Save' }}
+                  </button>
+                </div>
               </div>
               <div class="ec-attachments"
                 *ngIf="getCommentAttachments(c.id)
@@ -945,15 +1057,20 @@
           </button>
         </div>
 
-        <!-- Recent Activity -->
-        <div class="fds-card">
-          <div class="fds-card-title clickable"
-            (click)="showTimeline =
-              !showTimeline">
+        <!-- Recent Activity moved out into its own panel (3rd column) -->
+
+      </div>
+
+      <!-- RIGHT ACTIVITY PANEL (toggle from topbar "Activities" button) -->
+      <div class="fd-activity-rail" *ngIf="activityPanelOpen">
+        <div class="fds-card" #activitySection id="td-activity">
+          <div class="fds-card-title">
             RECENT ACTIVITY
-            <span>{{ showTimeline ? '▲':'▼' }}</span>
+            <button type="button" class="fd-rail-close"
+              title="Hide activity"
+              (click)="activityPanelOpen = false">✕</button>
           </div>
-          <div *ngIf="showTimeline">
+          <div>
             <div class="fds-tl-empty"
               *ngIf="!timeline.length">
               No activity yet
@@ -974,7 +1091,6 @@
             </div>
           </div>
         </div>
-
       </div>
 
     </div>
@@ -986,6 +1102,8 @@
         (click)="router.navigate(['/tickets'])">
         Back to Tickets
       </button>
+    </div>
+
     </div>
 
   </div>

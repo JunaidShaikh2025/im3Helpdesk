@@ -1,0 +1,79 @@
+<app-layout>
+<div class="pm-page">
+  <header class="pm-head">
+    <div>
+      <h1>Pricing &amp; Plan Management</h1>
+      <p>Edit prices, annual discount and the feature catalogue per plan. Changes apply immediately to all tenants.</p>
+    </div>
+  </header>
+
+  <div class="pm-toast" *ngIf="toast() as t">{{ t }}</div>
+
+  <div class="pm-grid">
+    <div class="pm-card" *ngFor="let p of plans()" [style.--accent]="p.accent">
+      <header>
+        <div class="pm-dot" [style.background]="p.accent"></div>
+        <div>
+          <strong>{{ p.name }}</strong>
+          <small>{{ p.tierKey }}</small>
+        </div>
+        <label class="pm-switch">
+          <input type="checkbox" [checked]="p.isActive" (change)="update(p.id,'isActive',$any($event.target).checked)">
+          <span>{{ p.isActive ? 'Active' : 'Disabled' }}</span>
+        </label>
+      </header>
+
+      <div class="pm-row">
+        <label>
+          <span>Display name</span>
+          <input type="text" [value]="p.name" (input)="update(p.id,'name',$any($event.target).value)">
+        </label>
+        <label>
+          <span>Accent colour</span>
+          <input type="color" [value]="p.accent" (input)="update(p.id,'accent',$any($event.target).value)">
+        </label>
+      </div>
+
+      <label>
+        <span>Tagline</span>
+        <textarea rows="2" [value]="p.tagline" (input)="update(p.id,'tagline',$any($event.target).value)"></textarea>
+      </label>
+
+      <div class="pm-row">
+        <label>
+          <span>Currency</span>
+          <input type="text" maxlength="6" [value]="p.currency" (input)="update(p.id,'currency',$any($event.target).value)">
+        </label>
+        <label>
+          <span>Monthly price / agent</span>
+          <input type="number" min="0" step="1" [value]="p.monthlyPricePerAgent"
+                 (input)="update(p.id,'monthlyPricePerAgent', +$any($event.target).value)">
+        </label>
+        <label>
+          <span>Annual discount %</span>
+          <input type="number" min="0" max="90" step="1" [value]="p.annualDiscountPct"
+                 (input)="update(p.id,'annualDiscountPct', +$any($event.target).value)">
+        </label>
+      </div>
+
+      <div class="pm-preview">
+        Monthly: <strong>{{ p.currency }} {{ p.monthlyPricePerAgent | number:'1.0-0' }}</strong> ·
+        Annual / agent: <strong>{{ p.currency }} {{ (p.monthlyPricePerAgent * 12 * (1 - p.annualDiscountPct/100)) | number:'1.0-0' }}</strong>
+      </div>
+
+      <label>
+        <span>Feature keys (comma separated)</span>
+        <textarea rows="4" [value]="featuresInput()[p.id]"
+                  (input)="setFeatures(p.id, $any($event.target).value)"></textarea>
+      </label>
+
+      <footer>
+        <button type="button" class="pm-save" [style.background]="p.accent"
+                [disabled]="saving()[p.id]" (click)="save(p)">
+          {{ saving()[p.id] ? 'Saving…' : 'Save changes' }}
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>
+</app-layout>

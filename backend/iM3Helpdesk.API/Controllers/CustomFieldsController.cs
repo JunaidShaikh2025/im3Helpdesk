@@ -10,6 +10,7 @@ namespace iM3Helpdesk.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[iM3Helpdesk.API.Middleware.RequireFeature("custom-fields")]
 public class CustomFieldsController : ControllerBase
 {
   private readonly ApplicationDbContext _context;

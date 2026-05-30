@@ -4,6 +4,9 @@
 ══════════════════════════════════════════ */
 
 :host {
+  display: block;
+  height: 100%;
+  min-height: 0;
   --fd-white: var(--ui-color-bg-surface);
   --fd-bg: var(--ui-color-bg-subtle);
   --fd-border: var(--ui-color-border);
@@ -19,13 +22,26 @@
 }
 
 .td-page {
-  padding: 16px 20px;
+  padding: 0;
   background: var(--ui-color-bg-surface);
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   /* Scoped font for the ticket-detail content only.
      Applied here (not on :host) because <app-layout> is the host's root child;
      putting font-family on :host would cascade into the sidebar/topbar. */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.td-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Loading */
@@ -50,7 +66,124 @@
   display: grid;
   grid-template-columns: 1fr 290px;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+.fd-layout.is-activity-open {
+  grid-template-columns: 1fr 290px 320px;
+}
+.fd-layout.is-rail-hidden {
+  grid-template-columns: 1fr;
+}
+.fd-layout.is-rail-hidden.is-activity-open {
+  grid-template-columns: 1fr 320px;
+}
+.fd-layout.is-rail-hidden .fd-sidebar { display: none; }
+
+/* Each column scrolls independently */
+.fd-main,
+.fd-sidebar,
+.fd-activity-rail {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 10px 16px 2px;
+  scrollbar-gutter: stable;
+}
+/* Prevent flex children from shrinking inside scroll columns —
+   otherwise the email/conversation cards collapse to a thin strip. */
+.fd-main > *,
+.fd-sidebar > *,
+.fd-activity-rail > * {
+  flex-shrink: 0;
+}
+
+.fd-activity-rail {
+  padding-left: 6px;
+}
+
+/* Slim, subtle scrollbars per-column (match app shell) */
+.fd-main::-webkit-scrollbar,
+.fd-sidebar::-webkit-scrollbar,
+.fd-activity-rail::-webkit-scrollbar {
+  width: 8px;
+}
+.fd-main::-webkit-scrollbar-thumb,
+.fd-sidebar::-webkit-scrollbar-thumb,
+.fd-activity-rail::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.18);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.fd-main::-webkit-scrollbar-thumb:hover,
+.fd-sidebar::-webkit-scrollbar-thumb:hover,
+.fd-activity-rail::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,.32);
+  background-clip: padding-box;
+}
+.fd-main, .fd-sidebar, .fd-activity-rail {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,.22) transparent;
+}
+
+.fd-rail-close {
+  background: transparent;
+  border: 0;
+  color: var(--fd-sub);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: auto;
+  line-height: 1;
+}
+.fd-rail-close:hover { color: var(--fd-accent); }
+
+.td-tb-btn.is-active {
+  background: var(--fd-accent-light);
+  border-color: var(--fd-accent);
+  color: var(--fd-accent);
+}
+
+/* Danger variant for Delete inside the toolbar group */
+.td-tb-btn--danger {
+  color: #d23f3f;
+}
+.td-tb-btn--danger:hover {
+  background: #fff1f0;
+  color: #b91c1c;
+}
+
+/* Viewers count pill (sits next to Activities) */
+.td-tb-viewers {
+  display: inline-flex;
+  align-items: center;
+  gap: -6px;
+  padding: 0 4px;
+}
+.td-tb-viewers .tbv-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--ui-color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border: 2px solid var(--ui-color-bg-surface);
+  margin-left: -6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+.td-tb-viewers .tbv-chip:first-child { margin-left: 0; }
+.td-tb-viewers .tbv-more {
+  background: var(--ui-color-bg-subtle);
+  color: var(--fd-text);
 }
 
 /* ════════════════════════════════════════
@@ -161,22 +294,26 @@
   &:hover { background: var(--ui-color-danger-bg); }
 }
 
-/* ── Title ── */
-.fd-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--fd-text);
-  line-height: 1.4;
-  padding: 4px 2px;
-  margin: 0;
-}
-
-/* ── Email Card ── */
+/* ── Title row INSIDE the email card ── */
 .fd-email-card {
   background: var(--fd-white);
   border: 1px solid var(--fd-border);
   border-radius: var(--fd-radius);
   overflow: hidden;
+}
+.ec-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--fd-border);
+}
+.ec-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fd-text);
+  line-height: 1.35;
+  margin: 0;
 }
 
 .ec-header {
@@ -378,7 +515,7 @@
 }
 
 .fr-info {
-  flex: 1;
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -407,7 +544,7 @@
 .fr-time {
   font-size: 11px;
   color: var(--fd-muted);
-  margin-left: auto;
+  margin-left: 0;
   flex-shrink: 0;
 }
 
@@ -1010,8 +1147,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  position: sticky;
-  top: 16px;
 }
 
 /* Status + SLA */
@@ -1337,10 +1472,9 @@
     color: var(--fd-sub);
     font-style: normal;
   }
-  /* Push the timestamp cluster (dot + time) to the right edge of
-     the header row so the layout reads:
-     [ Name  reported via email ]                  [ 6h ago (…) ] */
-  .ec-dot { color: var(--fd-muted); margin-left: auto; }
+  /* Inline left-aligned timestamp:
+     [ Name  reported via email · 6h ago (…) ] */
+  .ec-dot { color: var(--fd-muted); margin-left: 0; }
   .ec-time { color: var(--fd-sub); font-style: italic; }
 }
 .ec-to-row {
@@ -2111,15 +2245,16 @@ textarea:focus-visible,
 
 /* Note action buttons (edit / delete) — visible within 1h only */
 .fr-actions {
+  position: relative;
   display: inline-flex;
   gap: 4px;
   margin-left: 8px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid #f1cf95;
-  border-radius: 8px;
-  padding: 2px;
-  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity .15s ease;
 }
+
+.fd-reply.is-note:hover .fr-actions,
+.fd-reply.is-note .fr-actions:focus-within { opacity: 1; }
 
 .fr-act-btn {
   width: 26px; height: 26px;
@@ -2131,18 +2266,112 @@ textarea:focus-visible,
   border-radius: 6px;
   cursor: pointer;
   color: var(--fd-sub);
-  font-size: 13px;
-  transition: background 0.15s, color 0.15s, transform 0.1s;
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
 
   &:hover {
-    background: #fff;
+    background: rgba(0, 0, 0, .06);
     color: var(--fd-text);
   }
-  &:active { transform: translateY(1px); }
+}
 
-  &.danger:hover {
-    background: var(--ui-color-danger-bg);
-    color: var(--ui-color-danger);
+.fr-kebab {
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.fr-menu {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  z-index: 20;
+  min-width: 140px;
+  background: #fff;
+  border: 1px solid var(--fd-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.fr-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--fd-text);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+
+  &:hover { background: var(--fd-hover, #f3f4f6); }
+
+  &.is-danger { color: var(--ui-color-danger, #dc2626); }
+  &.is-danger:hover { background: var(--ui-color-danger-bg, #fee2e2); }
+}
+
+.fr-menu-ic {
+  font-size: 13px;
+  width: 16px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+/* Inline edit area for note */
+.fr-edit {
+  padding: 12px 16px 14px;
+}
+.fr-edit-area {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--fd-border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.55;
+  color: var(--fd-text);
+  background: #fff;
+  outline: none;
+
+  &:focus { border-color: var(--ui-color-primary, #2563eb); }
+}
+.fr-edit-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.fr-edit-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--fd-border);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--fd-text);
+
+  &:hover { background: var(--fd-hover, #f3f4f6); }
+
+  &.is-primary {
+    background: var(--ui-color-primary, #2563eb);
+    border-color: var(--ui-color-primary, #2563eb);
+    color: #fff;
+  }
+  &.is-primary:hover {
+    background: var(--ui-color-primary-hover, #1d4ed8);
+  }
+  &:disabled {
+    opacity: .5;
+    cursor: not-allowed;
   }
 }
 
@@ -2304,8 +2533,6 @@ textarea:focus-visible,
 ════════════════════════════════════════════════════════════ */
 .fd-sidebar {
   position: static;
-  max-height: none;
-  overflow: visible;
   min-width: 0;
 }
 .fd-sidebar > * { min-width: 0; max-width: 100%; }
@@ -2455,5 +2682,219 @@ textarea:focus-visible,
 .fd-reply:hover .fr-footer { border-top-color: var(--fd-border); }
 
 
+/* ══════════════════════════════════════════
+   TOP TOOLBAR  (Freshdesk-style header bar)
+   Star · Reply · Note · Forward · Close
+              Activities · ‹ ⋯ › · side-toggle
+══════════════════════════════════════════ */
+.td-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--fd-border);
+  padding: 8px 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  background: var(--ui-color-bg-surface);
+  z-index: 5;
+}
+
+.td-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 16px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.td-topbar-left,
+.td-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.td-tb-group {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--fd-white);
+  border: 1px solid var(--fd-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+}
+
+.td-tb-group .td-tb-btn,
+.td-tb-group .td-tb-icon {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.td-tb-group > * + * {
+  border-left: 1px solid var(--fd-border);
+}
+
+.td-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 13px/1 'Inter', sans-serif;
+  color: var(--fd-text);
+  background: var(--fd-white);
+  border: 1px solid var(--fd-border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.td-tb-btn:hover {
+  background: var(--fd-hover);
+  color: var(--fd-accent);
+}
+.td-tb-btn--ghost {
+  background: var(--fd-white);
+  border-color: var(--fd-accent);
+  color: var(--fd-accent);
+}
+.td-tb-btn--ghost:hover {
+  background: var(--fd-accent-light);
+}
+.td-tb-ic {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.td-tb-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  color: var(--fd-sub);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.td-tb-icon:hover:not(:disabled) {
+  background: var(--fd-hover);
+  color: var(--fd-accent);
+}
+.td-tb-icon:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.td-tb-star {
+  font-size: 18px;
+}
+.td-tb-star.is-on {
+  color: #f5a623;
+}
+
+.td-tb-back {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.td-tb-rail {
+  border: 1px solid var(--fd-border);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  color: var(--fd-accent);
+}
+.td-tb-rail svg { display: block; }
+.td-tb-rail:hover:not(:disabled) {
+  background: var(--fd-hover);
+}
+
+/* Vertical separator before the nav-arrow cluster on the right */
+.td-tb-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--fd-border);
+  margin: 0 4px;
+  display: inline-block;
+}
+
+.td-tb-group--nav {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  gap: 2px;
+}
+.td-tb-group--nav > * + * { border-left: 0; }
+.td-tb-group--nav .td-tb-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+/* Collapse right rail when toggled */
+.fd-layout.is-rail-hidden {
+  grid-template-columns: 1fr;
+}
+.fd-layout.is-rail-hidden .fd-sidebar {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .td-topbar { flex-wrap: wrap; }
+  .td-tb-btn { padding: 6px 9px; font-size: 12px; }
+}
+
+/* ── Reply / Note header layout — match the description's
+ *    avatar + (name-row over to-row) two-line stack so Cc/Bcc and
+ *    Notified-to render directly under the author, not as a
+ *    separate block above the body. ─────────────────────────── */
+.fd-reply .fr-info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.fd-reply .fr-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fd-reply .fr-name-row .fr-time {
+  margin-left: 0;
+}
+.fd-reply .fr-dot {
+  color: var(--fd-muted);
+  font-size: 11px;
+}
+.fd-reply .fr-to-row {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--fd-sub);
+  display: flex;
+  align-items: center;
+  gap: 4px 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.fd-reply .fr-to-row .ec-to-lbl {
+  color: var(--fd-sub);
+  margin-right: 4px;
+  font-weight: 500;
+}
+.fd-reply .fr-to-row .ec-to-val {
+  color: var(--fd-text);
+  word-break: break-word;
+}
+.fd-reply .fr-to-row .ec-cc-lbl {
+  margin-left: 6px;
+}
 
 

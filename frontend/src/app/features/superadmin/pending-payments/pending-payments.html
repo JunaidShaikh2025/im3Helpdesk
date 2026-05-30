@@ -1,0 +1,70 @@
+<app-layout>
+<div class="pp-page">
+  <header class="pp-head">
+    <div>
+      <h1>Payment Approvals</h1>
+      <p>Review payments submitted by organization admins. Approval activates the subscription instantly.</p>
+    </div>
+    <div class="pp-stats">
+      <span class="pp-chip" [style.background]="'#f59e0b'">Pending {{ counts().pending }}</span>
+      <span class="pp-chip" [style.background]="'#16a34a'">Approved {{ counts().approved }}</span>
+      <span class="pp-chip" [style.background]="'#dc2626'">Rejected {{ counts().rejected }}</span>
+    </div>
+  </header>
+
+  <div class="pp-filters">
+    <button *ngFor="let f of ['Pending','Approved','Rejected','']"
+            type="button"
+            class="pp-tab"
+            [class.active]="statusFilter() === f"
+            (click)="setFilter(f)">
+      {{ f || 'All' }}
+    </button>
+  </div>
+
+  <div class="pp-toast" *ngIf="toast() as t">{{ t }}</div>
+
+  <div class="pp-empty" *ngIf="!payments().length">No payments in this status.</div>
+
+  <div class="pp-list">
+    <article class="pp-row" *ngFor="let p of payments()">
+      <div class="pp-row-main">
+        <div class="pp-org">
+          <strong>{{ p.orgName }}</strong>
+          <small>Submitted {{ p.submittedAt | date:'short' }} · by {{ p.billingName || '—' }} ({{ p.billingEmail || '—' }})</small>
+        </div>
+        <div class="pp-plan">
+          <span class="pp-plan-name">{{ p.planName }}</span>
+          <small>{{ p.billingCycle }} · {{ p.agentSeats }} seats</small>
+        </div>
+        <div class="pp-amount">
+          <strong>{{ p.currency }} {{ p.amount | number:'1.0-0' }}</strong>
+          <small>{{ p.cardBrand }} **** {{ p.cardLast4 }}</small>
+        </div>
+        <div class="pp-status">
+          <span class="pp-badge" [style.background]="badge(p.status)">{{ p.status }}</span>
+          <small *ngIf="p.reviewedAt">Reviewed {{ p.reviewedAt | date:'short' }}</small>
+        </div>
+      </div>
+
+      <div class="pp-notes" *ngIf="p.notes">
+        <strong>Customer note:</strong> {{ p.notes }}
+      </div>
+      <div class="pp-notes" *ngIf="p.reviewNotes">
+        <strong>Review note:</strong> {{ p.reviewNotes }}
+      </div>
+
+      <div class="pp-actions" *ngIf="p.status === 'Pending'">
+        <input type="text"
+               placeholder="Review note (required for reject)"
+               [value]="reviewNotes()[p.id] || ''"
+               (input)="setNotes(p.id, $any($event.target).value)">
+        <button type="button" class="pp-btn-reject" [disabled]="busyId() === p.id" (click)="reject(p)">Reject</button>
+        <button type="button" class="pp-btn-approve" [disabled]="busyId() === p.id" (click)="approve(p)">
+          {{ busyId() === p.id ? 'Working…' : 'Approve & Activate' }}
+        </button>
+      </div>
+    </article>
+  </div>
+</div>
+</app-layout>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>iM3 Helpdesk — Subscription &amp; Payment Plan</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #1f2937; line-height: 1.55; font-size: 11.5pt;
+    max-width: 900px; margin: 24px auto; padding: 0 24px 48px;
+  }
+  h1 { font-size: 26pt; margin: 0 0 4px; color: #0f172a; letter-spacing: -.5px; }
+  h2 {
+    font-size: 16pt; margin: 28px 0 10px; color: #0f172a;
+    padding-bottom: 6px; border-bottom: 2px solid #e5e7eb;
+  }
+  h3 { font-size: 13pt; margin: 18px 0 6px; color: #1e293b; }
+  h4 { font-size: 11.5pt; margin: 12px 0 4px; color: #334155; }
+  p  { margin: 6px 0; }
+  ul, ol { margin: 6px 0 10px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  code {
+    background: #f1f5f9; padding: 1px 6px; border-radius: 4px;
+    font-family: "Cascadia Mono", Consolas, monospace; font-size: 10pt;
+    color: #be185d;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 10.5pt; }
+  th, td { border: 1px solid #d1d5db; padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; font-weight: 700; color: #334155; }
+  .meta { color: #64748b; font-size: 10pt; margin-bottom: 18px; }
+  .cover {
+    border: 1px solid #e5e7eb; border-left: 5px solid #2563eb;
+    background: #f8fafc; padding: 18px 22px; border-radius: 10px; margin: 16px 0 26px;
+  }
+  .cover h1 { margin: 0 0 6px; }
+  .cover p  { margin: 2px 0; color: #475569; }
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 9.5pt; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  }
+  .pill.green  { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+  .pill.amber  { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+  .pill.blue   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .pill.red    { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .pill.gray   { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 10px 0 16px;
+  }
+  .card {
+    border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; background: #fff;
+  }
+  .card h4 { margin: 0 0 4px; }
+  .card .price { font-size: 18pt; font-weight: 800; color: #0f172a; }
+  .card .unit  { font-size: 10pt; color: #64748b; }
+  .note {
+    border-left: 4px solid #f59e0b; background: #fffbeb;
+    padding: 10px 14px; border-radius: 6px; margin: 12px 0; font-size: 10.5pt;
+  }
+  .ok {
+    border-left: 4px solid #10b981; background: #ecfdf5;
+    padding: 10px 14px; border-radius: 6px; margin: 12px 0; font-size: 10.5pt;
+  }
+  .warn {
+    border-left: 4px solid #ef4444; background: #fef2f2;
+    padding: 10px 14px; border-radius: 6px; margin: 12px 0; font-size: 10.5pt;
+  }
+  .footer {
+    margin-top: 36px; padding-top: 12px; border-top: 1px solid #e5e7eb;
+    font-size: 9.5pt; color: #64748b; text-align: center;
+  }
+  .toc { columns: 2; column-gap: 24px; font-size: 10.5pt; }
+  .toc a { color: #1d4ed8; text-decoration: none; }
+  @media print {
+    body { margin: 0; }
+    h2   { page-break-after: avoid; }
+    .card, .note, .ok, .warn, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>iM3 Helpdesk — Subscription &amp; Payment Plan</h1>
+  <p><strong>Product:</strong> iM3 Helpdesk (DeskMate) — multi-tenant SaaS support desk</p>
+  <p><strong>Version:</strong> 1.0 &nbsp;·&nbsp; <strong>Date:</strong> May 29, 2026</p>
+  <p><strong>Owner:</strong> Aadil &nbsp;·&nbsp; <strong>Status:</strong> <span class="pill green">Implemented (Phase 1)</span></p>
+</div>
+
+<h2 id="toc">Table of Contents</h2>
+<div class="toc">
+  1. <a href="#overview">Product Overview</a><br>
+  2. <a href="#roles">User Roles</a><br>
+  3. <a href="#plans">Plan Tiers &amp; Pricing</a><br>
+  4. <a href="#features">Feature Matrix</a><br>
+  5. <a href="#lifecycle">Subscription Lifecycle</a><br>
+  6. <a href="#current">Current Payment Flow (Manual)</a><br>
+  7. <a href="#gateway">Real Payment — Gateway Integration Plan</a><br>
+  8. <a href="#schema">Data Model</a><br>
+  9. <a href="#api">Key APIs</a><br>
+  10. <a href="#security">Security &amp; Compliance</a><br>
+  11. <a href="#roadmap">Roadmap &amp; Open Items</a>
+</div>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="overview">1. Product Overview</h2>
+<p>
+  iM3 Helpdesk is a multi-tenant helpdesk SaaS where each customer is an
+  <strong>Organization</strong>. Each organization subscribes to one of three plan
+  tiers and pays per agent seat per month (or annually with a discount).
+  Approval-based payments are currently used; gateway-based real payments
+  are planned in Phase 2.
+</p>
+
+<h3>Key principles</h3>
+<ul>
+  <li>One organization = one active subscription at any time.</li>
+  <li>Every new organization gets a <strong>14-day free Growth trial</strong> on signup.</li>
+  <li>Feature access is gated by the plan tier — both in the UI and on the API.</li>
+  <li>SuperAdmin manages pricing and approves payments; CompanyAdmin manages their org's subscription.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="roles">2. User Roles</h2>
+<table>
+  <thead>
+    <tr><th>Role</th><th>Scope</th><th>Billing capability</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>SuperAdmin</strong> (you / platform owner)</td>
+      <td>Whole platform — all orgs, users, plans</td>
+      <td>Edit plan prices &amp; features; approve / reject payments; view all transactions.</td>
+    </tr>
+    <tr>
+      <td><strong>CompanyAdmin</strong></td>
+      <td>Their organization only</td>
+      <td>View Explore Plans &amp; Plans &amp; Billing; submit payment to upgrade; manage seats.</td>
+    </tr>
+    <tr>
+      <td><strong>Agent</strong></td>
+      <td>Tickets, chat, KB within the org</td>
+      <td>No billing access. Trial banner hidden.</td>
+    </tr>
+    <tr>
+      <td><strong>Customer</strong></td>
+      <td>Self-service portal — own tickets only</td>
+      <td>No billing access.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="plans">3. Plan Tiers &amp; Pricing</h2>
+<p>Prices below are the seeded defaults; SuperAdmin can edit them from
+  <strong>Pricing Management</strong>. All prices are <em>per agent, per month</em> in INR.</p>
+
+<div class="grid">
+  <div class="card">
+    <span class="pill blue">Tier 1</span>
+    <h4>Growth</h4>
+    <div class="price">₹ 999</div>
+    <div class="unit">/ agent / month</div>
+    <p style="margin-top:8px;font-size:10pt;color:#64748b;">Ticketing essentials, email-to-ticket, KB, contacts, chat.</p>
+  </div>
+  <div class="card">
+    <span class="pill amber">Tier 2</span>
+    <h4>Pro</h4>
+    <div class="price">₹ 1,499</div>
+    <div class="unit">/ agent / month</div>
+    <p style="margin-top:8px;font-size:10pt;color:#64748b;">Adds reports, recycle bin, role rights, holiday setup, WhatsApp/Slack.</p>
+  </div>
+  <div class="card">
+    <span class="pill green">Tier 3</span>
+    <h4>Enterprise</h4>
+    <div class="price">₹ 2,000</div>
+    <div class="unit">/ agent / month</div>
+    <p style="margin-top:8px;font-size:10pt;color:#64748b;">Everything in Pro + AI insights, analytics heatmap, audit log, multi-org, leads.</p>
+  </div>
+</div>
+
+<h3>Billing cycles</h3>
+<table>
+  <thead>
+    <tr><th>Cycle</th><th>Computation</th><th>Discount</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Monthly</td><td><code>monthlyPricePerAgent × seats</code></td><td>None</td></tr>
+    <tr><td>Annual</td><td><code>monthlyPricePerAgent × 12 × (1 − discount%) × seats</code></td><td>Configurable per plan (default 10–20%)</td></tr>
+  </tbody>
+</table>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="features">4. Feature Matrix (high level)</h2>
+<table>
+  <thead>
+    <tr><th>Capability</th><th>Growth</th><th>Pro</th><th>Enterprise</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Tickets, Contacts, Chat, KB, Calendar, Todos</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Email-to-ticket, Canned responses, Ticket templates</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Reports &amp; analytics</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Recycle bin, Role rights, Holiday setup</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>WhatsApp, Slack integrations</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>AI insights / AI dashboard</td><td>—</td><td>—</td><td>✓</td></tr>
+    <tr><td>Analytics heatmap, Audit log</td><td>—</td><td>—</td><td>✓</td></tr>
+    <tr><td>Multi-org, Leads pipeline</td><td>—</td><td>—</td><td>✓</td></tr>
+  </tbody>
+</table>
+<p class="meta">Feature gating is enforced both in the Angular sidebar (<code>sub.hasFeature(...)</code>) and on the API (<code>[RequireFeature("key")]</code> attribute on controllers).</p>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="lifecycle">5. Subscription Lifecycle</h2>
+<ol>
+  <li><strong>Signup</strong> → new organization created → 14-day Growth trial auto-issued (<code>SubscriptionSeeder</code>).</li>
+  <li><strong>Trial banner</strong> on dashboard for CompanyAdmin only, with dynamic color: blue (&gt;7d) → amber (4–7d) → red (≤3d).</li>
+  <li><strong>Upgrade</strong> → CompanyAdmin opens <em>Explore Plans</em>, picks a higher tier, fills payment dialog, submits.</li>
+  <li><strong>Approval</strong> → SuperAdmin reviews in <em>Payment Approvals</em> queue (notification badge shown), then approves or rejects with notes.</li>
+  <li><strong>Activation</strong> → on approve: previous subscription is cancelled, a new <code>OrganizationSubscription</code> is created with status <code>Active</code> and the new period.</li>
+  <li><strong>Downgrade</strong> → blocked in UI (Upgrade button hides) and on API (<code>400 Plan downgrade is not allowed. Please contact support.</code>). Reason: refund/proration complexity in MVP.</li>
+</ol>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="current">6. Current Payment Flow — Manual Approval (Phase 1, live)</h2>
+<p>This is what is already implemented and running today.</p>
+
+<table>
+  <thead>
+    <tr><th>Step</th><th>Actor</th><th>What happens</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td><td>CompanyAdmin</td>
+      <td>Clicks <em>Upgrade to X</em> on Explore Plans → dialog asks for seats, billing cycle, billing name/email/address, card last 4 + brand (informational).</td>
+    </tr>
+    <tr>
+      <td>2</td><td>Backend</td>
+      <td><code>POST /api/subscription/payments</code> creates a <code>PaymentRecord</code> with status <code>Pending</code>.</td>
+    </tr>
+    <tr>
+      <td>3</td><td>SuperAdmin</td>
+      <td>Sees pending count badge in sidebar → opens <em>Payment Approvals</em> → reviews details → Approves or Rejects.</td>
+    </tr>
+    <tr>
+      <td>4</td><td>Backend</td>
+      <td>On approve: cancels current sub, creates new active sub for the chosen tier &amp; cycle, marks payment <code>Approved</code>.</td>
+    </tr>
+    <tr>
+      <td>5</td><td>CompanyAdmin</td>
+      <td>Refreshes — features unlock instantly. Plans &amp; Billing shows new plan + payment in history.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <strong>Why manual?</strong> No money actually changes hands inside the app yet — useful for staged rollout, soft-launch with hand-picked customers, or off-platform settlements (bank transfer / UPI screenshot share).
+</div>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="gateway">7. Real Payment — Gateway Integration Plan (Phase 2)</h2>
+
+<h3>7.1 Why a gateway</h3>
+<p>
+  Bank account numbers and card details must <strong>never</strong> be stored in the app
+  (PCI-DSS &amp; RBI regulations). Instead we plug in a payment gateway that
+  collects the money on our behalf and settles it to the SuperAdmin's
+  registered bank account.
+</p>
+
+<h3>7.2 Recommended gateway</h3>
+<table>
+  <thead><tr><th>Provider</th><th>Best for</th><th>Cost (approx)</th><th>Settlement</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Razorpay</strong></td><td>India-first SaaS</td><td>2% per txn</td><td>T+3 days to current account</td></tr>
+    <tr><td>Stripe</td><td>Global / USD pricing</td><td>2.9% + ₹3</td><td>T+7 days</td></tr>
+    <tr><td>Cashfree</td><td>India alt., subscriptions</td><td>1.75% per txn</td><td>T+1 to T+2</td></tr>
+  </tbody>
+</table>
+<p>Recommendation: <strong>Razorpay</strong> for v1 — simplest SDK, INR-native, easy KYC.</p>
+
+<h3>7.3 SuperAdmin one-time setup (outside the app)</h3>
+<ol>
+  <li>Create a Razorpay business account at <em>razorpay.com</em>.</li>
+  <li>Complete KYC — PAN, GST, address proof, current bank account.</li>
+  <li>From Razorpay Dashboard → Settings → API Keys, generate <code>Key ID</code> &amp; <code>Key Secret</code>.</li>
+  <li>Webhook secret &amp; URL: <code>https://YOUR-DOMAIN/api/payments/webhook/razorpay</code></li>
+</ol>
+
+<div class="warn">
+  <strong>The bank account lives only in Razorpay</strong>, never in our DB. Settlements (collected money minus fees) land there automatically.
+</div>
+
+<h3>7.4 In-app SuperAdmin screen — Payment Settings (new)</h3>
+<ul>
+  <li>Sidebar: <em>Super Admin → Payment Settings</em></li>
+  <li>Fields: Provider, Key ID, Key Secret (write-only, masked when re-shown), Webhook Secret, Test/Live toggle.</li>
+  <li>"Test connection" button hits a sandbox order create.</li>
+  <li>Stored in new table <code>PaymentGatewaySettings</code>; secret column encrypted via ASP.NET Data Protection.</li>
+</ul>
+
+<h3>7.5 New customer flow (replaces manual approval for cards/UPI)</h3>
+<ol>
+  <li>CompanyAdmin clicks <em>Upgrade</em> → frontend calls <code>POST /api/subscription/checkout</code>.</li>
+  <li>Backend creates a Razorpay <em>Order</em> and returns <code>{ orderId, keyId, amount }</code>.</li>
+  <li>Frontend opens Razorpay Checkout popup with that order.</li>
+  <li>Customer pays (card / UPI / netbanking / wallet).</li>
+  <li>Razorpay calls <code>POST /api/payments/webhook/razorpay</code> → backend verifies signature → marks payment <code>Approved</code> + activates subscription.</li>
+  <li>Frontend listens to <code>razorpay.success</code> and redirects to Plans &amp; Billing.</li>
+</ol>
+
+<div class="ok">
+  <strong>Effect:</strong> No manual SuperAdmin approval needed — activation happens in seconds. Manual queue stays available for offline (NEFT/UPI) cases.
+</div>
+
+<h3>7.6 Implementation effort</h3>
+<table>
+  <thead><tr><th>Task</th><th>Effort</th></tr></thead>
+  <tbody>
+    <tr><td>Payment Settings entity + screen</td><td>~1.5 hr</td></tr>
+    <tr><td>Razorpay order create endpoint + signature verify</td><td>~2 hr</td></tr>
+    <tr><td>Webhook handler with idempotency</td><td>~1.5 hr</td></tr>
+    <tr><td>Frontend checkout integration (Razorpay JS)</td><td>~1 hr</td></tr>
+    <tr><td>Test mode + sandbox QA</td><td>~1 hr</td></tr>
+  </tbody>
+</table>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="schema">8. Data Model (current)</h2>
+<table>
+  <thead><tr><th>Entity</th><th>Purpose</th><th>Key fields</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>SubscriptionPlan</code></td>
+      <td>Plan catalog (Growth/Pro/Enterprise)</td>
+      <td>TierKey, Name, Tagline, Accent, Currency, MonthlyPricePerAgent, AnnualDiscountPct, FeatureKeysCsv, SortOrder, IsActive</td>
+    </tr>
+    <tr>
+      <td><code>OrganizationSubscription</code></td>
+      <td>An org's current/past subscriptions</td>
+      <td>OrganizationId, PlanId, Status (Trial/Active/PastDue/Expired/Cancelled), BillingCycle, AgentSeats, Amount, StartedAt, CurrentPeriodEnd, CancelledAt</td>
+    </tr>
+    <tr>
+      <td><code>PaymentRecord</code></td>
+      <td>Payment submissions &amp; outcomes</td>
+      <td>OrganizationId, PlanId, SubscriptionId?, BillingCycle, AgentSeats, Amount, Currency, Status (Pending/Approved/Rejected), Billing*, CardLast4, CardBrand, Notes, ReviewerNotes, SubmittedAt, ReviewedAt, ReviewedByUserId</td>
+    </tr>
+  </tbody>
+</table>
+<p class="meta">Phase 2 adds: <code>PaymentGatewaySettings</code> and gateway-related fields on <code>PaymentRecord</code> (<code>GatewayProvider</code>, <code>GatewayOrderId</code>, <code>GatewayPaymentId</code>, <code>GatewaySignature</code>).</p>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="api">9. Key APIs</h2>
+<table>
+  <thead><tr><th>Method &amp; Path</th><th>Who</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td><code>GET /api/subscription/plans</code></td><td>Public</td><td>Plan catalog for marketing &amp; explore page</td></tr>
+    <tr><td><code>GET /api/subscription/me</code></td><td>Auth (org user)</td><td>Current sub + plan + feature keys</td></tr>
+    <tr><td><code>POST /api/subscription/payments</code></td><td>CompanyAdmin</td><td>Submit payment (Phase 1 manual)</td></tr>
+    <tr><td><code>GET /api/subscription/payments</code></td><td>CompanyAdmin</td><td>Org's payment history</td></tr>
+    <tr><td><code>GET /api/superadmin/subscription/plans</code></td><td>SuperAdmin</td><td>List all plans for editing</td></tr>
+    <tr><td><code>PUT /api/superadmin/subscription/plans/{id}</code></td><td>SuperAdmin</td><td>Edit prices / features / discount</td></tr>
+    <tr><td><code>GET /api/superadmin/subscription/payments?status=Pending</code></td><td>SuperAdmin</td><td>Approval queue</td></tr>
+    <tr><td><code>POST /api/superadmin/subscription/payments/{id}/approve</code></td><td>SuperAdmin</td><td>Approve &amp; activate</td></tr>
+    <tr><td><code>POST /api/superadmin/subscription/payments/{id}/reject</code></td><td>SuperAdmin</td><td>Reject with notes</td></tr>
+    <tr><td><em>Planned</em> <code>POST /api/subscription/checkout</code></td><td>CompanyAdmin</td><td>Create gateway order</td></tr>
+    <tr><td><em>Planned</em> <code>POST /api/payments/webhook/{provider}</code></td><td>Gateway</td><td>Verify signature, auto-activate</td></tr>
+  </tbody>
+</table>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="security">10. Security &amp; Compliance</h2>
+<ul>
+  <li><strong>Never store</strong> full card numbers, CVVs, or bank account numbers in our DB. Only the masked last 4 + brand are persisted for receipts.</li>
+  <li><strong>Gateway secrets</strong> (Key Secret, Webhook Secret) stored encrypted using ASP.NET Data Protection keyring.</li>
+  <li><strong>Authorization</strong>: payment submission requires CompanyAdmin role; approval queue requires SuperAdmin role.</li>
+  <li><strong>Audit</strong>: every payment row carries <code>SubmittedByUserId</code>, <code>ReviewedByUserId</code>, timestamps, and notes.</li>
+  <li><strong>Webhook hardening</strong> (Phase 2): signature verification, idempotency key (gateway payment id), replay protection.</li>
+  <li><strong>HTTPS-only</strong> in production; webhook endpoint will allow only the gateway's IP range.</li>
+  <li><strong>PCI-DSS scope</strong> stays minimal because card data is collected by the gateway iframe, not our app (SAQ-A).</li>
+</ul>
+
+<!-- ───────────────────────────────────────────────────────── -->
+<h2 id="roadmap">11. Roadmap &amp; Open Items</h2>
+<table>
+  <thead><tr><th>Item</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Plans catalog + seeder + 14-day trial</td><td><span class="pill green">Done</span></td></tr>
+    <tr><td>SuperAdmin Pricing Management screen</td><td><span class="pill green">Done</span></td></tr>
+    <tr><td>CompanyAdmin Explore Plans + Plans &amp; Billing screens</td><td><span class="pill green">Done</span></td></tr>
+    <tr><td>Manual payment submit + approval flow</td><td><span class="pill green">Done</span></td></tr>
+    <tr><td>Feature gating (UI directive + API attribute)</td><td><span class="pill green">Done</span></td></tr>
+    <tr><td>Dashboard trial banner with smart messaging</td><td><span class="pill green">Done</span></td></tr>
+    <tr><td>Downgrade blocked with friendly support CTA</td><td><span class="pill green">Done</span></td></tr>
+    <tr><td>Razorpay integration (settings, checkout, webhook)</td><td><span class="pill amber">Phase 2 — Pending</span></td></tr>
+    <tr><td>GST invoice PDF generation</td><td><span class="pill blue">Phase 3</span></td></tr>
+    <tr><td>Proration on mid-cycle upgrades</td><td><span class="pill blue">Phase 3</span></td></tr>
+    <tr><td>Auto-renewal &amp; dunning (failed renewal retries)</td><td><span class="pill blue">Phase 3</span></td></tr>
+    <tr><td>Self-service downgrade with scheduled activation</td><td><span class="pill gray">Future</span></td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <strong>Decision needed from owner before Phase 2 kickoff:</strong>
+  <ul>
+    <li>Confirm gateway: Razorpay (recommended) vs Stripe.</li>
+    <li>Confirm test mode first vs straight to KYC + live keys.</li>
+    <li>Confirm whether to retain the manual approval queue for offline NEFT/UPI cases or remove it entirely.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  iM3 Helpdesk — Subscription &amp; Payment Plan · v1.0 · May 29, 2026 · Internal document
+</div>
+
+</body>
+</html>

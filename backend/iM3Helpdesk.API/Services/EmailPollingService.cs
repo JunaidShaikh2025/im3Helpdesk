@@ -387,7 +387,11 @@ public class EmailPollingService : BackgroundService
 
     _logger.LogInformation(
         "âœ… Ticket #TN{N} created for org [{O}]: {S}",
-        ticket.TicketNumber, org.Name, subject);    await PersistInlineAttachmentsAsync(inlineParts, ticket, null, context, ct);    await SaveAttachmentsAsync(message, ticket, null, context, ct);
+        ticket.TicketNumber, org.Name, subject);
+    // Inline cid images are rendered from the rewritten body —
+    // do not persist them as attachment chips.
+    _ = inlineParts;
+    await SaveAttachmentsAsync(message, ticket, null, context, ct);
     await NotifyAgentsAsync(fromName, subject, ticket, org.Id, context, ct);
   }
 
@@ -677,7 +681,9 @@ public class EmailPollingService : BackgroundService
 
     if (ticket != null)
     {
-      await PersistInlineAttachmentsAsync(replyInlineParts, ticket, comment.Id, context, ct);
+      // Inline cid images are rendered from the rewritten body —
+      // do not persist them as attachment chips.
+      _ = replyInlineParts;
       await SaveAttachmentsAsync(message, ticket, comment.Id, context, ct);
     }
 

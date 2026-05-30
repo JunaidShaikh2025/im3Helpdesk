@@ -2,7 +2,7 @@ import {
   Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject,
   ViewChild, ElementRef,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy, HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -156,12 +156,44 @@ export class TicketDetailComponent
 
   // ─── Viewers / Timeline ──────────────
   viewers: any[] = [];
+  private _viewersRef: any[] | null = null;
+  private _viewersCache: any[] = [];
   timeline: any[] = [];
   showTimeline = true;
 
   statuses: TicketMasterOption[] = [];
   priorities: TicketMasterOption[] = [];
   ticketTypes: TicketMasterOption[] = [];
+
+  // ─── Top toolbar UI state ────────────
+  starred = false;
+  rightRailHidden = false;
+  activityPanelOpen = false;
+
+  toggleStar() { this.starred = !this.starred; }
+  toggleRightRail() { this.rightRailHidden = !this.rightRailHidden; }
+  toggleActivityPanel() { this.activityPanelOpen = !this.activityPanelOpen; }
+
+  goBackToList() { this.router.navigate(['/tickets']); }
+
+  focusComposerTab(tab: 'reply' | 'note' | 'forward') {
+    this.activeComposerTab = tab;
+    this.composerExpanded = true;
+    setTimeout(() => {
+      const el = document.querySelector('.fd-composer');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }
+
+  scrollToActivities() {
+    this.activityPanelOpen = true;
+  }
+
+  closeTicketQuick() {
+    const closed = this.statuses.find(s =>
+      (s.value || '').toLowerCase() === 'closed')?.value || 'Closed';
+    this.updateStatus(closed);
+  }
 
   // ─────────────────────────────────────
   // HELPERS
@@ -185,7 +217,35 @@ export class TicketDetailComponent
     // round-trip back. Angular's built-in sanitiser strips inline `style`
     // attributes and would erase that formatting — so we trust the
     // server-cleaned HTML here.
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    // Inline images extracted from inbound email are stored as
+    // `src="/uploads/<guid>.<ext>"` (server-relative). The Angular dev
+    // server doesn't proxy /uploads, so resolve them against the API
+    // host so they actually load in the browser.
+    let fixed = String(html).replace(
+      /(src|href)\s*=\s*(["'])\/uploads\//gi,
+      (_m, attr, q) => `${attr}=${q}${environment.baseUrl}/uploads/`
+    );
+    // Make inline body images click-to-open (Freshdesk-style): tag every
+    // <img> that points at /uploads with a marker class + zoom cursor;
+    // the host <div> click handler opens the full image in a new tab.
+    fixed = fixed.replace(
+      /<img\b([^>]*?)\bsrc\s*=\s*(["'])([^"']*\/uploads\/[^"']+)\2([^>]*)>/gi,
+      (_m, pre, q, url, post) =>
+        `<img${pre}src=${q}${url}${q}${post} class="email-inline-img" style="cursor:zoom-in;max-width:100%;" data-zoom-src="${url}">`
+    );
+    return this.sanitizer.bypassSecurityTrustHtml(fixed);
+  }
+
+  /** Click handler bound on every `[innerHTML]` body — opens inline
+   *  email images in a new tab when the user clicks them. */
+  onBodyClick(ev: Event) {
+    const t = ev.target as HTMLElement | null;
+    if (!t || t.tagName !== 'IMG') return;
+    const src = (t as HTMLImageElement).getAttribute('data-zoom-src') ||
+      (t as HTMLImageElement).src;
+    if (!src) return;
+    ev.preventDefault();
+    window.open(src, '_blank', 'noopener,noreferrer');
   }
 
   getAvatarColor(name: string): string {
@@ -272,16 +332,28 @@ export class TicketDetailComponent
   }
 
   // ─── Viewer badge helpers ────────────────────────────────
-  /** Unique viewers by userId (fallback userName) so multiple visits collapse. */
+  /** Unique viewers by userId (fallback userName) so multiple visits collapse.
+   *  Filters to the last 1 hour and excludes the currently signed-in user. */
   uniqueViewers(): any[] {
+    // Cache against the viewers array reference so successive change-detection
+    // passes return identical output (avoids NG0100 caused by Date.now() drift).
+    if (this._viewersRef === this.viewers) return this._viewersCache;
     const seen = new Set<string>();
     const out: any[] = [];
+    const cutoff = Date.now() - 60 * 60 * 1000; // last 1 hour
+    const me = (this.authService.getUserName() || '').trim().toLowerCase();
     for (const v of this.viewers || []) {
-      const key = String(v?.userId ?? v?.userName ?? '').toLowerCase();
+      const at = v?.viewedAt ? new Date(v.viewedAt).getTime() : 0;
+      if (!at || at < cutoff) continue;
+      const name = String(v?.userName ?? '').trim().toLowerCase();
+      if (me && name === me) continue;
+      const key = String(v?.userId ?? name).toLowerCase();
       if (!key || seen.has(key)) continue;
       seen.add(key);
       out.push(v);
     }
+    this._viewersRef = this.viewers;
+    this._viewersCache = out;
     return out;
   }
   uniqueViewerNames(): string {
@@ -290,12 +362,15 @@ export class TicketDetailComponent
       .join('\n');
   }
 
-  /** "11 days ago", "3 hours ago", "just now". */
+  /** "11 days ago", "3 hours ago", "just now".
+   *  Pinned to a 30-second bucket so successive change-detection
+   *  passes return the same string (avoids NG0100). */
   timeAgo(value: string | Date | null | undefined): string {
     if (!value) return '';
     const then = new Date(value).getTime();
     if (Number.isNaN(then)) return '';
-    const diff = Math.max(0, Date.now() - then);
+    const bucket = Math.floor(Date.now() / 30000) * 30000;
+    const diff = Math.max(0, bucket - then);
     const sec = Math.floor(diff / 1000);
     if (sec < 60) return 'just now';
     const min = Math.floor(sec / 60);
@@ -367,55 +442,116 @@ export class TicketDetailComponent
   }
 
 
-  /** Note edit/delete are allowed only within 1 hour of creation. */
+  /** Note edit/delete are allowed only within 1 hour of creation.
+   *  Result is bucketed to a 5-second window so two CD passes within
+   *  the same change-detection tick always return the same value
+   *  (avoids NG0100). */
+  private _editableCache = new Map<string, { until: number; ok: boolean }>();
   canEditNote(c: any): boolean {
     if (!c?.isInternal || !this.isAgent) return false;
     const created = c?.createdAt ? new Date(c.createdAt).getTime() : 0;
     if (!created) return false;
-    const oneHourMs = 60 * 60 * 1000;
-    return Date.now() - created < oneHourMs;
+    const id = c?.id as string | undefined;
+    if (!id) return Date.now() - created < 60 * 60 * 1000;
+    const cached = this._editableCache.get(id);
+    const now = Date.now();
+    if (cached && now < cached.until) return cached.ok;
+    const ok = now - created < 60 * 60 * 1000;
+    this._editableCache.set(id, { until: now + 5000, ok });
+    return ok;
   }
 
-  /** Inline edit of a private note (within 1 hour). */
-  editNote(c: any) {
-    if (!this.canEditNote(c)) return;
-    const stripped = String(c.comment || '')
-      .replace(/<[^>]+>/g, '')
-      .trim();
-    const next = window.prompt('Edit note:', stripped);
-    if (next == null) return;
-    const trimmed = next.trim();
-    if (!trimmed || trimmed === stripped) return;
+  // ─── Note kebab menu + inline edit (Freshdesk-style) ───
+  noteMenuOpenId: string | null = null;
+  editingNoteId: string | null = null;
+  editingNoteText = '';
+  savingNoteId: string | null = null;
+  deletingNoteId: string | null = null;
 
+  toggleNoteMenu(c: any, ev?: Event) {
+    ev?.stopPropagation();
+    this.noteMenuOpenId = this.noteMenuOpenId === c.id ? null : c.id;
+  }
+
+  closeNoteMenu() { this.noteMenuOpenId = null; }
+
+  @HostListener('document:click')
+  onDocClick() {
+    if (this.noteMenuOpenId) this.noteMenuOpenId = null;
+  }
+
+  startEditNote(c: any, ev?: Event) {
+    ev?.stopPropagation();
+    if (!this.canEditNote(c)) return;
+    this.noteMenuOpenId = null;
+    this.editingNoteId = c.id;
+    const html = String(c.comment || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+      .replace(/<[^>]+>/g, '');
+    // Decode HTML entities (&nbsp;, &amp;, &lt; …) using a DOM textarea.
+    const ta = document.createElement('textarea');
+    ta.innerHTML = html;
+    this.editingNoteText = (ta.value || '')
+      .replace(/\u00a0/g, ' ')
+      .trim();
+  }
+
+  cancelNoteEdit() {
+    this.editingNoteId = null;
+    this.editingNoteText = '';
+  }
+
+  saveNoteEdit(c: any) {
+    if (!this.canEditNote(c)) return;
+    if (this.savingNoteId) return;
+    const trimmed = (this.editingNoteText || '').trim();
+    if (!trimmed) return;
+    const html = trimmed.replace(/\n/g, '<br>');
+
+    this.savingNoteId = c.id;
     this.http.put(
       `${environment.apiUrl}/Tickets/${this.ticketId}/comments/${c.id}`,
-      { comment: trimmed, isInternal: true }
+      { comment: html, isInternal: true }
     ).subscribe({
       next: () => {
-        c.comment = trimmed;
+        c.comment = html;
+        this.editingNoteId = null;
+        this.editingNoteText = '';
+        this.savingNoteId = null;
         this.showToast('success', 'Note updated');
       },
       error: (err) => {
+        this.savingNoteId = null;
         this.showToast('error',
           err?.error?.message || 'Failed to update note');
       }
     });
   }
 
+  /** Inline edit of a private note (within 1 hour). */
+  editNote(c: any) {
+    this.startEditNote(c);
+  }
+
   /** Delete a private note (within 1 hour). */
   deleteNote(c: any) {
     if (!this.canEditNote(c)) return;
+    if (this.deletingNoteId) return;
     if (!window.confirm('Delete this private note? This cannot be undone.')) return;
 
+    this.deletingNoteId = c.id;
     this.http.delete(
       `${environment.apiUrl}/Tickets/${this.ticketId}/comments/${c.id}`
     ).subscribe({
       next: () => {
         this.ticket.comments =
           (this.ticket.comments || []).filter((x: any) => x.id !== c.id);
+        this.deletingNoteId = null;
         this.showToast('success', 'Note deleted');
       },
       error: (err) => {
+        this.deletingNoteId = null;
         this.showToast('error',
           err?.error?.message || 'Failed to delete note');
       }
@@ -605,9 +741,15 @@ export class TicketDetailComponent
   loadMasterOptions() {
     this.ticketMasterService.getAll(true).subscribe({
       next: (data) => {
-        this.ticketTypes = data.ticketTypes || [];
-        this.statuses = data.ticketStatuses || [];
-        this.priorities = data.ticketPriorities || [];
+        // Defer to next macrotask so the assignment never lands inside
+        // an in-flight CD pass (avoids NG0100 when the response races
+        // with the initial sibling-component bootstrap tick).
+        setTimeout(() => {
+          this.ticketTypes = data.ticketTypes || [];
+          this.statuses = data.ticketStatuses || [];
+          this.priorities = data.ticketPriorities || [];
+          this.cdr.markForCheck();
+        }, 0);
       }
     });
   }

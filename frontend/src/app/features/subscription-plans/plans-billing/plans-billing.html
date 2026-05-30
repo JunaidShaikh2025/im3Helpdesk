@@ -1,0 +1,204 @@
+<app-layout>
+<div class="pb-page">
+  <!-- ── Page header ─────────────────────────────────────────────── -->
+  <header class="pb-head">
+    <div class="pb-head-text">
+      <h1>Plans &amp; Billing</h1>
+      <p>Track your subscription, renewal and payment history at a glance.</p>
+    </div>
+    <button type="button" class="pb-btn-ghost" (click)="goExplore()">
+      <span class="pb-btn-icon">→</span> Explore plans
+    </button>
+  </header>
+
+  <ng-container *ngIf="loaded(); else loadingTpl">
+    <!-- ── Active subscription card ─────────────────────────────── -->
+    <section class="pb-card pb-hero" *ngIf="subscription() as sub; else noSub"
+             [style.--accent]="plan()?.accent || '#16a34a'">
+      <div class="pb-hero-top">
+        <div class="pb-hero-title">
+          <span class="pb-status" [attr.data-status]="(sub.status || '').toLowerCase()">
+            <i class="pb-dot"></i> {{ sub.status }}
+          </span>
+          <h2>{{ plan()?.name || 'Subscription' }} <span class="pb-hero-suffix">plan</span></h2>
+          <p *ngIf="plan()?.tagline as t">{{ t }}</p>
+        </div>
+        <div class="pb-hero-actions">
+          <button type="button" class="pb-btn-secondary" (click)="openManage()" *ngIf="sub.status !== 'Trial'">
+            Manage subscription
+          </button>
+          <button type="button" class="pb-btn-primary" (click)="goExplore()">
+            {{ sub.status === 'Trial' ? 'Upgrade now' : 'Change plan' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="pb-stats">
+        <div class="pb-stat">
+          <small>Cost</small>
+          <strong>{{ sub.currency }} {{ sub.amount | number:'1.0-0' }}</strong>
+          <span>per {{ sub.billingCycle === 'Annual' ? 'year' : 'month' }}</span>
+        </div>
+        <div class="pb-stat">
+          <small>Billing</small>
+          <strong>{{ cycleLabel() }}</strong>
+          <span>{{ sub.agentSeats }} agent seat{{ sub.agentSeats === 1 ? '' : 's' }}</span>
+        </div>
+        <div class="pb-stat">
+          <small>Started</small>
+          <strong>{{ sub.startedAt | date:'mediumDate' }}</strong>
+          <span>{{ sub.isTrial ? 'Trial' : 'Active subscription' }}</span>
+        </div>
+        <div class="pb-stat">
+          <small>Next renewal</small>
+          <strong>{{ nextBillLabel() }}</strong>
+          <span *ngIf="sub.isTrial">{{ sub.daysRemaining }} day{{ sub.daysRemaining === 1 ? '' : 's' }} left</span>
+          <span *ngIf="!sub.isTrial">Auto-renews</span>
+        </div>
+      </div>
+    </section>
+
+    <ng-template #noSub>
+      <section class="pb-card pb-empty">
+        <div class="pb-empty-art">📦</div>
+        <h2>No active subscription</h2>
+        <p>Pick a plan to unlock features for your team.</p>
+        <button type="button" class="pb-btn-primary" (click)="goExplore()">Explore plans</button>
+      </section>
+    </ng-template>
+
+    <!-- ── Features ─────────────────────────────────────────────── -->
+    <section class="pb-card" *ngIf="features().length">
+      <div class="pb-card-head">
+        <h3>Plan features</h3>
+        <span class="pb-count">{{ features().length }} included</span>
+      </div>
+      <div class="pb-feature-grid">
+        <span *ngFor="let f of features()" class="pb-feature-chip">
+          <i class="pb-check">✓</i> {{ f }}
+        </span>
+      </div>
+    </section>
+
+    <!-- ── Payment history ──────────────────────────────────────── -->
+    <section class="pb-card">
+      <div class="pb-card-head">
+        <h3>Payment history</h3>
+        <span class="pb-count" *ngIf="payments().length">{{ payments().length }} record{{ payments().length === 1 ? '' : 's' }}</span>
+      </div>
+      <div class="pb-table-wrap" *ngIf="payments().length; else noPay">
+        <table class="pb-table">
+          <thead>
+            <tr>
+              <th>Submitted</th>
+              <th>Plan</th>
+              <th>Cycle</th>
+              <th class="num">Seats</th>
+              <th class="num">Amount</th>
+              <th>Card</th>
+              <th>Status</th>
+              <th>Reviewed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of payments()">
+              <td>{{ p.submittedAt | date:'short' }}</td>
+              <td class="strong">{{ p.planName }}</td>
+              <td>{{ p.billingCycle }}</td>
+              <td class="num">{{ p.agentSeats }}</td>
+              <td class="num strong">{{ p.currency }} {{ p.amount | number:'1.0-0' }}</td>
+              <td class="muted">{{ p.cardBrand }} •••• {{ p.cardLast4 }}</td>
+              <td>
+                <span class="pb-status" [attr.data-status]="(p.status || '').toLowerCase()">
+                  <i class="pb-dot"></i> {{ p.status }}
+                </span>
+              </td>
+              <td class="muted">{{ p.reviewedAt ? (p.reviewedAt | date:'short') : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noPay>
+        <div class="pb-empty pb-empty-soft">
+          <div class="pb-empty-art">🧾</div>
+          <p>No payments submitted yet.</p>
+        </div>
+      </ng-template>
+    </section>
+  </ng-container>
+
+  <ng-template #loadingTpl>
+    <div class="pb-card pb-loading">
+      <div class="pb-skeleton" style="width:40%"></div>
+      <div class="pb-skeleton" style="width:70%"></div>
+      <div class="pb-skeleton" style="width:55%"></div>
+    </div>
+  </ng-template>
+
+  <!-- ── Manage subscription dialog (Freshdesk-style) ────────────── -->
+  <div class="pb-modal-backdrop" *ngIf="showManage()" (click)="closeManage()"></div>
+  <aside class="pb-drawer" *ngIf="showManage()" role="dialog" aria-label="Subscription details">
+    <header class="pb-drawer-head">
+      <h3>Subscription details</h3>
+      <div class="pb-cycle-toggle">
+        <button type="button" [class.active]="manageCycle() === 'Monthly'" (click)="manageCycle.set('Monthly')">Monthly</button>
+        <button type="button" [class.active]="manageCycle() === 'Annual'"  (click)="manageCycle.set('Annual')">Annual</button>
+      </div>
+      <button type="button" class="pb-drawer-close" aria-label="Close" (click)="closeManage()">×</button>
+    </header>
+
+    <div class="pb-drawer-body">
+      <p class="pb-drawer-section">Subscription</p>
+
+      <div class="pb-quote" *ngIf="plan() as p">
+        <div class="pb-quote-head">
+          <strong>{{ p.name }} plan</strong>
+          <span class="pb-quote-rate">{{ subscription()?.currency }} {{ manageUnitPrice() | number:'1.0-0' }} per agent per {{ manageCycle() === 'Annual' ? 'year' : 'month' }}</span>
+        </div>
+        <div class="pb-quote-row">
+          <div class="pb-quote-seat">
+            <input type="number" [attr.min]="MIN_SEATS" [value]="manageSeats()"
+                   (input)="manageSeats.set(+($any($event.target).value || MIN_SEATS))">
+            <span>agents</span>
+          </div>
+          <div class="pb-quote-formula">
+            {{ subscription()?.currency }} {{ manageUnitPrice() | number:'1.0-0' }}
+            × {{ manageSeats() }}
+            × {{ manageMonths() }} month{{ manageMonths() === 1 ? '' : 's' }}
+          </div>
+          <strong class="pb-quote-line-total">{{ subscription()?.currency }} {{ manageTotal() | number:'1.0-0' }}</strong>
+        </div>
+        <p class="pb-quote-hint">All plans start at a minimum of {{ MIN_SEATS }} agents.</p>
+      </div>
+
+      <div class="pb-total-card">
+        <div class="pb-total-row">
+          <span>Total <em>(exclusive of tax)</em></span>
+          <strong>{{ subscription()?.currency }} {{ manageTotal() | number:'1.0-0' }}</strong>
+        </div>
+        <p>
+          To be billed on <strong>{{ today() | date:'mediumDate' }}</strong>
+          (period: {{ today() | date:'mediumDate' }} to {{ manageNextDate() | date:'mediumDate' }}).
+          You will be billed {{ manageCycle() === 'Annual' ? 'annually' : 'monthly' }} thereafter.
+        </p>
+      </div>
+
+      <label class="pb-fld">
+        <span>Notes for the SuperAdmin (optional)</span>
+        <textarea rows="2" [value]="manageNotes()" (input)="manageNotes.set($any($event.target).value)"
+                  placeholder="e.g. Adding 5 more agents for the new team."></textarea>
+      </label>
+
+      <div class="pb-drawer-error" *ngIf="manageError() as e">{{ e }}</div>
+      <div class="pb-drawer-ok"    *ngIf="manageOk()    as m">{{ m }}</div>
+    </div>
+
+    <footer class="pb-drawer-foot">
+      <button type="button" class="pb-btn-secondary" (click)="closeManage()" [disabled]="manageBusy()">Cancel</button>
+      <button type="button" class="pb-btn-primary"   (click)="submitManage()" [disabled]="manageBusy() || !!manageOk()">
+        {{ manageBusy() ? 'Sending…' : (manageOk() ? 'Sent ✓' : 'Update plan') }}
+      </button>
+    </footer>
+  </aside>
+</div>
+</app-layout>

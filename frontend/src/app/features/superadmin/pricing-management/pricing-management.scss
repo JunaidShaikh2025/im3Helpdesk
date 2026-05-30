@@ -1,0 +1,42 @@
+.pm-page { max-width: 1200px; margin: 24px auto; padding: 0 24px 40px; color: var(--ui-color-text); }
+.pm-head { margin-bottom: 16px;
+  h1 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
+  p  { margin: 0; color: var(--ui-color-text-muted); font-size: 14px; }
+}
+.pm-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--ui-color-text); color: var(--ui-color-surface);
+  padding: 10px 18px; border-radius: 8px; font-weight: 600; z-index: 800;
+  box-shadow: 0 12px 24px rgba(0,0,0,.2);
+}
+.pm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; }
+.pm-card {
+  background: var(--ui-color-surface, #fff);
+  border: 1px solid var(--ui-color-border, #e2e8f0);
+  border-top: 4px solid var(--accent, #2563eb);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex; flex-direction: column; gap: 12px;
+  header {
+    display: flex; align-items: center; gap: 10px;
+    strong { display: block; font-size: 16px; }
+    small { color: var(--ui-color-text-muted); text-transform: uppercase; font-size: 11px; letter-spacing: .06em; }
+  }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ui-color-text-muted); font-weight: 600; }
+  input[type=text], input[type=number], input[type=color], textarea, select {
+    padding: 8px 10px;
+    background: var(--ui-color-surface, #fff);
+    color: var(--ui-color-text);
+    border: 1px solid var(--ui-color-border, #e2e8f0);
+    border-radius: 6px;
+    font: inherit;
+  }
+  input[type=color] { padding: 0; height: 36px; }
+}
+.pm-dot { width: 12px; height: 12px; border-radius: 50%; }
+.pm-switch { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; }
+.pm-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.pm-preview { background: var(--ui-color-surface-subtle, #f8fafc); padding: 8px 10px; border-radius: 6px; font-size: 12px; color: var(--ui-color-text-muted); }
+.pm-card footer { display: flex; justify-content: flex-end; }
+.pm-save { border: 0; color: #fff; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+.pm-save:disabled { opacity: .6; cursor: not-allowed; }

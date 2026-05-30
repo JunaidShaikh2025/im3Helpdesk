@@ -48,6 +48,7 @@ builder.WebHost.ConfigureKestrel(o => {
 
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 builder.Services.AddScoped<ISlaService, SlaService>();
+builder.Services.AddScoped<iM3Helpdesk.API.Services.ISubscriptionService, iM3Helpdesk.API.Services.SubscriptionService>();
 builder.Services.AddSingleton<IEmailQueueService, EmailQueueService>();
 builder.Services.AddSingleton<IEscalationService, EscalationService>();
 builder.Services.AddHostedService<EmailWorker>();
@@ -141,6 +142,10 @@ builder.Services.AddControllers()
           new iM3Helpdesk.API.Json.UtcDateTimeConverter());
       options.JsonSerializerOptions.Converters.Add(
           new iM3Helpdesk.API.Json.NullableUtcDateTimeConverter());
+      // Serialize/deserialize enums as their string names (e.g. "Monthly"
+      // instead of 0). Frontend submits and consumes string enum values.
+      options.JsonSerializerOptions.Converters.Add(
+          new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -202,4 +207,17 @@ app.UseAuthorization();
 app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+
+// ── Seed subscription plans + trial subscriptions for existing orgs ──
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<iM3Helpdesk.Infrastructure.Persistence.ApplicationDbContext>();
+    try { await iM3Helpdesk.API.Services.SubscriptionSeeder.SeedAsync(db); }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Subscription seeding failed (likely pending migration). Run 'dotnet ef database update'.");
+    }
+}
+
 app.Run();
