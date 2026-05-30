@@ -12,6 +12,7 @@ namespace iM3Helpdesk.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[iM3Helpdesk.API.Middleware.RequireFeature("whatsapp")]
 public class WhatsAppController : ControllerBase
 {
   private readonly ApplicationDbContext _context;

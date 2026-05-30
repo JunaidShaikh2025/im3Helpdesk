@@ -9,6 +9,7 @@ namespace iM3Helpdesk.API.Controllers;
 [ApiController]
 [Route("api/analytics/heatmap")]
 [Authorize]
+[iM3Helpdesk.API.Middleware.RequireFeature("analytics-heatmap")]
 public class AnalyticsHeatmapController : ControllerBase
 {
   private readonly ApplicationDbContext _context;

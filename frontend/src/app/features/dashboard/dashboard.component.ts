@@ -7,6 +7,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth/auth.service';
+import { SubscriptionService } from '../../core/services/subscription';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -35,6 +36,7 @@ const REFRESH_INTERVAL_MS = 60_000;
 export class DashboardComponent implements OnInit, OnDestroy {
 
   private authService = inject(AuthService);
+  public  sub         = inject(SubscriptionService);
   public  router      = inject(Router);
   private http        = inject(HttpClient);
   private toastr      = inject(ToastrService);
@@ -210,10 +212,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getTrialColor(): string {
-    const d = this.stats.trialDaysLeft ?? 0;
-    if (d > 15) return '#4caf50';
-    if (d > 5)  return '#ff9800';
-    return '#f44336';
+    const d = this.trialDaysLeft();
+    if (d > 7) return '#2563eb';   // info blue — plenty of time
+    if (d > 3) return '#f59e0b';   // amber — warning
+    return '#dc2626';              // red — urgent
+  }
+
+  /** Banner visibility: only CompanyAdmin during Trial. */
+  showTrialBanner(): boolean {
+    if (this.userRole !== 'CompanyAdmin') return false;
+    const s = this.sub.subscription();
+    return !!s && s.isTrial === true;
+  }
+
+  trialDaysLeft(): number {
+    return this.sub.subscription()?.daysRemaining ?? 0;
+  }
+
+  goToUpgrade(): void {
+    this.router.navigate(['/explore-plans']);
   }
 
   logout(): void {

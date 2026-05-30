@@ -30,6 +30,7 @@ import { GlobalCallPopupComponent } from '../../shared/components/global-call-po
 import { TopbarContextService } from '../../core/services/topbar-context.service';
 import { OrgContextService } from '../../core/services/org-context.service';
 import { RoleRightsService } from '../../core/services/role-rights.service';
+import { SubscriptionService } from '../../core/services/subscription';
 
 @Component({
   selector: 'app-layout',
@@ -109,6 +110,26 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/recycle-bin']);
   }
 
+  public goToExplorePlans() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/explore-plans']);
+  }
+
+  public goToPlansBilling() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/plans-billing']);
+  }
+
+  public goToPricing() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/superadmin/pricing']);
+  }
+
+  public goToPaymentApprovals() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/superadmin/payments']);
+  }
+
   public goToCustomerPortal() {
     this.showProfileDropdown = false;
     this.router.navigate(['/customer']);
@@ -125,6 +146,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   public  topbarCtx      = inject(TopbarContextService);
   private orgContext     = inject(OrgContextService);
   public  rr             = inject(RoleRightsService);
+  public  sub            = inject(SubscriptionService);
   isSidebarCollapsed = (() => {
     const saved = localStorage.getItem('im3_sidebar_collapsed');
     // Freshdesk-style compact sidebar by default (only when user has never chosen).
@@ -229,6 +251,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   profileCompletion = 100;
 
   superAdminPendingLeadsCount = 0;
+  superAdminPendingPaymentsCount = 0;
 
   // ──────────────────────────────────────────────
   // Todo
@@ -274,6 +297,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   refreshHeaderCounts() {
     if (this.isSuperAdmin) {
       this.loadSuperAdminPendingLeadsCount();
+      this.loadSuperAdminPendingPaymentsCount();
       return;
     }
 
@@ -299,6 +323,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
         const list = Array.isArray(rows) ? rows : [];
         // Backend stores numeric enum values; 0 == Pending.
         this.superAdminPendingLeadsCount = list.filter(x => x?.status === 0).length;
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  private loadSuperAdminPendingPaymentsCount() {
+    this.http.get<any[]>(`${environment.apiUrl}/superadmin/subscription/payments?status=Pending`).subscribe({
+      next: (rows) => {
+        this.superAdminPendingPaymentsCount = Array.isArray(rows) ? rows.length : 0;
         this.cdr.detectChanges();
       },
       error: () => {}
@@ -515,6 +549,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     // Load this user's effective permission map (used by UI gates).
     this.rr.loadMine().subscribe({ error: () => { /* non-fatal */ } });
+    // SuperAdmin has no organization, so /subscription/me would 401.
+    if (!this.isSuperAdmin) {
+      this.sub.ensureLoaded().subscribe({ error: () => { /* non-fatal */ } });
+    }
 
     const savedEmail = localStorage.getItem('im3_email');
     if (savedEmail && savedEmail === this.userEmail) {

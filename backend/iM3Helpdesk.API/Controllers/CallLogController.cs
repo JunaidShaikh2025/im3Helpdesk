@@ -12,6 +12,7 @@ namespace iM3Helpdesk.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[iM3Helpdesk.API.Middleware.RequireFeature("call-logs")]
 public class CallLogController : ControllerBase
 {
   private readonly ApplicationDbContext _context;

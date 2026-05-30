@@ -55,6 +55,12 @@ export class KbListComponent implements OnInit {
   commentTexts: Record<string, string> = {};
   showCommentsFor: string | null = null;
 
+  /** Sum of post counts across all sidebar contributors. */
+  totalPostCount(): number {
+    return (this.usersWithPosts || [])
+      .reduce((s, u) => s + (Number(u?.postCount) || 0), 0);
+  }
+
   ngOnInit() {
     this.userRole = this.authService.getUserRole();
     this.loadArticles();

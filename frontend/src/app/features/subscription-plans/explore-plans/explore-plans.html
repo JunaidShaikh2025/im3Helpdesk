@@ -1,0 +1,480 @@
+<app-layout>
+<div class="ep-page">
+  <!-- ── Header / tier tabs ── -->
+  <div class="ep-header">
+    <div class="ep-header-inner">
+      <button class="ep-back" type="button" (click)="goBack()" aria-label="Back to dashboard">
+        <span>←</span> Back
+      </button>
+
+      <h1 class="ep-title">Explore your plans</h1>
+      <p class="ep-subtitle">Pick a plan and discover every capability available in your workspace.</p>
+
+      <div class="ep-tabs" role="tablist">
+        <button
+          *ngFor="let p of plans"
+          type="button"
+          role="tab"
+          class="ep-tab"
+          [class.active]="selectedTier() === p.tier"
+          [class.current]="isCurrent(p.tier)"
+          [style.--tab-accent]="p.accent"
+          (click)="selectTier(p.tier)">
+          <span class="ep-tab-label">
+            {{ p.label }}
+            <span class="ep-tab-check" *ngIf="isCurrent(p.tier)" title="Current subscription">✓</span>
+          </span>
+          <small class="ep-tab-sub" *ngIf="isCurrent(p.tier)">Current Subscription</small>
+        </button>
+      </div>
+
+      <!-- Pricing CTA strip for the selected tier -->
+      <div class="ep-pricing" *ngIf="backendForSelected() as bp">
+        <div class="ep-pricing-info">
+          <strong class="ep-price">
+            {{ bp.currency }} {{ bp.monthlyPricePerAgent | number:'1.0-0' }}
+          </strong>
+          <span class="ep-price-unit">/ agent / month</span>
+          <span class="ep-price-annual" *ngIf="bp.annualDiscountPct">
+            · Save {{ bp.annualDiscountPct }}% annually
+          </span>
+        </div>
+        <div class="ep-pricing-actions">
+          <span class="ep-pricing-current" *ngIf="isCurrent(selectedTier())">
+            ✓ Currently active
+          </span>
+          <button
+            type="button"
+            class="ep-upgrade"
+            *ngIf="canUpgradeTo(selectedTier())"
+            [style.background]="bp.accent"
+            (click)="openPayment()">
+            Upgrade to {{ bp.name }}
+          </button>
+          <span class="ep-pricing-downgrade" *ngIf="isDowngrade(selectedTier())">
+            <i>ⓘ</i> To switch to a lower plan, please
+            <a href="mailto:support@im3helpdesk.com?subject=Plan%20downgrade%20request">contact support</a>.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Body ── -->
+  <div class="ep-body">
+    <!-- Left: categories + features list -->
+    <aside class="ep-side">
+      <ng-container *ngFor="let cat of currentPlan().categories">
+        <div class="ep-cat" [class.open]="expandedCats()[cat.key]">
+          <button
+            type="button"
+            class="ep-cat-head"
+            (click)="toggleCategory(cat.key)"
+            [attr.aria-expanded]="!!expandedCats()[cat.key]">
+            <span class="ep-cat-title">{{ cat.title }}</span>
+            <span class="ep-cat-meta">
+              <span class="ep-cat-count">{{ cat.features.length }}</span>
+              <span class="ep-cat-chev">⌃</span>
+            </span>
+          </button>
+
+          <ul class="ep-feat-list" *ngIf="expandedCats()[cat.key]">
+            <li
+              *ngFor="let f of cat.features"
+              class="ep-feat-item"
+              [class.active]="selectedKey() === f.key"
+              (click)="selectFeature(cat, f)">
+              <span class="ep-feat-dot"></span>
+              <span class="ep-feat-icon">{{ f.icon }}</span>
+              <span class="ep-feat-name">{{ f.title }}</span>
+              <span class="ep-feat-more" aria-hidden="true">⋯</span>
+            </li>
+          </ul>
+        </div>
+      </ng-container>
+    </aside>
+
+    <!-- Right: feature detail -->
+    <section class="ep-detail" *ngIf="currentFeature() as feat">
+      <div class="ep-detail-head">
+        <span class="ep-detail-icon" [style.background]="currentPlan().accent + '14'" [style.color]="currentPlan().accent">{{ feat.icon }}</span>
+        <h2 class="ep-detail-title">{{ feat.title }}</h2>
+      </div>
+      <p class="ep-detail-tag">{{ feat.tagline }}</p>
+
+      <!-- Illustration: SVG-only, theme aware -->
+      <div class="ep-illust" [style.--illust-accent]="currentPlan().accent">
+        <ng-container [ngSwitch]="feat.illustration">
+
+          <svg *ngSwitchCase="'tickets'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g-tk" x1="0" x2="1"><stop offset="0" stop-color="var(--illust-accent)" stop-opacity=".25"/><stop offset="1" stop-color="var(--illust-accent)" stop-opacity=".05"/></linearGradient>
+            </defs>
+            <rect x="20" y="30" width="200" height="100" rx="14" fill="url(#g-tk)" stroke="var(--illust-accent)" stroke-opacity=".4"/>
+            <rect x="40" y="50" width="120" height="10" rx="5" fill="var(--illust-accent)" opacity=".55"/>
+            <rect x="40" y="70" width="160" height="6"  rx="3" fill="var(--illust-accent)" opacity=".25"/>
+            <rect x="40" y="84" width="140" height="6"  rx="3" fill="var(--illust-accent)" opacity=".25"/>
+            <rect x="40" y="98" width="90"  height="6"  rx="3" fill="var(--illust-accent)" opacity=".25"/>
+            <circle cx="260" cy="80" r="32" fill="var(--illust-accent)" opacity=".15"/>
+            <path d="M248 80 l8 8 l16 -18" stroke="var(--illust-accent)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+
+          <svg *ngSwitchCase="'email'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="40" width="200" height="100" rx="10" fill="var(--illust-accent)" opacity=".12"/>
+            <path d="M60 50 L160 110 L260 50" stroke="var(--illust-accent)" stroke-width="3" fill="none"/>
+            <circle cx="250" cy="40" r="14" fill="var(--illust-accent)"/>
+            <text x="250" y="45" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">↗</text>
+          </svg>
+
+          <svg *ngSwitchCase="'canned'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40" y="30" width="240" height="100" rx="12" fill="var(--illust-accent)" opacity=".1"/>
+            <rect x="60" y="50" width="120" height="10" rx="5" fill="var(--illust-accent)" opacity=".7"/>
+            <rect x="60" y="70" width="180" height="6" rx="3" fill="var(--illust-accent)" opacity=".25"/>
+            <rect x="60" y="86" width="160" height="6" rx="3" fill="var(--illust-accent)" opacity=".25"/>
+            <rect x="60" y="102" width="60" height="18" rx="9" fill="var(--illust-accent)"/>
+            <text x="90" y="115" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">⚡ Send</text>
+          </svg>
+
+          <svg *ngSwitchCase="'search'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="140" cy="80" r="44" stroke="var(--illust-accent)" stroke-width="6" fill="var(--illust-accent)" fill-opacity=".08"/>
+            <line x1="174" y1="114" x2="220" y2="150" stroke="var(--illust-accent)" stroke-width="8" stroke-linecap="round"/>
+            <rect x="110" y="68" width="60" height="6" rx="3" fill="var(--illust-accent)" opacity=".6"/>
+            <rect x="110" y="82" width="40" height="6" rx="3" fill="var(--illust-accent)" opacity=".3"/>
+          </svg>
+
+          <svg *ngSwitchCase="'kb'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="80" y="30" width="160" height="110" rx="8" fill="var(--illust-accent)" opacity=".12"/>
+            <rect x="100" y="50" width="120" height="8" rx="4" fill="var(--illust-accent)" opacity=".6"/>
+            <rect x="100" y="68" width="90"  height="6" rx="3" fill="var(--illust-accent)" opacity=".3"/>
+            <rect x="100" y="80" width="110" height="6" rx="3" fill="var(--illust-accent)" opacity=".3"/>
+            <rect x="100" y="92" width="80"  height="6" rx="3" fill="var(--illust-accent)" opacity=".3"/>
+            <rect x="100" y="110" width="60" height="20" rx="10" fill="var(--illust-accent)"/>
+            <text x="130" y="124" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">Read</text>
+          </svg>
+
+          <svg *ngSwitchCase="'chat'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40" y="40" width="140" height="50" rx="14" fill="var(--illust-accent)" opacity=".18"/>
+            <rect x="140" y="80" width="140" height="50" rx="14" fill="var(--illust-accent)" opacity=".35"/>
+            <circle cx="60" cy="65" r="6" fill="var(--illust-accent)"/>
+            <circle cx="80" cy="65" r="6" fill="var(--illust-accent)" opacity=".6"/>
+            <circle cx="100" cy="65" r="6" fill="var(--illust-accent)" opacity=".3"/>
+          </svg>
+
+          <svg *ngSwitchCase="'calls'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <path d="M120 40 q-40 0 -40 40 q0 60 80 60 q40 0 40 -30 q0 -10 -20 -16 l-16 12 q-20 -8 -28 -28 l12 -16 q-6 -22 -16 -22 z" fill="var(--illust-accent)" opacity=".4"/>
+            <circle cx="240" cy="50" r="18" fill="var(--illust-accent)"/>
+            <text x="240" y="56" text-anchor="middle" font-size="16" fill="#fff">📞</text>
+          </svg>
+
+          <svg *ngSwitchCase="'whatsapp'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="160" cy="80" r="55" fill="#25d366" opacity=".18"/>
+            <circle cx="160" cy="80" r="35" fill="#25d366"/>
+            <text x="160" y="90" text-anchor="middle" font-size="34" fill="#fff">💬</text>
+          </svg>
+
+          <svg *ngSwitchCase="'slack'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="100" y="50" width="120" height="70" rx="12" fill="var(--illust-accent)" opacity=".15"/>
+            <rect x="118" y="68" width="84" height="6" rx="3" fill="var(--illust-accent)" opacity=".5"/>
+            <rect x="118" y="80" width="64" height="6" rx="3" fill="var(--illust-accent)" opacity=".3"/>
+            <rect x="118" y="92" width="74" height="6" rx="3" fill="var(--illust-accent)" opacity=".3"/>
+            <text x="240" y="56" font-size="22">🪝</text>
+          </svg>
+
+          <svg *ngSwitchCase="'contacts'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="80" r="26" fill="var(--illust-accent)" opacity=".5"/>
+            <circle cx="160" cy="80" r="32" fill="var(--illust-accent)"/>
+            <circle cx="220" cy="80" r="26" fill="var(--illust-accent)" opacity=".5"/>
+          </svg>
+
+          <svg *ngSwitchCase="'todo'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="80" y="30" width="160" height="110" rx="12" fill="var(--illust-accent)" opacity=".1"/>
+            <g *ngFor="let i of [0,1,2]">
+              <rect [attr.x]="100" [attr.y]="50 + i*24" width="16" height="16" rx="4" fill="var(--illust-accent)"/>
+              <path [attr.d]="'M104 '+(58 + i*24) +' l4 4 l8 -8'" stroke="#fff" stroke-width="2" fill="none"/>
+              <rect [attr.x]="124" [attr.y]="54 + i*24" width="100" height="6" rx="3" fill="var(--illust-accent)" opacity=".4"/>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'calendar'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="80" y="30" width="160" height="110" rx="10" fill="var(--illust-accent)" opacity=".12"/>
+            <rect x="80" y="30" width="160" height="22" rx="10" fill="var(--illust-accent)"/>
+            <g *ngFor="let r of [0,1,2]; let i = index">
+              <g *ngFor="let c of [0,1,2,3,4]; let j = index">
+                <rect [attr.x]="92 + j*28" [attr.y]="62 + r*22" width="22" height="16" rx="3" fill="var(--illust-accent)" opacity=".22"/>
+              </g>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'holidays'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="30" width="200" height="110" rx="12" fill="var(--illust-accent)" opacity=".12"/>
+            <circle cx="120" cy="80" r="20" fill="var(--illust-accent)"/>
+            <text x="120" y="86" text-anchor="middle" font-size="18">🎉</text>
+            <rect x="160" y="68" width="80" height="8" rx="4" fill="var(--illust-accent)" opacity=".5"/>
+            <rect x="160" y="84" width="60" height="6" rx="3" fill="var(--illust-accent)" opacity=".3"/>
+          </svg>
+
+          <svg *ngSwitchCase="'portal'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="30" width="200" height="110" rx="12" fill="var(--illust-accent)" opacity=".1"/>
+            <rect x="60" y="30" width="200" height="20" rx="12" fill="var(--illust-accent)"/>
+            <circle cx="70" cy="40" r="4" fill="#fff"/><circle cx="82" cy="40" r="4" fill="#fff"/><circle cx="94" cy="40" r="4" fill="#fff"/>
+            <text x="160" y="105" text-anchor="middle" font-size="34">🌐</text>
+          </svg>
+
+          <svg *ngSwitchCase="'recycle'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="120" y="46" width="80" height="90" rx="6" fill="var(--illust-accent)" opacity=".25" stroke="var(--illust-accent)" stroke-width="2"/>
+            <rect x="110" y="40" width="100" height="10" rx="3" fill="var(--illust-accent)"/>
+            <line x1="140" y1="60" x2="140" y2="120" stroke="var(--illust-accent)" stroke-width="2"/>
+            <line x1="160" y1="60" x2="160" y2="120" stroke="var(--illust-accent)" stroke-width="2"/>
+            <line x1="180" y1="60" x2="180" y2="120" stroke="var(--illust-accent)" stroke-width="2"/>
+          </svg>
+
+          <svg *ngSwitchCase="'agents'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="160" cy="65" r="22" fill="var(--illust-accent)"/>
+            <path d="M110 130 q50 -50 100 0" fill="var(--illust-accent)" opacity=".25"/>
+            <circle cx="100" cy="90" r="14" fill="var(--illust-accent)" opacity=".5"/>
+            <circle cx="220" cy="90" r="14" fill="var(--illust-accent)" opacity=".5"/>
+          </svg>
+
+          <svg *ngSwitchCase="'groups'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <g *ngFor="let i of [0,1,2,3]">
+              <circle [attr.cx]="80 + i*48" cy="80" r="22" [attr.fill]="i % 2 ? 'var(--illust-accent)' : 'rgba(0,0,0,0)'" [attr.stroke]="'var(--illust-accent)'" stroke-width="2"/>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'roles'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="40" width="200" height="80" rx="10" fill="var(--illust-accent)" opacity=".1" stroke="var(--illust-accent)" stroke-opacity=".4"/>
+            <g *ngFor="let r of [0,1,2]">
+              <g *ngFor="let c of [0,1,2,3,4]">
+                <rect [attr.x]="80 + c*36" [attr.y]="56 + r*22" width="24" height="14" rx="3" [attr.fill]="(r+c) % 2 ? 'var(--illust-accent)' : 'var(--illust-accent)'" [attr.opacity]="(r+c) % 2 ? '.9' : '.25'"/>
+              </g>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'org'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="130" y="40" width="60" height="100" rx="6" fill="var(--illust-accent)"/>
+            <rect x="80"  y="70" width="50" height="70" rx="6" fill="var(--illust-accent)" opacity=".55"/>
+            <rect x="190" y="70" width="50" height="70" rx="6" fill="var(--illust-accent)" opacity=".55"/>
+            <g *ngFor="let r of [0,1,2]">
+              <g *ngFor="let c of [0,1]">
+                <rect [attr.x]="143 + c*16" [attr.y]="55 + r*26" width="10" height="14" fill="#fff" opacity=".6"/>
+              </g>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'dashboard'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40" y="40" width="100" height="50" rx="6" fill="var(--illust-accent)" opacity=".18"/>
+            <rect x="150" y="40" width="130" height="50" rx="6" fill="var(--illust-accent)" opacity=".18"/>
+            <rect x="40" y="100" width="240" height="40" rx="6" fill="var(--illust-accent)" opacity=".1"/>
+            <polyline points="50,135 90,115 130,125 170,105 210,118 250,95 275,108" fill="none" stroke="var(--illust-accent)" stroke-width="3"/>
+          </svg>
+
+          <svg *ngSwitchCase="'reports'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <g *ngFor="let i of [0,1,2,3,4]">
+              <rect [attr.x]="60 + i*40" [attr.y]="40 + (i%3)*20" [attr.width]="28" [attr.height]="100 - (i%3)*20" rx="4" fill="var(--illust-accent)" [attr.opacity]="0.3 + i*0.12"/>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'heatmap'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <g *ngFor="let r of [0,1,2,3,4]">
+              <g *ngFor="let c of [0,1,2,3,4,5,6]">
+                <rect [attr.x]="60 + c*28" [attr.y]="30 + r*22" width="22" height="16" rx="3" fill="var(--illust-accent)" [attr.opacity]="((r*7+c)%9)/9 * 0.9 + 0.1"/>
+              </g>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'audit'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <path d="M160 30 l60 20 v40 q0 35 -60 50 q-60 -15 -60 -50 v-40 z" fill="var(--illust-accent)" opacity=".25" stroke="var(--illust-accent)" stroke-width="2"/>
+            <path d="M138 90 l16 16 l32 -34" stroke="var(--illust-accent)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+
+          <svg *ngSwitchCase="'ai'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g-ai" x1="0" x2="1"><stop offset="0" stop-color="var(--illust-accent)" stop-opacity=".4"/><stop offset="1" stop-color="var(--illust-accent)" stop-opacity="0"/></linearGradient>
+            </defs>
+            <path d="M30 120 Q90 50 160 100 T290 70 L290 140 L30 140 Z" fill="url(#g-ai)"/>
+            <polyline points="30,120 90,80 160,100 220,70 290,50" fill="none" stroke="var(--illust-accent)" stroke-width="3"/>
+            <text x="260" y="40" font-size="22">🤖</text>
+          </svg>
+
+          <svg *ngSwitchCase="'multi-org'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <g *ngFor="let i of [0,1,2]">
+              <rect [attr.x]="40 + i*100" y="50" width="80" height="80" rx="8" fill="var(--illust-accent)" [attr.opacity]="0.25 + i*0.25"/>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'leads'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <path d="M60 130 q60 -80 200 -90" stroke="var(--illust-accent)" stroke-width="4" fill="none"/>
+            <circle cx="60" cy="130" r="10" fill="var(--illust-accent)" opacity=".4"/>
+            <circle cx="160" cy="80" r="10" fill="var(--illust-accent)" opacity=".7"/>
+            <circle cx="260" cy="40" r="14" fill="var(--illust-accent)"/>
+            <text x="260" y="46" text-anchor="middle" font-size="16" fill="#fff">🚀</text>
+          </svg>
+
+          <svg *ngSwitchCase="'fields'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="40" width="200" height="22" rx="6" fill="var(--illust-accent)" opacity=".15" stroke="var(--illust-accent)" stroke-opacity=".4"/>
+            <rect x="60" y="70" width="200" height="22" rx="6" fill="var(--illust-accent)" opacity=".15" stroke="var(--illust-accent)" stroke-opacity=".4"/>
+            <rect x="60" y="100" width="200" height="22" rx="6" fill="var(--illust-accent)" opacity=".15" stroke="var(--illust-accent)" stroke-opacity=".4"/>
+            <rect x="70" y="46" width="80" height="10" rx="2" fill="var(--illust-accent)" opacity=".55"/>
+            <rect x="70" y="76" width="50" height="10" rx="2" fill="var(--illust-accent)" opacity=".55"/>
+            <rect x="70" y="106" width="100" height="10" rx="2" fill="var(--illust-accent)" opacity=".55"/>
+          </svg>
+
+          <svg *ngSwitchCase="'masters'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="40" width="200" height="80" rx="8" fill="var(--illust-accent)" opacity=".12"/>
+            <g *ngFor="let i of [0,1,2,3]">
+              <rect [attr.x]="80" [attr.y]="52 + i*16" width="160" height="10" rx="2" fill="var(--illust-accent)" [attr.opacity]="0.7 - i*0.15"/>
+            </g>
+          </svg>
+
+          <svg *ngSwitchCase="'notify'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <path d="M160 30 q-40 0 -40 50 v20 l-10 12 h100 l-10 -12 v-20 q0 -50 -40 -50 z" fill="var(--illust-accent)" opacity=".5"/>
+            <circle cx="160" cy="124" r="10" fill="var(--illust-accent)"/>
+            <circle cx="205" cy="40" r="10" fill="#ef4444"/>
+            <text x="205" y="45" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">9</text>
+          </svg>
+
+          <!-- Fallback -->
+          <svg *ngSwitchDefault viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="40" width="200" height="80" rx="10" fill="var(--illust-accent)" opacity=".15"/>
+            <text x="160" y="92" text-anchor="middle" font-size="42">{{ feat.icon }}</text>
+          </svg>
+        </ng-container>
+      </div>
+
+      <div class="ep-detail-body">
+        <p *ngFor="let para of feat.paragraphs">{{ para }}</p>
+
+        <ul class="ep-detail-bullets" *ngIf="feat.bullets?.length">
+          <li *ngFor="let b of feat.bullets">
+            <span class="ep-bullet-tick">✓</span>{{ b }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="ep-detail-actions">
+        <button type="button" class="ep-action-btn">
+          <span class="ep-action-icon">?</span> Ask a question
+        </button>
+        <button type="button" class="ep-action-btn">
+          <span class="ep-action-icon">▶</span> Get a 1-1 demo
+        </button>
+        <a *ngIf="feat.learnMoreUrl" class="ep-learn-more" [href]="feat.learnMoreUrl" target="_blank" rel="noopener">Learn more</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ── Payment dialog ─────────────────────────────────────────── -->
+<div class="ep-modal" *ngIf="showPayment()" (click)="closePayment()">
+  <div class="ep-modal-card" (click)="$event.stopPropagation()" *ngIf="backendForSelected() as bp">
+    <div class="ep-modal-head" [style.background]="bp.accent">
+      <div>
+        <small>Upgrade plan</small>
+        <h3>{{ bp.name }} · {{ bp.currency }} {{ bp.monthlyPricePerAgent | number:'1.0-0' }} / agent / mo</h3>
+      </div>
+      <button type="button" class="ep-modal-close" (click)="closePayment()" aria-label="Close">×</button>
+    </div>
+
+    <div class="ep-modal-body" *ngIf="!paymentSuccess(); else successTpl">
+      <div class="ep-row">
+        <label class="ep-fld">
+          <span>Billing cycle</span>
+          <div class="ep-toggle">
+            <button type="button" [class.active]="payment().billingCycle === 'Monthly'" (click)="updatePayment('billingCycle','Monthly')">Monthly</button>
+            <button type="button" [class.active]="payment().billingCycle === 'Annual'"  (click)="updatePayment('billingCycle','Annual')">Annual · save {{ bp.annualDiscountPct }}%</button>
+          </div>
+        </label>
+        <label class="ep-fld">
+          <span>Agent seats <small class="ep-fld-hint">(min 10)</small></span>
+          <input type="number" [attr.min]="MIN_SEATS" [value]="payment().agentSeats"
+                 (input)="updatePayment('agentSeats', +($any($event.target).value || MIN_SEATS))">
+        </label>
+      </div>
+
+      <!-- Freshdesk-style line-item breakdown -->
+      <div class="ep-quote">
+        <div class="ep-quote-head">
+          <div>
+            <strong>{{ bp.name }} plan</strong>
+            <span class="ep-quote-rate">{{ bp.currency }} {{ unitPrice() | number:'1.0-0' }} per agent per {{ payment().billingCycle === 'Annual' ? 'year' : 'month' }}</span>
+          </div>
+        </div>
+        <div class="ep-quote-line">
+          <span class="ep-quote-formula">
+            {{ bp.currency }} {{ unitPrice() | number:'1.0-0' }}
+            × {{ payment().agentSeats }} agent{{ payment().agentSeats === 1 ? '' : 's' }}
+            × {{ periodMonths() === 12 ? '12 months' : '1 month' }}
+          </span>
+          <strong class="ep-quote-amount">{{ bp.currency }} {{ paymentAmount() | number:'1.0-0' }}</strong>
+        </div>
+        <div class="ep-quote-foot">
+          <span>Total <em class="ep-quote-tax">(exclusive of tax)</em></span>
+          <strong class="ep-quote-total">{{ bp.currency }} {{ paymentAmount() | number:'1.0-0' }}</strong>
+        </div>
+        <p class="ep-quote-note">
+          To be billed on <strong>{{ today() | date:'mediumDate' }}</strong>
+          (period: {{ today() | date:'mediumDate' }} to {{ nextBillDate() | date:'mediumDate' }}).
+          You will be billed {{ payment().billingCycle === 'Annual' ? 'annually' : 'monthly' }} thereafter.
+        </p>
+      </div>
+
+      <div class="ep-row">
+        <label class="ep-fld">
+          <span>Billing name *</span>
+          <input type="text" [value]="payment().billingName" (input)="updatePayment('billingName', $any($event.target).value)">
+        </label>
+        <label class="ep-fld">
+          <span>Billing email *</span>
+          <input type="email" [value]="payment().billingEmail" (input)="updatePayment('billingEmail', $any($event.target).value)">
+        </label>
+      </div>
+
+      <label class="ep-fld">
+        <span>Billing address</span>
+        <textarea rows="2" [value]="payment().billingAddress" (input)="updatePayment('billingAddress', $any($event.target).value)"></textarea>
+      </label>
+
+      <div class="ep-row">
+        <label class="ep-fld">
+          <span>Card brand</span>
+          <select [value]="payment().cardBrand" (change)="updatePayment('cardBrand', $any($event.target).value)">
+            <option>Visa</option><option>Mastercard</option><option>Amex</option><option>RuPay</option><option>Other</option>
+          </select>
+        </label>
+        <label class="ep-fld">
+          <span>Card last 4 digits *</span>
+          <input type="text" maxlength="4" pattern="\d{4}" [value]="payment().cardLast4"
+                 (input)="updatePayment('cardLast4', $any($event.target).value)">
+        </label>
+      </div>
+
+      <label class="ep-fld">
+        <span>Notes (optional)</span>
+        <textarea rows="2" [value]="payment().notes" (input)="updatePayment('notes', $any($event.target).value)"></textarea>
+      </label>
+
+      <div class="ep-modal-error" *ngIf="paymentError() as e">{{ e }}</div>
+
+      <div class="ep-modal-foot">
+        <button type="button" class="ep-btn-secondary" (click)="closePayment()" [disabled]="paymentSaving()">Cancel</button>
+        <button type="button" class="ep-btn-primary" [style.background]="bp.accent"
+                (click)="submitPayment()" [disabled]="paymentSaving()">
+          {{ paymentSaving() ? 'Submitting…' : 'Submit payment' }}
+        </button>
+      </div>
+      <p class="ep-modal-note">
+        Payments are reviewed by SuperAdmin. Your plan activates as soon as it's approved.
+      </p>
+    </div>
+
+    <ng-template #successTpl>
+      <div class="ep-modal-body ep-modal-success">
+        <div class="ep-success-icon" [style.background]="bp.accent + '20'" [style.color]="bp.accent">✓</div>
+        <h4>Payment submitted</h4>
+        <p>{{ paymentSuccess() }}</p>
+        <button type="button" class="ep-btn-primary" [style.background]="bp.accent" (click)="closePayment()">Done</button>
+      </div>
+    </ng-template>
+  </div>
+</div>
+</app-layout>

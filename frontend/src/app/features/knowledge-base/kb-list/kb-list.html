@@ -6,7 +6,22 @@
     ════════════════════════════════ -->
     <aside class="users-sidebar">
 
-      <div class="sidebar-title">👥 Posts By</div>
+      <!-- Stats card -->
+      <div class="sidebar-stats">
+        <div class="stat-cell">
+          <div class="stat-num">{{ usersWithPosts.length }}</div>
+          <div class="stat-lbl">Authors</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-cell">
+          <div class="stat-num">{{ totalPostCount() }}</div>
+          <div class="stat-lbl">Posts</div>
+        </div>
+      </div>
+
+      <div class="sidebar-title">
+        <span class="sb-ic" aria-hidden="true">👥</span> Posts By
+      </div>
 
       <!-- All Posts -->
       <div class="user-item"
@@ -55,7 +70,7 @@
         <button class="new-post-btn"
           *hasPermission="'knowledge-base:add'"
           (click)="router.navigate(['/kb/create'])">
-          ✏ New Post
+          <span aria-hidden="true">＋</span> New Post
         </button>
       </div>
 

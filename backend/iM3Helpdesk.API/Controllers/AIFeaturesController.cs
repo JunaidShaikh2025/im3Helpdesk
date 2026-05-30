@@ -13,6 +13,7 @@ namespace iM3Helpdesk.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[iM3Helpdesk.API.Middleware.RequireFeature("ai-insights")]
 public class AIFeaturesController : ControllerBase
 {
   private readonly ApplicationDbContext _context;

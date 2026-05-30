@@ -14,6 +14,7 @@ namespace iM3Helpdesk.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[iM3Helpdesk.API.Middleware.RequireFeature("slack")]
 public class SlackController : ControllerBase
 {
   private readonly ApplicationDbContext _context;

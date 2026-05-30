@@ -4,6 +4,7 @@ import { superAdminGuard } from './core/guards/super-admin-guard';
 import { companyAdminGuard } from './core/guards/company-admin.guard';
 import { setupOrgGuard } from './core/guards/setup-org.guard';
 import { permissionGuard } from './core/guards/permission.guard';
+import { featureGuard } from './core/guards/feature.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -97,7 +98,7 @@ export const routes: Routes = [
     path: 'ai-dashboard',
     loadComponent: () =>
       import('./features/dashboard/ai-dashboard/ai-dashboard').then(m => m.AIDashboardComponent),
-    canActivate: [authGuard, permissionGuard('ai-insights')]
+    canActivate: [authGuard, permissionGuard('ai-insights'), featureGuard('ai-insights')]
   },
   {
     path: 'tickets/create',
@@ -141,7 +142,7 @@ export const routes: Routes = [
       import('./features/organization/organization-profile/organization-profile').then(
         m => m.OrganizationProfileComponent
       ),
-    canActivate: [authGuard, companyAdminGuard, permissionGuard('organization-profile')]
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('organization-profile'), featureGuard('organization-profile')]
   },
   {
     path: 'holiday-setup',
@@ -149,7 +150,7 @@ export const routes: Routes = [
       import('./features/organization/holiday-setup/holiday-setup').then(
         m => m.HolidaySetupComponent
       ),
-    canActivate: [authGuard, companyAdminGuard, permissionGuard('holiday-setup')]
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('holiday-setup'), featureGuard('holiday-setup')]
   },
   {
     path: 'role-rights',
@@ -157,7 +158,7 @@ export const routes: Routes = [
       import('./features/settings/role-rights/role-rights').then(
         m => m.RoleRightsComponent
       ),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, featureGuard('role-rights')]
   },
   {
     path: 'recycle-bin',
@@ -165,7 +166,7 @@ export const routes: Routes = [
       import('./features/recycle-bin/recycle-bin-page/recycle-bin-page').then(
         m => m.RecycleBinPageComponent
       ),
-    canActivate: [authGuard, permissionGuard('recycle-bin')]
+    canActivate: [authGuard, permissionGuard('recycle-bin'), featureGuard('recycle-bin')]
   },
   {
     path: 'notifications',
@@ -177,7 +178,7 @@ export const routes: Routes = [
     path: 'reports',
     loadComponent: () =>
       import('./features/reports/reports-page/reports-page').then(m => m.ReportsComponent),
-    canActivate: [authGuard, permissionGuard('reports')]
+    canActivate: [authGuard, permissionGuard('reports'), featureGuard('reports')]
   },
   {
     path: 'admin',
@@ -244,7 +245,7 @@ export const routes: Routes = [
     path: 'insights/heatmap',
     loadComponent: () =>
       import('./features/insights/heatmap/heatmap').then(m => m.HeatmapComponent),
-    canActivate: [authGuard, permissionGuard('analytics-heatmap')]
+    canActivate: [authGuard, permissionGuard('analytics-heatmap'), featureGuard('analytics-heatmap')]
   },
   {
     path: 'settings/templates',
@@ -262,13 +263,37 @@ export const routes: Routes = [
     path: 'audit',
     loadComponent: () =>
       import('./features/settings/audit-log/audit-log').then(m => m.AuditLogComponent),
-    canActivate: [authGuard, permissionGuard('audit-log')]
+    canActivate: [authGuard, permissionGuard('audit-log'), featureGuard('audit-log')]
   },
   {
     path: 'calendar',
     loadComponent: () =>
       import('./features/calendar/calendar-event/calendar-event').then(m => m.CalendarEventComponent),
     canActivate: [authGuard, permissionGuard('calendar')]
+  },
+  {
+    path: 'explore-plans',
+    loadComponent: () =>
+      import('./features/subscription-plans/explore-plans/explore-plans').then(m => m.ExplorePlansComponent),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
+    path: 'plans-billing',
+    loadComponent: () =>
+      import('./features/subscription-plans/plans-billing/plans-billing').then(m => m.PlansBillingComponent),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
+    path: 'superadmin/pricing',
+    loadComponent: () =>
+      import('./features/superadmin/pricing-management/pricing-management').then(m => m.PricingManagementComponent),
+    canActivate: [authGuard, superAdminGuard]
+  },
+  {
+    path: 'superadmin/payments',
+    loadComponent: () =>
+      import('./features/superadmin/pending-payments/pending-payments').then(m => m.PendingPaymentsComponent),
+    canActivate: [authGuard, superAdminGuard]
   },
   { path: '**', redirectTo: 'auth/login' }
 ];

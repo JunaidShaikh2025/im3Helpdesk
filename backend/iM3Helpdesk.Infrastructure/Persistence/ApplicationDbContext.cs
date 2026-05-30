@@ -98,6 +98,11 @@ public class ApplicationDbContext : DbContext
   // ✅ NEW — Role Rights matrix
   public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
+  // ✅ NEW — Subscription / Billing
+  public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+  public DbSet<OrganizationSubscription> OrganizationSubscriptions => Set<OrganizationSubscription>();
+  public DbSet<PaymentRecord> PaymentRecords => Set<PaymentRecord>();
+
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
@@ -774,6 +779,55 @@ public class ApplicationDbContext : DbContext
       e.HasQueryFilter(rp =>
           _isSuperAdmin ||
           rp.OrganizationId == _currentTenantId);
+    });
+
+    // ── SubscriptionPlan ─────────── (global, no tenant filter)
+    modelBuilder.Entity<SubscriptionPlan>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.TierKey).HasMaxLength(40).IsRequired();
+      e.Property(x => x.Name).HasMaxLength(80).IsRequired();
+      e.Property(x => x.Tagline).HasMaxLength(300);
+      e.Property(x => x.Accent).HasMaxLength(20);
+      e.Property(x => x.Currency).HasMaxLength(10);
+      e.Property(x => x.FeatureKeysCsv).HasMaxLength(4000);
+      e.Property(x => x.MonthlyPricePerAgent).HasColumnType("decimal(12,2)");
+      e.Property(x => x.AnnualDiscountPct).HasColumnType("decimal(5,2)");
+      e.HasIndex(x => x.TierKey).IsUnique();
+    });
+
+    // ── OrganizationSubscription ─── (tenant scoped)
+    modelBuilder.Entity<OrganizationSubscription>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Currency).HasMaxLength(10);
+      e.Property(x => x.Amount).HasColumnType("decimal(12,2)");
+      e.HasIndex(x => x.OrganizationId);
+      e.HasIndex(x => new { x.OrganizationId, x.Status });
+      e.HasQueryFilter(s =>
+          _isSuperAdmin ||
+          s.OrganizationId == _currentTenantId);
+    });
+
+    // ── PaymentRecord ────────────── (tenant scoped)
+    modelBuilder.Entity<PaymentRecord>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Currency).HasMaxLength(10);
+      e.Property(x => x.Amount).HasColumnType("decimal(12,2)");
+      e.Property(x => x.BillingName).HasMaxLength(200);
+      e.Property(x => x.BillingEmail).HasMaxLength(320);
+      e.Property(x => x.BillingAddress).HasMaxLength(500);
+      e.Property(x => x.CardLast4).HasMaxLength(4);
+      e.Property(x => x.CardBrand).HasMaxLength(40);
+      e.Property(x => x.GatewayReference).HasMaxLength(200);
+      e.Property(x => x.Notes).HasMaxLength(1000);
+      e.Property(x => x.ReviewNotes).HasMaxLength(1000);
+      e.HasIndex(x => new { x.OrganizationId, x.Status });
+      e.HasIndex(x => x.Status);
+      e.HasQueryFilter(p =>
+          _isSuperAdmin ||
+          p.OrganizationId == _currentTenantId);
     });
 
     // ── ChatGroupMember ───────────

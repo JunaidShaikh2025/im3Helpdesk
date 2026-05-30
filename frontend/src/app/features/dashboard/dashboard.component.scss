@@ -186,9 +186,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--ui-color-bg-surface);
+  gap: 16px;
+  background: color-mix(in srgb, var(--trial-accent, #2563eb) 8%, var(--ui-color-bg-surface));
   color: var(--ui-color-text-primary);
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid color-mix(in srgb, var(--trial-accent, #2563eb) 30%, var(--ui-color-border));
+  border-left: 4px solid var(--trial-accent, #2563eb);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 24px;
@@ -200,19 +202,20 @@
 
     .trial-icon {
       font-size: 20px;
-      background: var(--ui-color-primary-soft);
-      padding: 8px;
+      background: color-mix(in srgb, var(--trial-accent, #2563eb) 18%, transparent);
+      color: var(--trial-accent, #2563eb);
+      padding: 8px 10px;
       border-radius: 8px;
     }
 
-    strong { display: block; font-size: 15px; }
+    strong { display: block; font-size: 15px; color: var(--trial-accent, #2563eb); }
     p { margin: 2px 0 0; font-size: 13px; color: var(--ui-color-text-secondary); }
   }
 }
 
 .upgrade-btn {
-  background: var(--ui-color-primary-hover);
-  color: var(--ui-color-bg-surface);
+  background: var(--trial-accent, var(--ui-color-primary-hover));
+  color: #fff;
   border: none;
   padding: 10px 20px;
   border-radius: 8px;

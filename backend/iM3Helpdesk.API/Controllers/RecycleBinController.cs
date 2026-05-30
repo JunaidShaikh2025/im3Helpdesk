@@ -17,6 +17,7 @@ namespace iM3Helpdesk.API.Controllers;
 [ApiController]
 [Route("api/recycle-bin")]
 [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
+[iM3Helpdesk.API.Middleware.RequireFeature("recycle-bin")]
 public class RecycleBinController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

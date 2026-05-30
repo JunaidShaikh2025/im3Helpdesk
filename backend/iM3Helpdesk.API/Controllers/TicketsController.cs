@@ -1269,6 +1269,69 @@ public class TicketsController : ControllerBase
     });
   }
 
+  // ── Edit a private note (within 1 hour, by the same author) ──
+  [HttpPut("{id}/comments/{commentId}")]
+  public async Task<IActionResult> UpdateComment(
+      Guid id, Guid commentId,
+      [FromBody] AddCommentDto dto)
+  {
+    var userId = GetUserId();
+    if (userId == Guid.Empty) return Unauthorized();
+    var orgId = _tenantService.OrganizationId!.Value;
+
+    var comment = await _context.TicketComments
+        .FirstOrDefaultAsync(c =>
+            c.Id == commentId &&
+            c.TicketId == id &&
+            c.OrganizationId == orgId);
+    if (comment == null) return NotFound();
+
+    if (!comment.IsInternal)
+      return BadRequest(new { message = "Only private notes can be edited." });
+    if (comment.UserId != userId)
+      return Forbid();
+    if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromHours(1))
+      return BadRequest(new { message = "Notes can only be edited within 1 hour." });
+
+    var text = (dto?.Comment ?? string.Empty).Trim();
+    if (string.IsNullOrWhiteSpace(text))
+      return BadRequest(new { message = "Note cannot be empty." });
+
+    comment.Comment = text;
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Note updated" });
+  }
+
+  // ── Delete a private note (within 1 hour, by the same author) ──
+  [HttpDelete("{id}/comments/{commentId}")]
+  public async Task<IActionResult> DeleteComment(
+      Guid id, Guid commentId)
+  {
+    var userId = GetUserId();
+    if (userId == Guid.Empty) return Unauthorized();
+    var orgId = _tenantService.OrganizationId!.Value;
+
+    var comment = await _context.TicketComments
+        .FirstOrDefaultAsync(c =>
+            c.Id == commentId &&
+            c.TicketId == id &&
+            c.OrganizationId == orgId);
+    if (comment == null) return NotFound();
+
+    if (!comment.IsInternal)
+      return BadRequest(new { message = "Only private notes can be deleted." });
+    if (comment.UserId != userId)
+      return Forbid();
+    if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromHours(1))
+      return BadRequest(new { message = "Notes can only be deleted within 1 hour." });
+
+    _context.TicketComments.Remove(comment);
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Note deleted" });
+  }
+
   [HttpPut("{id}/assign")]
   public async Task<IActionResult> AssignTicket(
       Guid id, [FromBody] AssignTicketDto dto)

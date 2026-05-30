@@ -8,6 +8,7 @@ namespace iM3Helpdesk.API.Controllers;
 
 [ApiController]
 [Route("api/leads")]
+[iM3Helpdesk.API.Middleware.RequireFeature("leads")]
 public class LeadsController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
