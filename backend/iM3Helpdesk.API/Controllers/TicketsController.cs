@@ -1,5 +1,6 @@
-using iM3Helpdesk.API.DTOs.Tickets;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.API.Common.Helpers;
+using iM3Helpdesk.Application.Contracts.Services;
+using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -7,21 +8,15 @@ using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using System.Text;
+using static iM3Helpdesk.API.Common.Helpers.TicketEnumHelpers;
 
 namespace iM3Helpdesk.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class TicketsController : ControllerBase
+public class TicketsController : TicketsControllerBase
 {
-  private const string TicketTypeField = "TicketType";
-  private const string TicketStatusField = "TicketStatus";
-  private const string TicketPriorityField = "TicketPriority";
-
-  private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenantService;
   private readonly INotificationService _notificationService;
   private readonly IEmailService _emailService;
@@ -35,137 +30,14 @@ public class TicketsController : ControllerBase
       IEmailService emailService,
       ISlaService slaService,
       ILogger<TicketsController> logger)
+      : base(context)
   {
-    _context = context;
     _tenantService = tenantService;
     _notificationService = notificationService;
     _emailService = emailService;
     _slaService = slaService;
     _logger = logger;
   }
-
-  private Guid GetUserId()
-  {
-    var claim =
-        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-        ?? User.FindFirst("sub")?.Value;
-    Guid.TryParse(claim, out var id);
-    return id;
-  }
-
-  private static string? GetTicketRecipientEmail(Ticket ticket)
-  {
-    if (!string.IsNullOrWhiteSpace(ticket.FromEmail))
-      return ticket.FromEmail.Trim();
- 
-    return ticket.CreatedBy?.Email;
-  }
-
-  private static string FormatSize(long bytes)
-  {
-    if (bytes < 1024) return $"{bytes} B";
-    if (bytes < 1048576)
-      return $"{bytes / 1024} KB";
-    return $"{bytes / 1048576} MB";
-  }
-
-  private async Task<bool> IsMasterValueAllowedAsync(
-      string field,
-      string value)
-  {
-    var hasRows = await _context.TicketFieldMasters
-        .AnyAsync(x => x.Field == field);
-
-    if (!hasRows)
-      return true;
-
-    return await _context.TicketFieldMasters
-        .AnyAsync(x =>
-            x.Field == field &&
-            x.IsActive &&
-            x.Value == value);
-  }
-
-  private static bool TryParseTicketStatus(string? input, out TicketStatus status)
-  {
-    status = default;
-    if (string.IsNullOrWhiteSpace(input))
-      return false;
-
-    var value = input.Trim();
-
-    if (Enum.TryParse<TicketStatus>(value, true, out var parsed) &&
-        Enum.IsDefined(parsed))
-    {
-      status = parsed;
-      return true;
-    }
-
-    var compact = CompactEnumToken(value);
-    if (compact == "close")
-    {
-      status = TicketStatus.Closed;
-      return true;
-    }
-
-    foreach (var name in Enum.GetNames<TicketStatus>())
-    {
-      if (CompactEnumToken(name) == compact)
-      {
-        status = Enum.Parse<TicketStatus>(name, true);
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static bool TryParseTicketPriority(string? input, out TicketPriority priority)
-  {
-    priority = default;
-    if (string.IsNullOrWhiteSpace(input))
-      return false;
-
-    var value = input.Trim();
-
-    if (Enum.TryParse<TicketPriority>(value, true, out var parsed) &&
-        Enum.IsDefined(parsed))
-    {
-      priority = parsed;
-      return true;
-    }
-
-    var compact = CompactEnumToken(value);
-    if (compact == "urgent")
-    {
-      priority = TicketPriority.Critical;
-      return true;
-    }
-
-    foreach (var name in Enum.GetNames<TicketPriority>())
-    {
-      if (CompactEnumToken(name) == compact)
-      {
-        priority = Enum.Parse<TicketPriority>(name, true);
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static string CompactEnumToken(string value)
-  {
-    var sb = new StringBuilder(value.Length);
-    foreach (var ch in value)
-    {
-      if (char.IsLetterOrDigit(ch))
-        sb.Append(char.ToLowerInvariant(ch));
-    }
-
-    return sb.ToString();
-  }
-
   [HttpGet("my-status-counts")]
   public async Task<IActionResult> GetMyStatusCounts()
   {
@@ -1269,69 +1141,6 @@ public class TicketsController : ControllerBase
     });
   }
 
-  // ── Edit a private note (within 1 hour, by the same author) ──
-  [HttpPut("{id}/comments/{commentId}")]
-  public async Task<IActionResult> UpdateComment(
-      Guid id, Guid commentId,
-      [FromBody] AddCommentDto dto)
-  {
-    var userId = GetUserId();
-    if (userId == Guid.Empty) return Unauthorized();
-    var orgId = _tenantService.OrganizationId!.Value;
-
-    var comment = await _context.TicketComments
-        .FirstOrDefaultAsync(c =>
-            c.Id == commentId &&
-            c.TicketId == id &&
-            c.OrganizationId == orgId);
-    if (comment == null) return NotFound();
-
-    if (!comment.IsInternal)
-      return BadRequest(new { message = "Only private notes can be edited." });
-    if (comment.UserId != userId)
-      return Forbid();
-    if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromHours(1))
-      return BadRequest(new { message = "Notes can only be edited within 1 hour." });
-
-    var text = (dto?.Comment ?? string.Empty).Trim();
-    if (string.IsNullOrWhiteSpace(text))
-      return BadRequest(new { message = "Note cannot be empty." });
-
-    comment.Comment = text;
-    await _context.SaveChangesAsync();
-
-    return Ok(new { message = "Note updated" });
-  }
-
-  // ── Delete a private note (within 1 hour, by the same author) ──
-  [HttpDelete("{id}/comments/{commentId}")]
-  public async Task<IActionResult> DeleteComment(
-      Guid id, Guid commentId)
-  {
-    var userId = GetUserId();
-    if (userId == Guid.Empty) return Unauthorized();
-    var orgId = _tenantService.OrganizationId!.Value;
-
-    var comment = await _context.TicketComments
-        .FirstOrDefaultAsync(c =>
-            c.Id == commentId &&
-            c.TicketId == id &&
-            c.OrganizationId == orgId);
-    if (comment == null) return NotFound();
-
-    if (!comment.IsInternal)
-      return BadRequest(new { message = "Only private notes can be deleted." });
-    if (comment.UserId != userId)
-      return Forbid();
-    if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromHours(1))
-      return BadRequest(new { message = "Notes can only be deleted within 1 hour." });
-
-    _context.TicketComments.Remove(comment);
-    await _context.SaveChangesAsync();
-
-    return Ok(new { message = "Note deleted" });
-  }
-
   [HttpPut("{id}/assign")]
   public async Task<IActionResult> AssignTicket(
       Guid id, [FromBody] AssignTicketDto dto)
@@ -1924,87 +1733,4 @@ public class TicketsController : ControllerBase
   }
 }
 
-public class UpdateTicketDto
-{
-  public string? Title { get; set; }
-  public string? Description { get; set; }
-  public string? Category { get; set; }
-  public string? Priority { get; set; }
-  public string? Status { get; set; }
-  public string? TicketType { get; set; }
-  public string? Tags { get; set; }
-  public Guid? AssignedToUserId { get; set; }
-  public Guid? AgentGroupId { get; set; }
-}
 
-public class UpdateStatusDto
-{
-  public string Status { get; set; } = string.Empty;
-}
-
-public class AddCommentDto
-{
-  public string Comment { get; set; } = string.Empty;
-  public bool IsInternal { get; set; } = false;
-
-  // Public reply CC / BCC (comma-separated emails OR list).
-  public List<string>? Cc { get; set; }
-  public List<string>? Bcc { get; set; }
-
-  // Private note: who was notified (user IDs to look up agents).
-  public List<Guid>? NotifyUserIds { get; set; }
-  // Optional ad-hoc email recipients for note notifications.
-  public List<string>? NotifyEmails { get; set; }
-}
-
-public class AssignTicketDto
-{
-  public Guid? AgentId { get; set; }
-}
-
-public class BulkUpdateDto
-{
-  public List<Guid> TicketIds { get; set; } = new();
-  public string? Status { get; set; }
-  public Guid? AssignedToUserId { get; set; }
-}
-
-public class UpdateTagsDto
-{
-  public List<string> Tags { get; set; } = new();
-}
-
-public class LogTimeDto
-{
-  public int Minutes { get; set; }
-  public string? Note { get; set; }
-}
-
-public class UpdatePriorityDto
-{
-  public string Priority { get; set; } = string.Empty;
-}
-
-public class UpdateTypeDto
-{
-  public string TicketType { get; set; } = string.Empty;
-}
-
-public class MergeIntoDto
-{
-  public Guid DuplicateTicketId { get; set; }
-  public string? Note { get; set; }
-}
-
-public class UpdateGroupDto
-{
-  public Guid? AgentGroupId { get; set; }
-}
-
-public class ForwardTicketDto
-{
-  public string ToEmail { get; set; } = string.Empty;
-  public string? Message { get; set; }
-  public List<string>? Cc { get; set; }
-  public List<string>? Bcc { get; set; }
-}
