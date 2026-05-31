@@ -129,6 +129,17 @@
   overflow: hidden;
 }
 
+.agents-empty {
+  border: 1px dashed var(--border-color, var(--ui-color-border));
+  background: var(--ui-color-bg-surface);
+  border-radius: 10px;
+  padding: 28px 14px;
+  text-align: center;
+  color: var(--text-muted, var(--ui-color-text-faint));
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .agents-table {
   width: 100%;
   border-collapse: collapse;

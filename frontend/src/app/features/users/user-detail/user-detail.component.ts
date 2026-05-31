@@ -25,6 +25,7 @@ export class UserDetailComponent implements OnInit, OnDestroy {
 
   loading = true;
   user: any = null;
+  photoLoadFailed = false;
   readonly baseUrl = environment.baseUrl;
 
   ngOnInit(): void {
@@ -70,6 +71,24 @@ export class UserDetailComponent implements OnInit, OnDestroy {
     return `${this.baseUrl}${raw.startsWith('/') ? '' : '/'}${raw}`;
   }
 
+  onPhotoError(): void {
+    this.photoLoadFailed = true;
+  }
+
+  roleLabel(): string {
+    const role = String(this.user?.role || '').trim();
+    return role || 'User';
+  }
+
+  designationLabel(): string {
+    const designation = String(this.user?.designation || '').trim();
+    return designation || 'Not set';
+  }
+
+  joinedAt(): string | null {
+    return this.user?.dateOfJoining || this.user?.createdAt || null;
+  }
+
   private fetchUser(id: string): void {
     this.loading = true;
     this.cdr.detectChanges();
@@ -79,6 +98,7 @@ export class UserDetailComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.user = res;
+          this.photoLoadFailed = false;
           this.loading = false;
           this.cdr.detectChanges();
         },

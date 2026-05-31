@@ -96,6 +96,10 @@ public class AgentsController : ControllerBase
       Role = agent.Role.ToString(),
       agent.Signature,
       agent.PhotoUrl,
+      agent.Department,
+      agent.Designation,
+      agent.Location,
+      agent.DateOfJoining,
       agent.IsEmailVerified,
       agent.LastLoginAt,
       agent.CreatedAt
@@ -639,6 +643,7 @@ public class AgentsController : ControllerBase
     {
       "Administrator" => UserRole.CompanyAdmin,
       "Agent" => UserRole.Agent,
+      "Customer" => UserRole.Customer,
       _ => UserRole.Agent
     };
   }

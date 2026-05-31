@@ -1,16 +1,16 @@
 <app-layout>
   <div class="invite-page">
 
-    <div class="page-header">
+    <div class="page-header" *ngIf="!inviteSuccess">
       <button class="back-btn"
         (click)="router.navigate(['/agents'])">
         ← Back to Agents
       </button>
-      <h1>Invite New Agent</h1>
+      <h1>Invite New User</h1>
     </div>
 
     <div class="invite-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!inviteSuccess">
 
         <!-- Photo Upload -->
         <div class="photo-section">
@@ -98,7 +98,7 @@
         <div class="form-group full">
           <label>Add to Groups</label>
           <p class="group-hint">
-            Organize agents into groups to assign tickets to specific teams
+            Organize agents into groups to assign tickets to specific teams. Select one group only.
           </p>
           <div class="groups-grid" *ngIf="groups.length > 0">
             <div class="group-item"
@@ -138,38 +138,38 @@
           </button>
         </div>
 
-        <!-- Success State -->
-        <div class="success-state" *ngIf="inviteSuccess">
-          <div class="success-icon">✓</div>
-          <h3>Agent Invited Successfully!</h3>
-          <p>An invitation email has been sent to the agent.</p>
+      </form>
 
-          <div class="temp-password-box">
-            <label>Temporary Password:</label>
-            <div class="temp-pass">
-              <code>{{ invitedTempPassword }}</code>
-              <button (click)="copyPassword()" class="copy-btn">
-                Copy
-              </button>
-            </div>
-            <p class="temp-hint">
-              Share this with the agent. They should change it after first login.
-            </p>
-          </div>
+      <!-- Success State -->
+      <div class="success-state" *ngIf="inviteSuccess">
+        <div class="success-icon">✓</div>
+        <h3>{{ invitedRoleLabel }} Invited Successfully!</h3>
+        <p>An invitation email has been sent.</p>
 
-          <div class="success-actions">
-            <button class="submit-btn"
-              (click)="router.navigate(['/agents'])">
-              Go to Agents
-            </button>
-            <button class="cancel-btn"
-              (click)="inviteSuccess = false; form.reset({ role: 'Agent' })">
-              Invite Another
+        <div class="temp-password-box">
+          <label>Temporary Password:</label>
+          <div class="temp-pass">
+            <code>{{ invitedTempPassword }}</code>
+            <button (click)="copyPassword()" class="copy-btn">
+              Copy
             </button>
           </div>
+          <p class="temp-hint">
+            Share this with the user. They should change it after first login.
+          </p>
         </div>
 
-      </form>
+        <div class="success-actions">
+          <button class="submit-btn"
+            (click)="router.navigate(['/agents'])">
+            Go to Agents
+          </button>
+          <button class="cancel-btn"
+            (click)="resetInviteForm(form.value.role || 'Agent')">
+            Invite Another
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </app-layout>

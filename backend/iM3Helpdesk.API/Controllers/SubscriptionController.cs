@@ -200,7 +200,7 @@ public class SubscriptionController : ControllerBase
             {
                 p.Id,
                 p.PlanId,
-                PlanName = _db.SubscriptionPlans.Where(pl => pl.Id == p.PlanId).Select(pl => pl.Name).FirstOrDefault(),
+                PlanName = _db.SubscriptionPlans.Where(pl => pl.Id == p.PlanId).OrderBy(pl => pl.Id).Select(pl => pl.Name).FirstOrDefault(),
                 p.BillingCycle,
                 p.AgentSeats,
                 p.Amount,
