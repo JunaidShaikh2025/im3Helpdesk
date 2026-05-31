@@ -43,11 +43,37 @@ export class LeadManagementComponent implements OnInit {
     Completed: 3
   } as const;
 
+  private readonly leadStatusMap: Record<string, number> = {
+    pending: this.LeadStatus.Pending,
+    approved: this.LeadStatus.Approved,
+    rejected: this.LeadStatus.Rejected,
+    completed: this.LeadStatus.Completed
+  };
+
   lastGeneratedSetupUrl = '';
   lastGeneratedFor = '';
 
   ngOnInit(): void {
     this.loadLeads();
+  }
+
+  private toStatusCode(status: unknown): number | null {
+    if (typeof status === 'number') {
+      return Object.values(this.LeadStatus).includes(status as any) ? status : null;
+    }
+
+    if (typeof status === 'string') {
+      const normalized = status.trim().toLowerCase();
+      if (normalized in this.leadStatusMap) {
+        return this.leadStatusMap[normalized];
+      }
+    }
+
+    return null;
+  }
+
+  isPendingLead(lead: any): boolean {
+    return this.toStatusCode(lead?.status) === this.LeadStatus.Pending;
   }
 
   private computeSummary(): void {
@@ -60,7 +86,7 @@ export class LeadManagementComponent implements OnInit {
     };
 
     for (const l of this.allLeads || []) {
-      switch (l?.status) {
+      switch (this.toStatusCode(l?.status)) {
         case this.LeadStatus.Pending:
           next.pending++;
           break;
@@ -114,14 +140,8 @@ export class LeadManagementComponent implements OnInit {
     let result = [...this.allLeads];
 
     if (this.statusFilter !== 'all') {
-      const statusToNumber: Record<string, number> = {
-        pending: this.LeadStatus.Pending,
-        approved: this.LeadStatus.Approved,
-        rejected: this.LeadStatus.Rejected,
-        completed: this.LeadStatus.Completed
-      };
-      const wanted = statusToNumber[this.statusFilter];
-      result = result.filter(l => l?.status === wanted);
+      const wanted = this.leadStatusMap[this.statusFilter];
+      result = result.filter(l => this.toStatusCode(l?.status) === wanted);
     }
 
     if (q) {
@@ -144,7 +164,7 @@ export class LeadManagementComponent implements OnInit {
   }
 
   approve(lead: any): void {
-    if (lead?.status !== this.LeadStatus.Pending) return;
+    if (!this.isPendingLead(lead)) return;
     this.approvingId = lead.id;
     this.cdr.detectChanges();
 
@@ -200,7 +220,7 @@ export class LeadManagementComponent implements OnInit {
   }
 
   reject(lead: any): void {
-    if (lead?.status !== this.LeadStatus.Pending) return;
+    if (!this.isPendingLead(lead)) return;
     const ok = confirm(`Reject lead for ${lead.organizationName || lead.workEmail || 'this request'}?`);
     if (!ok) return;
 
@@ -237,8 +257,8 @@ export class LeadManagementComponent implements OnInit {
     );
   }
 
-  getStatusLabel(status: number): string {
-    switch (status) {
+  getStatusLabel(status: unknown): string {
+    switch (this.toStatusCode(status)) {
       case this.LeadStatus.Pending:
         return 'Pending';
       case this.LeadStatus.Approved:
@@ -252,8 +272,8 @@ export class LeadManagementComponent implements OnInit {
     }
   }
 
-  getStatusClass(status: number): string {
-    switch (status) {
+  getStatusClass(status: unknown): string {
+    switch (this.toStatusCode(status)) {
       case this.LeadStatus.Pending:
         return 'pending';
       case this.LeadStatus.Approved:
@@ -268,7 +288,7 @@ export class LeadManagementComponent implements OnInit {
   }
 
   countByStatus(status: number): number {
-    return (this.allLeads || []).filter(x => x?.status === status).length;
+    return (this.allLeads || []).filter(x => this.toStatusCode(x?.status) === status).length;
   }
 
   private normalizeLead(raw: any): any {

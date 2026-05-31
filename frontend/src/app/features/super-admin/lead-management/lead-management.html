@@ -128,7 +128,7 @@
             </td>
             <td class="lm-date">{{ lead.createdAt | date:'dd MMM yyyy' }}</td>
             <td class="center">
-              <ng-container *ngIf="lead.status === LeadStatus.Pending; else noAction">
+              <ng-container *ngIf="isPendingLead(lead); else noAction">
                 <div class="lm-actions">
                   <button
                     type="button"

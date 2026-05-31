@@ -1800,6 +1800,20 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "aadil080933@gmail.com",
+                            FailedLoginAttempts = 0,
+                            FullName = "Super Admin",
+                            IsEmailVerified = true,
+                            PasswordHash = "$2a$11$5mzOVht3guIDVrfa/Ju01eBo7TgkNkPz.HPoNgPHsgyRGxiU6DG6e",
+                            PhoneNumber = "9999999999",
+                            Role = 0
+                        });
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.UserOnlineStatus", b =>
