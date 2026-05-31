@@ -2,13 +2,13 @@ using iM3Helpdesk.Application.DTOs.Leads;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace iM3Helpdesk.API.Controllers;
 
 [ApiController]
 [Route("api/leads")]
-[iM3Helpdesk.API.Middleware.RequireFeature("leads")]
 public class LeadsController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
@@ -19,6 +19,7 @@ public class LeadsController : ControllerBase
   }
 
   [HttpPost]
+  [AllowAnonymous]
   public async Task<IActionResult> CreateLead([FromBody] CreateLeadRequest dto)
   {
     if (!ModelState.IsValid)

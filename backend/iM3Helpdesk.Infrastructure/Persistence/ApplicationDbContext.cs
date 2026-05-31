@@ -171,6 +171,21 @@ public class ApplicationDbContext : DbContext
           .WithMany(o => o.Users)
           .HasForeignKey(u =>
               u.OrganizationId);
+
+      // ── Seed: Super Admin (permanent — survives migration resets)
+      e.HasData(new User
+      {
+          Id = new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
+          FullName = "Super Admin",
+          Email = "aadil080933@gmail.com",
+          PasswordHash = "$2a$11$5mzOVht3guIDVrfa/Ju01eBo7TgkNkPz.HPoNgPHsgyRGxiU6DG6e",
+          PhoneNumber = "9999999999",
+          IsEmailVerified = true,
+          Role = UserRole.SuperAdmin,
+          OrganizationId = null,
+          CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+          FailedLoginAttempts = 0
+      });
     });
 
     // ── Lead ──────────────────────
