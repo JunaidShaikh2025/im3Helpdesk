@@ -72,8 +72,12 @@
       </button>
     </div>
 
-    <!-- Table -->
-    <div class="agents-table-wrap">
+    <!-- Loading / Empty / Table -->
+    <div class="agents-empty" *ngIf="!loading && filteredAgents.length === 0">
+      No records found
+    </div>
+
+    <div class="agents-table-wrap" *ngIf="!loading && filteredAgents.length > 0">
       <table class="agents-table">
         <thead>
           <tr>

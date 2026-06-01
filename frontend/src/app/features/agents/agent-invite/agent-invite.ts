@@ -29,14 +29,16 @@ export class AgentInviteComponent {
   loading = false;
   uploading = false;
   groups: any[] = [];
-  selectedGroups: string[] = [];
+  selectedGroupId: string | null = null;
   photoPreview = '';
   inviteSuccess = false;
   invitedTempPassword = '';
+  invitedRoleLabel = 'User';
 
   roles = [
     { value: 'Administrator', label: 'Administrator' },
-    { value: 'Agent', label: 'Agent' }
+    { value: 'Agent', label: 'Agent' },
+    { value: 'Customer', label: 'Customer' }
   ];
 
   form: FormGroup = this.fb.group({
@@ -58,16 +60,13 @@ export class AgentInviteComponent {
   }
 
   toggleGroup(groupId: string) {
-    const idx = this.selectedGroups.indexOf(groupId);
-    if (idx > -1) {
-      this.selectedGroups.splice(idx, 1);
-    } else {
-      this.selectedGroups.push(groupId);
-    }
+    this.selectedGroupId = this.selectedGroupId === groupId
+      ? null
+      : groupId;
   }
 
   isGroupSelected(groupId: string): boolean {
-    return this.selectedGroups.includes(groupId);
+    return this.selectedGroupId === groupId;
   }
 
   onPhotoSelect(event: any) {
@@ -83,43 +82,63 @@ export class AgentInviteComponent {
     reader.readAsDataURL(file);
   }
 
-    copyPassword() {
-      navigator.clipboard.writeText(this.invitedTempPassword);
-      Promise.resolve().then(() =>
-        this.toastr.success('Password copied!')
-      );
-    }
+  copyPassword() {
+    navigator.clipboard.writeText(this.invitedTempPassword);
+    Promise.resolve().then(() =>
+      this.toastr.success('Password copied!')
+    );
+  }
 
   onSubmit() {
-  if (this.form.invalid) return;
-  this.loading = true;
-  this.cdr.detectChanges();
+    if (this.form.invalid) return;
+    this.loading = true;
+    this.cdr.detectChanges();
 
-  const payload = {
-    fullName: this.form.value.fullName,
-    email: this.form.value.email,
-    phoneNumber: this.form.value.phoneNumber || '',
-    role: this.form.value.role,
-    signature: this.form.value.signature || '',
-    photoUrl: this.form.value.photoUrl || '',
-    // ✅ groupIds as string array — backend Guid.Parse karega
-    groupIds: this.selectedGroups
-  };
+    const payload = {
+      fullName: this.form.value.fullName,
+      email: this.form.value.email,
+      phoneNumber: this.form.value.phoneNumber || '',
+      role: this.form.value.role,
+      signature: this.form.value.signature || '',
+      photoUrl: this.form.value.photoUrl || '',
+      // groupIds as string array — backend Guid.Parse handles this.
+      groupIds: this.selectedGroupId ? [this.selectedGroupId] : []
+    };
 
-  this.agentService.invite(payload).subscribe({
-    next: (res: any) => {
-      this.loading = false;
-      this.invitedTempPassword = res.tempPassword;
-      this.inviteSuccess = true;
-      this.cdr.detectChanges();
-    },
-    error: (err: any) => {
-      this.loading = false;
-      this.cdr.detectChanges();
-      Promise.resolve().then(() =>
-        this.toastr.error(err.error?.message || 'Failed')
-      );
-    }
-  });
-}
+    this.invitedRoleLabel = String(this.form.value.role || 'User');
+
+    this.agentService.invite(payload).subscribe({
+      next: (res: any) => {
+        this.loading = false;
+        this.invitedTempPassword = res.tempPassword;
+        this.inviteSuccess = true;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.cdr.detectChanges();
+        Promise.resolve().then(() =>
+          this.toastr.error(err.error?.message || 'Failed')
+        );
+      }
+    });
+  }
+
+  resetInviteForm(defaultRole: string = 'Agent') {
+    this.inviteSuccess = false;
+    this.invitedTempPassword = '';
+    this.photoPreview = '';
+    this.selectedGroupId = null;
+    this.form.reset({
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      role: defaultRole,
+      signature: '',
+      photoUrl: ''
+    });
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+    this.cdr.detectChanges();
+  }
 }

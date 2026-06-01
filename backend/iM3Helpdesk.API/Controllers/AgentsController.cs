@@ -1,3 +1,4 @@
+using iM3Helpdesk.API.Middleware;
 using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -96,6 +97,10 @@ public class AgentsController : ControllerBase
       Role = agent.Role.ToString(),
       agent.Signature,
       agent.PhotoUrl,
+      agent.Department,
+      agent.Designation,
+      agent.Location,
+      agent.DateOfJoining,
       agent.IsEmailVerified,
       agent.LastLoginAt,
       agent.CreatedAt
@@ -138,6 +143,8 @@ public class AgentsController : ControllerBase
   }
 
   [HttpPost("invite")]
+  [Authorize(Roles = nameof(UserRole.CompanyAdmin) + "," + nameof(UserRole.SuperAdmin))]
+  [RequirePermission("agents", PermissionAction.Add)]
   public async Task<IActionResult> InviteAgent(
       [FromBody] InviteAgentDto dto)
   {
@@ -205,6 +212,8 @@ public class AgentsController : ControllerBase
   }
 
   [HttpPut("{id}")]
+  [Authorize(Roles = nameof(UserRole.CompanyAdmin) + "," + nameof(UserRole.SuperAdmin))]
+  [RequirePermission("agents", PermissionAction.Edit)]
   public async Task<IActionResult> UpdateAgent(
       Guid id, [FromBody] UpdateAgentDto dto)
   {
@@ -234,6 +243,8 @@ public class AgentsController : ControllerBase
   }
 
   [HttpPut("{id}/toggle-active")]
+  [Authorize(Roles = nameof(UserRole.CompanyAdmin) + "," + nameof(UserRole.SuperAdmin))]
+  [RequirePermission("agents", PermissionAction.Edit)]
   public async Task<IActionResult> ToggleActive(Guid id)
   {
     var agent = await _context.Users
@@ -265,6 +276,8 @@ public class AgentsController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [Authorize(Roles = nameof(UserRole.CompanyAdmin) + "," + nameof(UserRole.SuperAdmin))]
+  [RequirePermission("agents", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)
   {
     var agent = await _context.Users
@@ -639,6 +652,7 @@ public class AgentsController : ControllerBase
     {
       "Administrator" => UserRole.CompanyAdmin,
       "Agent" => UserRole.Agent,
+      "Customer" => UserRole.Customer,
       _ => UserRole.Agent
     };
   }
