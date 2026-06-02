@@ -127,7 +127,8 @@ public class TicketsController : TicketsControllerBase
                 ? t.CreatedBy.FullName : "",
           AssignedTo = t.AssignedTo != null
                 ? t.AssignedTo.FullName : null,
-          AssignedToId = t.AssignedToUserId
+          AssignedToId = t.AssignedToUserId,
+          AgentGroupId = t.AgentGroupId
         })
         .ToListAsync();
 
