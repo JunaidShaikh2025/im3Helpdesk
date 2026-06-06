@@ -709,7 +709,7 @@
               </span>
               <span>Recycle Bin</span>
             </div>
-            <div class="profile-link-item" *ngIf="isCompanyAdmin" (click)="goToSlaPolicies()">
+            <div class="profile-link-item" *ngIf="isCompanyAdmin && sub.hasFeature('sla-policies')" (click)="goToSlaPolicies()">
               <span class="profile-link-icon" data-im3-icon-color="warning">
                 <span class="icon-emoji">⏱️</span>
                 <span class="icon-fa"><i class="fa-solid fa-hourglass-end"></i></span>
@@ -717,7 +717,7 @@
               </span>
               <span>SLA Policies</span>
             </div>
-            <div class="profile-link-item" *ngIf="isCompanyAdmin" (click)="goToBusinessHours()">
+            <div class="profile-link-item" *ngIf="isCompanyAdmin && sub.hasFeature('business-hours')" (click)="goToBusinessHours()">
               <span class="profile-link-icon" data-im3-icon-color="info">
                 <span class="icon-emoji">🕘</span>
                 <span class="icon-fa"><i class="fa-solid fa-business-time"></i></span>

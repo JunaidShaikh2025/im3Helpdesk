@@ -434,20 +434,6 @@
         <textarea rows="2" [value]="payment().billingAddress" (input)="updatePayment('billingAddress', $any($event.target).value)"></textarea>
       </label>
 
-      <div class="ep-row">
-        <label class="ep-fld">
-          <span>Card brand</span>
-          <select [value]="payment().cardBrand" (change)="updatePayment('cardBrand', $any($event.target).value)">
-            <option>Visa</option><option>Mastercard</option><option>Amex</option><option>RuPay</option><option>Other</option>
-          </select>
-        </label>
-        <label class="ep-fld">
-          <span>Card last 4 digits *</span>
-          <input type="text" maxlength="4" pattern="\d{4}" [value]="payment().cardLast4"
-                 (input)="updatePayment('cardLast4', $any($event.target).value)">
-        </label>
-      </div>
-
       <label class="ep-fld">
         <span>Notes (optional)</span>
         <textarea rows="2" [value]="payment().notes" (input)="updatePayment('notes', $any($event.target).value)"></textarea>

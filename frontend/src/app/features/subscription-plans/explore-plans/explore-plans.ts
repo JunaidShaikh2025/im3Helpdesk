@@ -12,8 +12,6 @@ interface PaymentForm {
   billingName: string;
   billingEmail: string;
   billingAddress: string;
-  cardLast4: string;
-  cardBrand: string;
   notes: string;
 }
 
@@ -194,8 +192,6 @@ export class ExplorePlansComponent {
       billingName: '',
       billingEmail: '',
       billingAddress: '',
-      cardLast4: '',
-      cardBrand: 'Visa',
       notes: '',
     });
     this.paymentError.set(null);
@@ -220,7 +216,6 @@ export class ExplorePlansComponent {
       this.paymentError.set(`All plans start at a minimum of ${this.MIN_SEATS} agent seats.`);
       return;
     }
-    if (!/^\d{4}$/.test(f.cardLast4)) { this.paymentError.set('Enter the last 4 digits of your card'); return; }
     if (!f.billingName.trim() || !f.billingEmail.trim()) {
       this.paymentError.set('Billing name and email are required');
       return;
@@ -235,8 +230,6 @@ export class ExplorePlansComponent {
       billingName: f.billingName,
       billingEmail: f.billingEmail,
       billingAddress: f.billingAddress,
-      cardLast4: f.cardLast4,
-      cardBrand: f.cardBrand,
       notes: f.notes,
     }).subscribe({
       next: res => {

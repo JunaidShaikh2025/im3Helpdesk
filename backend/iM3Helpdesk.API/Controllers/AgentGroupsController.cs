@@ -12,6 +12,7 @@ namespace iM3Helpdesk.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[iM3Helpdesk.API.Middleware.RequireFeature("agent-groups")]
 public class AgentGroupsController : ControllerBase
 {
   private readonly ApplicationDbContext _context;

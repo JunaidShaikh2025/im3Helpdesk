@@ -22,15 +22,18 @@ public class AgentsController : ControllerBase
   private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenantService;
   private readonly IEmailService _emailService;
+  private readonly ISubscriptionService _subSvc;
 
   public AgentsController(
       ApplicationDbContext context,
       ICurrentTenantService tenantService,
-      IEmailService emailService)
+      IEmailService emailService,
+      ISubscriptionService subSvc)
   {
     _context = context;
     _tenantService = tenantService;
     _emailService = emailService;
+    _subSvc = subSvc;
   }
 
   [HttpGet]
@@ -155,6 +158,21 @@ public class AgentsController : ControllerBase
     if (existingUser != null)
       return BadRequest(
           new { message = "Email already registered" });
+
+    // ── Seat limit check ──────────────────────────────────────────────
+    var orgId = _tenantService.OrganizationId;
+    if (orgId.HasValue)
+    {
+      var activeSub = await _subSvc.GetActiveSubscriptionAsync(orgId.Value);
+      if (activeSub != null && activeSub.AgentSeats > 0)
+      {
+        var currentAgentCount = await _context.Users
+            .Where(u => u.Role == UserRole.Agent || u.Role == UserRole.CompanyAdmin)
+            .CountAsync();
+        if (currentAgentCount >= activeSub.AgentSeats)
+          return BadRequest(new { message = $"Agent seat limit reached ({activeSub.AgentSeats} seats). Please upgrade your plan to add more agents." });
+      }
+    }
 
     var tempPassword = GenerateTempPassword();
 

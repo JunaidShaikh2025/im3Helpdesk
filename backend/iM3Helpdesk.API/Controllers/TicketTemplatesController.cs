@@ -14,6 +14,7 @@ namespace iM3Helpdesk.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[iM3Helpdesk.API.Middleware.RequireFeature("ticket-templates")]
 public class TicketTemplatesController : ControllerBase
 {
   private const string TicketTypeField = "TicketType";

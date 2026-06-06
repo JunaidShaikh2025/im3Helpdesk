@@ -80,6 +80,15 @@
       </div>
     </section>
 
+    <!-- ── Pending payment notice ───────────────────────────────── -->
+    <div class="pb-pending-banner" *ngIf="hasPendingPayment()">
+      <span class="pb-pending-icon">⏳</span>
+      <div>
+        <strong>Payment request pending</strong>
+        <p>Your plan request is awaiting SuperAdmin approval. You will receive an email once it's reviewed.</p>
+      </div>
+    </div>
+
     <!-- ── Payment history ──────────────────────────────────────── -->
     <section class="pb-card">
       <div class="pb-card-head">
@@ -95,7 +104,6 @@
               <th>Cycle</th>
               <th class="num">Seats</th>
               <th class="num">Amount</th>
-              <th>Card</th>
               <th>Status</th>
               <th>Reviewed</th>
             </tr>
@@ -107,7 +115,6 @@
               <td>{{ p.billingCycle }}</td>
               <td class="num">{{ p.agentSeats }}</td>
               <td class="num strong">{{ p.currency }} {{ p.amount | number:'1.0-0' }}</td>
-              <td class="muted">{{ p.cardBrand }} •••• {{ p.cardLast4 }}</td>
               <td>
                 <span class="pb-status" [attr.data-status]="(p.status || '').toLowerCase()">
                   <i class="pb-dot"></i> {{ p.status }}

@@ -86,8 +86,6 @@ export class SubscriptionService {
     billingName?: string;
     billingEmail?: string;
     billingAddress?: string;
-    cardLast4?: string;
-    cardBrand?: string;
     notes?: string;
   }): Observable<{ id: string; status: string; amount: number; currency: string; message: string }> {
     return this.http.post<any>(`${this.base}/payments`, body);

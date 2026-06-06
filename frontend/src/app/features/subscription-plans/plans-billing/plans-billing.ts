@@ -25,6 +25,7 @@ export class PlansBillingComponent {
   readonly loaded = this.subSvc.loaded;
 
   readonly payments = signal<any[]>([]);
+  readonly hasPendingPayment = computed(() => this.payments().some(p => p.status === 'Pending'));
 
   /** Display label for the cycle. */
   readonly cycleLabel = computed(() => {

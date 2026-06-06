@@ -1,4 +1,5 @@
 using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -18,15 +19,18 @@ public class SubscriptionController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly ICurrentTenantService _tenant;
     private readonly ISubscriptionService _sub;
+    private readonly IEmailQueueService _email;
 
     public SubscriptionController(
         ApplicationDbContext db,
         ICurrentTenantService tenant,
-        ISubscriptionService sub)
+        ISubscriptionService sub,
+        IEmailQueueService email)
     {
         _db = db;
         _tenant = tenant;
         _sub = sub;
+        _email = email;
     }
 
     private Guid GetUserId()
@@ -150,6 +154,13 @@ public class SubscriptionController : ControllerBase
 
         if (dto.AgentSeats < SubscriptionService.MinAgentSeats)
             return BadRequest(new { error = $"All plans require a minimum of {SubscriptionService.MinAgentSeats} agent seats." });
+
+        // Block duplicate pending request — only one pending payment allowed at a time.
+        var hasPending = await _db.PaymentRecords
+            .AnyAsync(p => p.OrganizationId == orgId.Value && p.Status == PaymentStatus.Pending);
+        if (hasPending)
+            return BadRequest(new { error = "You already have a payment request pending SuperAdmin approval. Please wait for it to be reviewed." });
+
         var amount = _sub.ComputeAmount(plan, dto.BillingCycle, dto.AgentSeats);
 
         var sub = currentSub;
@@ -175,6 +186,38 @@ public class SubscriptionController : ControllerBase
         };
         _db.PaymentRecords.Add(payment);
         await _db.SaveChangesAsync();
+
+        // Notify SuperAdmin about the new payment request
+        try
+        {
+            var superAdmin = await _db.Users.IgnoreQueryFilters()
+                .Where(u => u.Role == iM3Helpdesk.Domain.Enums.UserRole.SuperAdmin)
+                .Select(u => new { u.Email, u.FullName })
+                .FirstOrDefaultAsync();
+            if (superAdmin != null)
+            {
+                var orgName = (await _db.Organizations.IgnoreQueryFilters()
+                    .Where(o => o.Id == payment.OrganizationId)
+                    .Select(o => o.Name).FirstOrDefaultAsync()) ?? "Unknown Org";
+                var body = $"""
+                    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:24px">
+                      <h2 style="color:#2563eb">New Plan Purchase Request</h2>
+                      <table style="width:100%;border-collapse:collapse;margin-top:12px">
+                        <tr><td style="padding:6px 0;color:#6b7280">Organization</td><td><strong>{orgName}</strong></td></tr>
+                        <tr><td style="padding:6px 0;color:#6b7280">Plan</td><td><strong>{plan.Name}</strong></td></tr>
+                        <tr><td style="padding:6px 0;color:#6b7280">Billing Cycle</td><td>{payment.BillingCycle}</td></tr>
+                        <tr><td style="padding:6px 0;color:#6b7280">Agent Seats</td><td>{payment.AgentSeats}</td></tr>
+                        <tr><td style="padding:6px 0;color:#6b7280">Amount</td><td><strong>{payment.Currency} {payment.Amount:N0}</strong></td></tr>
+                        <tr><td style="padding:6px 0;color:#6b7280">Submitted By</td><td>{payment.BillingName ?? payment.BillingEmail}</td></tr>
+                      </table>
+                      <p style="margin-top:16px">Please log in to the SuperAdmin panel to approve or reject this request.</p>
+                      <p style="margin-top:24px;color:#6b7280;font-size:12px">iM3 Helpdesk — Billing System</p>
+                    </div>
+                    """;
+                await _email.QueueEmailAsync(superAdmin.Email, $"[Action Required] Plan purchase request from {orgName}", body);
+            }
+        }
+        catch { /* non-critical */ }
 
         return Ok(new
         {

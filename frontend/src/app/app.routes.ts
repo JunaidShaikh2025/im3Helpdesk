@@ -122,7 +122,7 @@ export const routes: Routes = [
     path: 'agents/groups',
     loadComponent: () =>
       import('./features/agents/agent-groups/agent-groups').then(m => m.AgentGroupsComponent),
-    canActivate: [authGuard, companyAdminGuard, permissionGuard('agent-groups')]
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('agent-groups'), featureGuard('agent-groups')]
   },
   {
     path: 'agents/invite',
@@ -189,7 +189,7 @@ export const routes: Routes = [
       import('./features/sla-policies/sla-policy-edit/sla-policy-edit').then(
         m => m.SlaPolicyEditComponent
       ),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, featureGuard('sla-policies')]
   },
   {
     path: 'business-hours/:id/edit',
@@ -197,7 +197,7 @@ export const routes: Routes = [
       import('./features/business-hours/business-hours-edit/business-hours-edit').then(
         m => m.BusinessHoursEditComponent
       ),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, featureGuard('business-hours')]
   },
   {
     path: 'business-hours',
@@ -206,7 +206,7 @@ export const routes: Routes = [
       import('./features/business-hours/business-hours-page/business-hours-page').then(
         m => m.BusinessHoursPageComponent
       ),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, featureGuard('business-hours')]
   },
   {
     path: 'sla-policies',
@@ -215,7 +215,7 @@ export const routes: Routes = [
       import('./features/sla-policies/sla-policies-page/sla-policies-page').then(
         m => m.SlaPoliciesPageComponent
       ),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, featureGuard('sla-policies')]
   },
   {
     path: 'notifications',
@@ -300,7 +300,7 @@ export const routes: Routes = [
     path: 'settings/templates',
     loadComponent: () =>
       import('./features/settings/ticket-templates/ticket-templates').then(m => m.TicketTemplatesComponent),
-    canActivate: [authGuard, permissionGuard('ticket-templates')]
+    canActivate: [authGuard, permissionGuard('ticket-templates'), featureGuard('ticket-templates')]
   },
   {
     path: 'settings',

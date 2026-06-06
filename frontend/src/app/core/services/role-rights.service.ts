@@ -95,6 +95,7 @@ export class RoleRightsService {
     'ticket-templates','custom-fields','ticket-masters','settings',
     'organization-profile','holiday-setup','recycle-bin','role-rights',
     'integrations-email','integrations-slack','integrations-whatsapp',
+    'mateboard','sla-policies','business-hours','sso',
   ]);
 
   /**

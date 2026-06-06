@@ -27,6 +27,7 @@ import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 import { OrgContextService } from '../../../core/services/org-context.service';
 import { AgentService } from '../../../core/services/agent';
+import { SubscriptionService } from '../../../core/services/subscription';
 
 
 @Component({
@@ -56,6 +57,7 @@ export class TicketListComponent
   private agentService = inject(AgentService);
   private ticketMasterService = inject(TicketMasterService);
   private orgContext = inject(OrgContextService);
+  readonly sub = inject(SubscriptionService);
 
   /** Project-wide IANA timezone (e.g. 'Asia/Kolkata') for date columns. */
   get tz(): string { return this.orgContext.timezone(); }
@@ -65,7 +67,11 @@ export class TicketListComponent
   tickets: any[] = [];
   loading = true;
   currentLayout: 'card' | 'table' | 'grid' | 'status' =
-    (localStorage.getItem('ticketLayout') as any) || 'card';
+    ((): 'card' | 'table' | 'grid' | 'status' => {
+      const saved = localStorage.getItem('ticketLayout') as any;
+      // Fallback status→card if mateboard not yet loaded (guard will re-check)
+      return saved || 'card';
+    })();
   showFilters = false;
   showColumnPicker = false;
   selectedTicketIds = new Set<string>();
@@ -508,6 +514,9 @@ export class TicketListComponent
 
   // ✅ Layout save
   setLayout(layout: 'card' | 'table' | 'grid' | 'status') {
+    if (layout === 'status' && !this.sub.hasFeature('mateboard')) {
+      return; // silently block — button is hidden anyway, guard in case
+    }
     this.currentLayout = layout;
     localStorage.setItem('ticketLayout', layout);
     this.cdr.markForCheck();

@@ -37,6 +37,9 @@ public class OrganizationSubscription
     public DateTime CurrentPeriodEnd { get; set; }
     public DateTime? CancelledAt { get; set; }
 
+    /// <summary>Set when the 3-day expiry warning email is sent. Prevents duplicate reminders.</summary>
+    public DateTime? RenewalReminderSentAt { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

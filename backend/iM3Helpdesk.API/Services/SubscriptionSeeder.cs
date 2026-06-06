@@ -14,42 +14,50 @@ public static class SubscriptionSeeder
     // ── Default tier definitions ──────────────────────────────────────────
     // Feature keys match the frontend module/feature keys used by permissions
     // and the plans.data.ts catalogue.
+    // ── Shared Growth feature keys ──────────────────────────────────────────
+    private static readonly string[] GrowthFeatures = new[]
+    {
+        // Core modules (all plans)
+        "dashboard", "tickets", "contacts", "todo", "notes", "calendar",
+        "knowledge-base", "chat", "search", "profile", "notifications",
+        "agents", "settings", "email-integration", "email-notifications",
+        "canned-responses", "ticket-masters",
+        // Advanced features available in Growth
+        "analytics-heatmap", "ai-insights", "sla-policies",
+        "reports", "audit-log", "whatsapp", "custom-fields", "business-hours",
+    };
+
+    private static readonly string[] ProOnlyFeatures = new[]
+    {
+        // Features added in Pro (Growth + these)
+        "ticket-templates", "agent-groups", "holiday-setup", "mateboard",
+        "recycle-bin", "role-rights", "organization-profile",
+        "call-logs", "slack", "customer-portal",
+    };
+
+    private static readonly string[] EnterpriseOnlyFeatures = new[]
+    {
+        // Features added in Enterprise (Pro + these)
+        "sso", "multi-org", "leads",
+    };
+
     private static readonly (string Tier, string Name, string Tagline, string Accent, int Sort, decimal Price, string Features)[] Defaults =
     new[]
     {
         ("growth", "Growth",
-         "Everything a small support team needs to get started.",
+         "Chhote teams ke liye — basic helpdesk",
          "#2563eb", 0, 500m,
-         string.Join(',',
-             "dashboard", "tickets", "contacts", "todo", "calendar",
-             "knowledge-base", "chat", "search", "profile", "notifications",
-             "agents", "agent-groups", "settings", "email-integration",
-             "email-notifications", "canned-responses", "ticket-templates")
+         string.Join(',', GrowthFeatures)
         ),
         ("pro", "Pro",
-         "For growing teams that need automation, reporting and governance.",
+         "Growing teams — best value, aapke liye best",
          "#7c3aed", 1, 1200m,
-         string.Join(',',
-             "dashboard", "tickets", "contacts", "todo", "calendar",
-             "knowledge-base", "chat", "search", "profile", "notifications",
-             "agents", "agent-groups", "settings", "email-integration",
-             "email-notifications", "canned-responses", "ticket-templates",
-             "custom-fields", "ticket-masters", "call-logs", "whatsapp",
-             "slack", "holiday-setup", "customer-portal", "recycle-bin",
-             "role-rights", "organization-profile", "reports", "analytics-heatmap")
+         string.Join(',', GrowthFeatures.Concat(ProOnlyFeatures))
         ),
         ("enterprise", "Enterprise",
-         "AI, multi-org and audit-grade controls for scaling support orgs.",
+         "Large orgs — full control + priority support",
          "#0f766e", 2, 2000m,
-         string.Join(',',
-             "dashboard", "tickets", "contacts", "todo", "calendar",
-             "knowledge-base", "chat", "search", "profile", "notifications",
-             "agents", "agent-groups", "settings", "email-integration",
-             "email-notifications", "canned-responses", "ticket-templates",
-             "custom-fields", "ticket-masters", "call-logs", "whatsapp",
-             "slack", "holiday-setup", "customer-portal", "recycle-bin",
-             "role-rights", "organization-profile", "reports", "analytics-heatmap",
-             "ai-insights", "audit-log", "multi-org", "leads")
+         string.Join(',', GrowthFeatures.Concat(ProOnlyFeatures).Concat(EnterpriseOnlyFeatures))
         ),
     };
 
@@ -76,7 +84,12 @@ public static class SubscriptionSeeder
                     IsActive = true,
                 });
             }
-            // If admin edited price/features keep them; only seed missing rows.
+            else
+            {
+                // Always sync feature keys so plan changes in code propagate to DB on restart.
+                p.FeatureKeysCsv = def.Features;
+                p.Tagline = def.Tagline;
+            }
         }
         await db.SaveChangesAsync();
 

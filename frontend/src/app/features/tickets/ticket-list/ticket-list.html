@@ -29,7 +29,8 @@
           <button class="lb"
             [class.active]="currentLayout==='status'"
             (click)="setLayout('status')"
-            title="Status Board">◫</button>
+            *ngIf="sub.hasFeature('mateboard')"
+            title="MateBoard (Kanban)">◫</button>
           <button class="lb"
             [class.active]="currentLayout==='table'"
             (click)="setLayout('table')"
@@ -415,10 +416,10 @@
       </div>
     </div>
 
-    <!-- STATUS BOARD VIEW -->
+    <!-- STATUS BOARD VIEW (Pro+ MateBoard) -->
     <div class="status-board"
       *ngIf="!loading && tickets.length > 0
-        && currentLayout === 'status'">
+        && currentLayout === 'status' && sub.hasFeature('mateboard')">
       <div class="status-col"
         *ngFor="let status of statusBoardColumns">
         <div class="status-head"
