@@ -77,8 +77,7 @@ public class RoleRightsController : ControllerBase
     new("chat",                 "Team Chat",             "Operations",   "💬"),
     new("calendar",             "Calendar",              "Operations",   "📅"),
     new("notifications",        "Notifications",         "Operations",   "🔔"),
-    new("todo",                 "To-Do",                 "Operations",   "✅"),
-    new("call-logs",            "Call Logs",             "Operations",   "📞"),
+    new("todo",                 "To-Do",                 "Operations",   "✅"),    new("notes",                "Notes",                 "Operations",   "📝"),    new("call-logs",            "Call Logs",             "Operations",   "📞"),
 
     // Insights
     new("reports",              "Reports",               "Insights",     "📈"),
@@ -149,7 +148,7 @@ public class RoleRightsController : ControllerBase
 
     var canEdit = module is not ("dashboard" or "reports" or "analytics-heatmap" or "ai-insights" or "audit-log");
     var canAdd = canEdit;
-    var canDelete = module is "tickets" or "contacts" or "todo" or "calendar" or "knowledge-base";
+    var canDelete = module is "tickets" or "contacts" or "todo" or "notes" or "calendar" or "knowledge-base";
     var canExport = module is "tickets" or "reports" or "contacts" or "analytics-heatmap";
     return new PermissionRow(module, true, canAdd, canEdit, canDelete, canExport);
   }

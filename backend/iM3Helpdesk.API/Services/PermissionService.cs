@@ -105,7 +105,7 @@ public class PermissionService : IPermissionService
     {
         // Operations
         "dashboard","tickets","contacts","knowledge-base","chat",
-        "calendar","notifications","todo","call-logs",
+        "calendar","notifications","todo","notes","call-logs",
         // Insights
         "reports","analytics-heatmap","ai-insights","audit-log",
         // People
@@ -144,7 +144,7 @@ public class PermissionService : IPermissionService
 
         var canEdit = module is not ("dashboard" or "reports" or "analytics-heatmap" or "ai-insights" or "audit-log");
         var canAdd = canEdit;
-        var canDelete = module is "tickets" or "contacts" or "todo" or "calendar" or "knowledge-base";
+        var canDelete = module is "tickets" or "contacts" or "todo" or "notes" or "calendar" or "knowledge-base";
         var canExport = module is "tickets" or "reports" or "contacts" or "analytics-heatmap";
         return new Row(true, canAdd, canEdit, canDelete, canExport);
     }

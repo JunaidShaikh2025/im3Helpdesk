@@ -132,6 +132,17 @@ export class TicketListComponent
   priorityOptions: TicketMasterOption[] = [];
 
   ngOnInit() {
+    // Pre-set filters from query params (e.g. from profile card "View tickets" link)
+    const qSearch = this.route.snapshot.queryParamMap.get('search');
+    const qAssignedTo = this.route.snapshot.queryParamMap.get('assignedTo');
+    if (qSearch) {
+      this.filters.search = qSearch;
+      this.showFilters = true;
+    }
+    if (qAssignedTo) {
+      this.filters.assignedTo = [qAssignedTo];
+      this.showFilters = true;
+    }
     this.loadMasterOptions();
     this.loadAgentsAndGroups();
     this.loadTickets();
