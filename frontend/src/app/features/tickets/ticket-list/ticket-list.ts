@@ -84,6 +84,8 @@ export class TicketListComponent
   };
   /** Key of the currently open multi-select popover, e.g. 'status'. */
   openFilterMenu: string | null = null;
+  /** Search query for the Assigned To filter popover. */
+  assignedToSearch = '';
   /** Set true after first masters-load applies the "all-but-Closed" default. */
   private statusDefaultApplied = false;
 
@@ -300,19 +302,30 @@ export class TicketListComponent
   }
 
   hasActiveFilters(): boolean {
+    return this.activeFilterCount() > 0;
+  }
+
+  /** Number of distinct filter facets currently applied. */
+  activeFilterCount(): number {
     const f = this.filters;
-    return !!(
-      f.status.length || f.priority.length ||
-      f.category.length || f.assignedTo.length ||
-      f.groups.length || f.tags.length ||
-      f.search || f.dateFrom || f.dateTo
-    );
+    let n = 0;
+    if (f.status.length) n++;
+    if (f.priority.length) n++;
+    if (f.category.length) n++;
+    if (f.assignedTo.length) n++;
+    if (f.groups.length) n++;
+    if (f.tags.length) n++;
+    if (f.search) n++;
+    if (f.dateFrom) n++;
+    if (f.dateTo) n++;
+    return n;
   }
 
   // ── Multi-select popover helpers ─────────────────────────────
   toggleFilterMenu(key: string, ev?: Event) {
     ev?.stopPropagation();
     this.openFilterMenu = this.openFilterMenu === key ? null : key;
+    if (this.openFilterMenu !== 'assignedTo') this.assignedToSearch = '';
     this.cdr.markForCheck();
   }
 
@@ -391,6 +404,14 @@ export class TicketListComponent
     return this.agentOptions.find(a => a.id === id)?.name || '';
   }
 
+  /** Agents matching the Assigned To filter search box. */
+  filteredAgentOptions(): { id: string; name: string }[] {
+    const q = (this.assignedToSearch || '').trim().toLowerCase();
+    if (!q) return this.agentOptions;
+    return this.agentOptions.filter(a =>
+      (a.name || '').toLowerCase().includes(q));
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null;
@@ -398,6 +419,10 @@ export class TicketListComponent
 
     if (this.showColumnPicker && !target.closest('.col-wrap')) {
       this.showColumnPicker = false;
+      this.cdr.markForCheck();
+    }
+    if (this.showLayoutMenu && !target.closest('.layout-wrap')) {
+      this.showLayoutMenu = false;
       this.cdr.markForCheck();
     }
     if (this.openFilterMenu && !target.closest('.f-multi')) {
@@ -499,6 +524,25 @@ export class TicketListComponent
   setLayout(layout: 'card' | 'table' | 'grid' | 'status') {
     this.currentLayout = layout;
     localStorage.setItem('ticketLayout', layout);
+    this.showLayoutMenu = false;
+    this.cdr.markForCheck();
+  }
+
+  showLayoutMenu = false;
+  layoutOptions: { value: 'card' | 'status' | 'table' | 'grid'; label: string; icon: string }[] = [
+    { value: 'card',   label: 'Card',         icon: '☰' },
+    { value: 'status', label: 'Status Board', icon: '◫' },
+    { value: 'table',  label: 'Table',        icon: '⊞' },
+    { value: 'grid',   label: 'Grid',         icon: '⊟' }
+  ];
+
+  currentLayoutLabel(): string {
+    return this.layoutOptions.find(o => o.value === this.currentLayout)?.label || 'Card';
+  }
+
+  toggleLayoutMenu(ev?: Event) {
+    ev?.stopPropagation();
+    this.showLayoutMenu = !this.showLayoutMenu;
     this.cdr.markForCheck();
   }
 
@@ -723,6 +767,26 @@ export class TicketListComponent
       (name?.charCodeAt(0) || 0)
         % colors.length;
     return colors[idx];
+  }
+
+  /** Returns up to 2-letter uppercase initials for a person name. */
+  getInitials(name?: string | null): string {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  /** Best display name for the requester (creator) of a ticket. */
+  getRequesterName(t: any): string {
+    return t?.fromName || t?.createdBy || 'Anonymous';
+  }
+
+  /** Channel label inferred from available signals. */
+  getChannelLabel(t: any): string {
+    if (t?.inboundMessageId || t?.fromEmail) return 'Email';
+    return 'Web';
   }
 
   // ✅ ADD TO TODO
