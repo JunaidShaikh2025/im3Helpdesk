@@ -332,24 +332,24 @@
           + {{ tr.t('newTicket') }}
         </button>
 
-        <div class="global-search-anchor" *ngIf="!isSuperAdmin && !isCustomer && (rr.can('tickets') || rr.can('contacts') || rr.can('knowledge-base'))" (click)="$event.stopPropagation()">
+        <div class="global-search-anchor" [class.is-open]="searchPanelOpen" *ngIf="!isSuperAdmin && !isCustomer && (rr.can('tickets') || rr.can('contacts') || rr.can('knowledge-base'))" (click)="$event.stopPropagation()">
           <button type="button" class="gs-trigger" (click)="toggleSearchPanel($event)">
             <svg class="gs-ic" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
             <span>Search</span>
           </button>
 
-          <div class="search-dropdown search-popover" *ngIf="searchPanelOpen" (click)="$event.stopPropagation()">
-            <div class="sd-input-wrap">
-              <span class="ts-icon" data-im3-icon-color="primary">
-                <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-              </span>
-              <input #globalSearchInput class="ts-input"
-                [(ngModel)]="searchQuery"
-                (ngModelChange)="onSearchQueryChange()"
-                autocomplete="off"
-                placeholder="Search Tickets, Contacts, Users, Solutions"/>
-            </div>
+          <div class="gs-expanded" *ngIf="searchPanelOpen" (click)="$event.stopPropagation()">
+            <span class="gs-expanded-ic" data-im3-icon-color="primary">
+              <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+            </span>
+            <input #globalSearchInput class="gs-expanded-input"
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onSearchQueryChange()"
+              autocomplete="off"
+              placeholder="Search Tickets, Contacts, Solutions, Forums"/>
+          </div>
 
+          <div class="search-dropdown search-popover" *ngIf="searchPanelOpen" (click)="$event.stopPropagation()">
             <div class="sd-top">
               <button type="button" class="sd-tab" [class.active]="searchTab==='all'" (click)="setSearchTab('all')">All</button>
               <button type="button" class="sd-tab" [class.active]="searchTab==='tickets'" (click)="setSearchTab('tickets')">Tickets</button>
