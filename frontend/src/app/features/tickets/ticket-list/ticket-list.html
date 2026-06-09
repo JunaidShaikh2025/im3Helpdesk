@@ -29,8 +29,7 @@
           <button class="lb"
             [class.active]="currentLayout==='status'"
             (click)="setLayout('status')"
-            *ngIf="sub.hasFeature('mateboard')"
-            title="MateBoard (Kanban)">◫</button>
+            title="Status Board">◫</button>
           <button class="lb"
             [class.active]="currentLayout==='table'"
             (click)="setLayout('table')"
@@ -73,8 +72,8 @@
           [class.has-filter]="hasActiveFilters()"
           (click)="showFilters=!showFilters">
           ⊟ Filters
-          <span *ngIf="hasActiveFilters()"
-            class="filter-dot"></span>
+          <span *ngIf="activeFilterCount() > 0"
+            class="filter-count">({{ activeFilterCount() }})</span>
         </button>
 
         <button class="icon-btn clear-btn has-filter"
@@ -224,17 +223,30 @@
           <div class="f-multi-menu f-multi-menu-rich"
             *ngIf="openFilterMenu === 'assignedTo'"
             (click)="$event.stopPropagation()">
-            <label *ngFor="let a of agentOptions" class="f-multi-item f-multi-item-rich">
-              <input type="checkbox"
-                [checked]="isFilterChecked('assignedTo', a.id)"
-                (change)="toggleFilterValue('assignedTo', a.id, $event)" />
-              <span class="f-avatar"
-                [style.background]="colorFor(a.id)">
-                {{ initialsFor(a.name) }}
-              </span>
-              <span class="f-name">{{ a.name }}</span>
-            </label>
-            <div *ngIf="agentOptions.length === 0" class="f-empty">No agents</div>
+            <div class="f-search-wrap">
+              <input type="text"
+                class="f-search"
+                placeholder="Search"
+                [(ngModel)]="assignedToSearch"
+                (click)="$event.stopPropagation()" />
+            </div>
+            <div class="f-multi-list">
+              <label *ngFor="let a of filteredAgentOptions()"
+                class="f-multi-item f-multi-item-rich f-multi-item-plus">
+                <input type="checkbox"
+                  [checked]="isFilterChecked('assignedTo', a.id)"
+                  (change)="toggleFilterValue('assignedTo', a.id, $event)" />
+                <span class="f-plus-ic" aria-hidden="true">
+                  {{ isFilterChecked('assignedTo', a.id) ? '✓' : '+' }}
+                </span>
+                <span class="f-avatar"
+                  [style.background]="colorFor(a.id)">
+                  {{ initialsFor(a.name) }}
+                </span>
+                <span class="f-name">{{ a.name }}</span>
+              </label>
+              <div *ngIf="filteredAgentOptions().length === 0" class="f-empty">No agents</div>
+            </div>
           </div>
         </div>
 
@@ -334,81 +346,104 @@
     <div class="card-view"
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'card'">
-      <div class="ticket-card"
+      <div class="ticket-card modern"
         *ngFor="let t of tickets"
+        [attr.data-priority]="(t.priority || '').toLowerCase()"
         (click)="viewTicket(t.id)">
 
-        <div class="card-top">
-          <div class="card-top-left">
-            <input type="checkbox"
-              class="t-checkbox"
-              [checked]="selectedTicketIds.has(t.id)"
-              (click)="$event.stopPropagation()"
-              (change)="toggleSelect(t.id)"/>
-            <span class="t-num">
-              #TN{{ t.ticketNumber }}
-            </span>
+        <!-- HEAD: ticket# · channel · time + checkbox -->
+        <div class="tc-head">
+          <input type="checkbox"
+            class="tc-check"
+            [checked]="selectedTicketIds.has(t.id)"
+            (click)="$event.stopPropagation()"
+            (change)="toggleSelect(t.id)"/>
+          <span class="tc-num">#TN{{ t.ticketNumber }}</span>
+          <span class="tc-sep">·</span>
+          <span class="tc-source"
+            [attr.data-channel]="getChannelLabel(t)">
+            <ng-container *ngIf="getChannelLabel(t) === 'Email'">✉</ng-container>
+            <ng-container *ngIf="getChannelLabel(t) === 'Web'">🌐</ng-container>
+            {{ getChannelLabel(t) }}
+          </span>
+          <span class="tc-spacer"></span>
+          <span class="tc-time" [title]="t.createdAt">
+            {{ getTimeAgo(t.createdAt) }}
+          </span>
+        </div>
+
+        <!-- MAIN: avatar + title + requester · category -->
+        <div class="tc-main">
+          <div class="tc-avatar"
+            [style.background]="getAvatarColor(getRequesterName(t))"
+            [attr.title]="getRequesterName(t)">
+            {{ getInitials(getRequesterName(t)) }}
           </div>
+          <div class="tc-body">
+            <div class="tc-title">{{ t.title }}</div>
+            <div class="tc-sub">
+              <span class="tc-req">{{ getRequesterName(t) }}</span>
+              <span class="tc-sep" *ngIf="t.category">·</span>
+              <span class="tc-cat" *ngIf="t.category">{{ t.category }}</span>
+              <span class="tc-sep"
+                *ngIf="t.fromEmail && t.fromName && t.fromEmail !== t.fromName">·</span>
+              <span class="tc-email"
+                *ngIf="t.fromEmail && t.fromEmail !== t.fromName"
+                [title]="t.fromEmail">
+                {{ t.fromEmail }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHIPS: status + priority + tags -->
+        <div class="tc-chips">
           <span class="status-badge"
-            [style.background]="
-              getStatusColor(t.status) + '20'"
-            [style.color]="
-              getStatusColor(t.status)">
+            [style.background]="getStatusColor(t.status) + '20'"
+            [style.color]="getStatusColor(t.status)">
             {{ t.status }}
           </span>
-        </div>
-
-        <div class="card-title">{{ t.title }}</div>
-
-        <div class="card-meta">
           <span class="priority-chip"
-            [style.background]="
-              getPriorityColor(t.priority) + '15'"
-            [style.color]="
-              getPriorityColor(t.priority)">
+            [style.background]="getPriorityColor(t.priority) + '15'"
+            [style.color]="getPriorityColor(t.priority)">
             ● {{ t.priority }}
           </span>
-          <span class="cat-chip">
-            {{ t.category }}
-          </span>
+          <ng-container *ngIf="getTagsArr(t.tags) as tags">
+            <span class="tag-pill"
+              *ngFor="let tag of tags.slice(0, 3)">
+              {{ tag }}
+            </span>
+            <span class="tag-pill more"
+              *ngIf="tags.length > 3"
+              [title]="tags.slice(3).join(', ')">
+              +{{ tags.length - 3 }}
+            </span>
+          </ng-container>
         </div>
 
-        <div class="card-tags"
-          *ngIf="getTagsArr(t.tags).length > 0">
-          <span class="tag-pill"
-            *ngFor="let tag of
-              getTagsArr(t.tags)">
-            {{ tag }}
-          </span>
-        </div>
-
-        <div class="card-footer">
-          <div class="card-assign">
+        <!-- FOOT: assignee · sla -->
+        <div class="tc-foot">
+          <div class="tc-assign">
             <div class="av-sm"
-              [style.background]="
-                getAvatarColor(
-                  t.assignedTo || t.createdBy)">
-              {{ (t.assignedTo || t.createdBy)
-                ?.charAt(0)?.toUpperCase() }}
+              [style.background]="getAvatarColor(t.assignedTo || 'U')">
+              {{ getInitials(t.assignedTo || 'U') }}
             </div>
+            <span class="tc-assign-lbl">Assigned:</span>
             <span class="person-link"
               role="button"
               tabindex="0"
               title="Open details"
               (click)="openPersonDetails(t.assignedTo || t.createdBy, $event)"
               (keydown.enter)="openPersonDetails(t.assignedTo || t.createdBy, $event)">
-              {{ t.assignedTo || t.createdBy || 'Unassigned' }}
+              {{ t.assignedTo || 'Unassigned' }}
             </span>
           </div>
-          <div class="card-right">
+          <div class="tc-foot-right">
             <span class="sla-mini"
               *ngIf="t.slaStatus"
-              [style.color]="
-                getSlaColor(t.slaStatus)">
+              [style.color]="getSlaColor(t.slaStatus)"
+              [style.background]="getSlaColor(t.slaStatus) + '15'">
               ⏱ {{ t.slaStatus }}
-            </span>
-            <span class="time-ago">
-              {{ getTimeAgo(t.createdAt) }}
             </span>
           </div>
         </div>
