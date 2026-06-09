@@ -39,11 +39,17 @@ export class ResetPasswordComponent implements OnInit {
     }
   }
 
+  private readonly PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d])[\s\S]{8,}$/;
+
   onSubmit() {
     this.errorMessage = '';
 
-    if (!this.newPassword || this.newPassword.length < 6) {
-      this.errorMessage = 'Password must be at least 6 characters.';
+    if (!this.newPassword || this.newPassword.length < 8) {
+      this.errorMessage = 'Password must be at least 8 characters.';
+      return;
+    }
+    if (!this.PASSWORD_PATTERN.test(this.newPassword)) {
+      this.errorMessage = 'Password must include uppercase, lowercase, number and a special character.';
       return;
     }
     if (this.newPassword !== this.confirmPassword) {

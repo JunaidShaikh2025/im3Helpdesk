@@ -105,22 +105,37 @@ public class EmailPollingService : BackgroundService
     _logger.LogInformation(
         "Polling {N} configured org mailbox(es)", orgs.Count);
 
-    foreach (var org in orgs)
+    // Filter down to only orgs whose interval has elapsed
+    var dueOrgs = orgs.Where(org =>
     {
-      if (ct.IsCancellationRequested) break;
+      var interval = TimeSpan.FromSeconds(Math.Max(5, org.EmailPollingIntervalSeconds));
+      return !_lastPolledByOrg.TryGetValue(org.Id, out var last) ||
+             DateTime.UtcNow - last >= interval;
+    }).ToList();
 
-      // Respect per-org polling cadence.
-      var interval = TimeSpan.FromSeconds(
-          Math.Max(5, org.EmailPollingIntervalSeconds));
-      if (_lastPolledByOrg.TryGetValue(org.Id, out var last) &&
-          DateTime.UtcNow - last < interval)
-      {
-        continue;
-      }
+    if (dueOrgs.Count == 0) return;
 
+    // Mark all as polled before launching — prevents double-fire on slow IMAP
+    foreach (var org in dueOrgs)
       _lastPolledByOrg[org.Id] = DateTime.UtcNow;
-      await PollOrgMailboxAsync(org, context, ct);
-    }
+
+    // Poll orgs in parallel — max 10 concurrent IMAP connections
+    // Each org gets its own scoped DbContext to avoid concurrency conflicts
+    var semaphore = new SemaphoreSlim(10, 10);
+    var tasks = dueOrgs.Select(async org =>
+    {
+      await semaphore.WaitAsync(ct);
+      try
+      {
+        using var orgScope = _scopeFactory.CreateScope();
+        var orgContext = orgScope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+        await PollOrgMailboxAsync(org, orgContext, ct);
+      }
+      finally { semaphore.Release(); }
+    });
+
+    await Task.WhenAll(tasks);
   }
 
   private async Task PollOrgMailboxAsync(
@@ -144,7 +159,15 @@ public class EmailPollingService : BackgroundService
 
     try
     {
-      await client.ConnectAsync(imapHost, imapPort, true, ct);
+      // Auto-detect SSL/STARTTLS based on port:
+      //   993  → SSL on connect
+      //   143  → STARTTLS or plain
+      //   anything else → MailKit decides
+      var socketOptions = imapPort == 993
+          ? MailKit.Security.SecureSocketOptions.SslOnConnect
+          : MailKit.Security.SecureSocketOptions.StartTlsWhenAvailable;
+
+      await client.ConnectAsync(imapHost, imapPort, socketOptions, ct);
       await client.AuthenticateAsync(username, password, ct);
 
       var inbox = client.Inbox;
@@ -152,20 +175,32 @@ public class EmailPollingService : BackgroundService
 
       // Use the org's onboarding stamp as the hard cut-off so we never
       // back-fill tickets from mail that arrived before SMTP/IMAP was
-      // wired up. Fall back to service start time for legacy rows where
-      // the column is still null.
-      var onboardedAt =
-          org.EmailPollingOnboardedAt ?? _serviceStartTime;
-      // Search 1 minute earlier than cutoff to ride out clock skew.
-      var since = onboardedAt.AddMinutes(-1);
-      var query = SearchQuery.And(
-          SearchQuery.NotSeen,
-          SearchQuery.DeliveredAfter(since));
+      // wired up. Fall back to 30-day lookback for legacy rows where
+      // the column is still null (do NOT fall back to _serviceStartTime
+      // — that would miss all emails received before a server restart).
+      var onboardedAt = org.EmailPollingOnboardedAt ?? DateTime.UtcNow.AddDays(-30);
+
+      // Rolling lookback window: never go further back than 30 days even
+      // for old orgs, to keep per-poll IMAP fetches bounded. But always
+      // start from onboardedAt at minimum.
+      var lookbackStart = DateTime.UtcNow.AddDays(-30);
+      var effectiveStart = onboardedAt > lookbackStart ? onboardedAt : lookbackStart;
+
+      // 1-minute buffer to absorb clock skew between mail server and us.
+      var since = effectiveStart.AddMinutes(-1);
+
+      // *** Do NOT filter by Seen/Unseen ***
+      // If the admin manually reads an email in their mail client, IMAP
+      // marks it Seen — but we still need to process it. We rely entirely
+      // on InboundMessageId duplicate detection in the DB to prevent
+      // double-ticket creation. This way every email since onboarding
+      // gets exactly one ticket, regardless of whether it was manually read.
+      var query = SearchQuery.DeliveredAfter(since);
 
       var uids = await inbox.SearchAsync(query, ct);
       _logger.LogInformation(
-          "Org {Org}: {Count} unread email(s) since {Since:u}",
-          org.Name, uids.Count, onboardedAt);
+          "Org {Org}: {Count} email(s) to check since {Since:u} (read+unread)",
+          org.Name, uids.Count, effectiveStart);
 
       foreach (var uid in uids)
       {
@@ -185,8 +220,9 @@ public class EmailPollingService : BackgroundService
 
           if (!IsAddressedToOrg(msg, org))
           {
-            _logger.LogDebug(
-                "Skipping email not addressed to support mailbox: {To}", msg.To);
+            _logger.LogInformation(
+                "[Org {Org}] Skipping email not addressed to any known org mailbox. To={To} | Expected={Exp}",
+                org.Name, msg.To, string.Join(",", new[] { org.SupportEmail, org.SmtpFromEmail, org.SmtpUsername }.Where(e => e != null)));
             continue;
           }
 
@@ -230,15 +266,30 @@ public class EmailPollingService : BackgroundService
       .Select(e => e!.Trim().ToLowerInvariant())
       .ToHashSet();
 
+    // If no org emails are configured we cannot safely accept anything.
     if (expected.Count == 0) return false;
 
     var addressed = message.To.Mailboxes
         .Concat(message.Cc.Mailboxes)
         .Concat(message.Bcc.Mailboxes)
         .Select(m => m.Address?.Trim().ToLowerInvariant() ?? "")
-        .Where(a => !string.IsNullOrWhiteSpace(a));
+        .Where(a => !string.IsNullOrWhiteSpace(a))
+        .ToList();
 
-    return addressed.Any(a => expected.Contains(a));
+    // Direct match: email is explicitly addressed to a known org mailbox.
+    if (addressed.Any(a => expected.Contains(a))) return true;
+
+    // Forwarded / catch-all mailboxes: the IMAP inbox is polled as the
+    // SmtpUsername (e.g. support@gmail.com) but the customer's original
+    // To: was the branded address (e.g. support@company.com).
+    // In this case To: may not contain any of our known addresses at all.
+    // We allow such messages through — the duplicate-detection layer
+    // (InboundMessageId) prevents double-ingestion. Emails sent FROM
+    // our own addresses are already rejected by the noreply/own-email
+    // check further up.
+    if (addressed.Count == 0) return true; // Bcc-only delivery, allow
+
+    return false;
   }
 
   private async Task ProcessEmailAsync(

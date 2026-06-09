@@ -75,14 +75,58 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }> = [];
   eventsLoaded = false;
 
+  setupChecklist = {
+    visible: false,
+    done: 0,
+    items: [
+      { label: 'Configure support email', hint: 'Set your inbox address for tickets', route: '/organization-profile', done: false, key: 'supportEmail' },
+      { label: 'Set up SMTP (outgoing mail)', hint: 'Send replies and notifications', route: '/organization-profile', done: false, key: 'smtp' },
+      { label: 'Enable email polling (IMAP)', hint: 'Convert incoming emails to tickets', route: '/organization-profile', done: false, key: 'imap' },
+      { label: 'Invite your first agent', hint: 'Add team members to handle tickets', route: '/agents', done: false, key: 'agents' },
+      { label: 'Create first ticket', hint: 'Test your helpdesk end-to-end', route: '/tickets', done: false, key: 'tickets' },
+    ]
+  };
+
+  private readonly CHECKLIST_DISMISS_KEY = 'im3_checklist_dismissed';
+
   ngOnInit(): void {
     this.initUserFromToken();
     this.loadAll();
     this.loadEvents();
+    if (this.userRole === 'CompanyAdmin' &&
+        localStorage.getItem(this.CHECKLIST_DISMISS_KEY) !== '1') {
+      this.loadChecklist();
+    }
 
     interval(REFRESH_INTERVAL_MS)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => { this.loadAll(); this.loadEvents(); });
+  }
+
+  loadChecklist(): void {
+    forkJoin({
+      org:     this.http.get<any>(`${API_BASE}/Organizations/current`).pipe(catchError(() => of(null))),
+      agents:  this.http.get<any>(`${API_BASE}/Agents`).pipe(catchError(() => of([]))),
+      tickets: this.http.get<any>(`${API_BASE}/Tickets?page=1&pageSize=1`).pipe(catchError(() => of({ totalCount: 0 })))
+    }).pipe(takeUntil(this.destroy$)).subscribe(({ org, agents, tickets }) => {
+      const items = this.setupChecklist.items;
+      items.find(i => i.key === 'supportEmail')!.done = !!org?.supportEmail;
+      items.find(i => i.key === 'smtp')!.done         = !!(org?.smtpHost && org?.smtpUsername);
+      items.find(i => i.key === 'imap')!.done         = !!(org?.imapHost && org?.emailPollingEnabled);
+      const agentList = Array.isArray(agents) ? agents : (agents?.data ?? []);
+      items.find(i => i.key === 'agents')!.done       = agentList.length > 0;
+      const ticketCount = tickets?.totalCount ?? (Array.isArray(tickets) ? tickets.length : 0);
+      items.find(i => i.key === 'tickets')!.done      = ticketCount > 0;
+      this.setupChecklist.done = items.filter(i => i.done).length;
+      this.setupChecklist.visible = this.setupChecklist.done < items.length;
+      this.cdr.detectChanges();
+    });
+  }
+
+  dismissChecklist(): void {
+    localStorage.setItem(this.CHECKLIST_DISMISS_KEY, '1');
+    this.setupChecklist.visible = false;
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {

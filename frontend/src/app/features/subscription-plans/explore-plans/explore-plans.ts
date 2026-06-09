@@ -73,8 +73,6 @@ export class ExplorePlansComponent {
     billingName: '',
     billingEmail: '',
     billingAddress: '',
-    cardLast4: '',
-    cardBrand: 'Visa',
     notes: '',
   });
 

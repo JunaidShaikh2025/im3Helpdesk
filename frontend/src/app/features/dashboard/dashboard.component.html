@@ -53,6 +53,34 @@
       <p>Here's what's happening with your support tickets today.</p>
     </div>
 
+    <!-- Setup Checklist — CompanyAdmin only, dismissible -->
+    <div class="setup-checklist" *ngIf="userRole === 'CompanyAdmin' && setupChecklist.visible">
+      <div class="sc-header">
+        <div class="sc-title">
+          <span class="sc-icon">🚀</span>
+          <div>
+            <strong>Complete your workspace setup</strong>
+            <span class="sc-progress-text">{{ setupChecklist.done }} of {{ setupChecklist.items.length }} done</span>
+          </div>
+        </div>
+        <button class="sc-dismiss" (click)="dismissChecklist()" title="Dismiss">✕</button>
+      </div>
+      <div class="sc-bar-wrap">
+        <div class="sc-bar" [style.width.%]="(setupChecklist.done / setupChecklist.items.length) * 100"></div>
+      </div>
+      <div class="sc-items">
+        <div class="sc-item" *ngFor="let item of setupChecklist.items"
+             [class.done]="item.done" (click)="item.done ? null : router.navigate([item.route])">
+          <span class="sc-check">{{ item.done ? '✓' : '○' }}</span>
+          <div class="sc-item-text">
+            <span class="sc-item-label">{{ item.label }}</span>
+            <span class="sc-item-hint">{{ item.hint }}</span>
+          </div>
+          <span class="sc-item-action" *ngIf="!item.done">→</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Stats Grid -->
     <div class="stats-grid" *ngIf="!loading">
       <div class="stat-card" (click)="router.navigate(['/tickets'])">

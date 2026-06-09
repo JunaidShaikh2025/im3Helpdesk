@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Net.Mail;
-
 namespace iM3Helpdesk.API.Controllers;
 
 [ApiController]
@@ -173,7 +172,27 @@ public class OrganizationsController : ControllerBase
     });
   }
 
-  
+  [HttpPost("test-smtp")]
+  public async Task<IActionResult> TestSmtp([FromBody] TestSmtpDto dto)
+  {
+    if (string.IsNullOrWhiteSpace(dto.SmtpHost) || string.IsNullOrWhiteSpace(dto.SmtpUsername))
+      return BadRequest(new { error = "SMTP host and username are required." });
+
+    try
+    {
+      using var client = new MailKit.Net.Smtp.SmtpClient();
+      await client.ConnectAsync(dto.SmtpHost, dto.SmtpPort > 0 ? dto.SmtpPort : 587,
+          MailKit.Security.SecureSocketOptions.StartTlsWhenAvailable);
+      await client.AuthenticateAsync(dto.SmtpUsername, dto.SmtpPassword ?? "");
+      await client.DisconnectAsync(true);
+      return Ok(new { message = "SMTP connection successful!" });
+    }
+    catch (Exception ex)
+    {
+      return BadRequest(new { error = ex.Message });
+    }
+  }
+
   private static void ApplyEmailSettings(
       iM3Helpdesk.Domain.Entities.Organization org,
       UpdateOrgDto dto)
@@ -266,4 +285,13 @@ public class UpdateOrgDto
   public string? TwilioAuthToken { get; set; }
   public int? RecycleBinRetentionValue { get; set; }
   public string? RecycleBinRetentionUnit { get; set; }
+}
+
+public class TestSmtpDto
+{
+  public string SmtpHost { get; set; } = "";
+  public int SmtpPort { get; set; } = 587;
+  public string SmtpUsername { get; set; } = "";
+  public string? SmtpPassword { get; set; }
+  public string? SmtpFromEmail { get; set; }
 }

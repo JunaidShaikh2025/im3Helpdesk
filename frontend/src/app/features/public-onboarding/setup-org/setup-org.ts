@@ -6,6 +6,8 @@ import { ToastrService } from 'ngx-toastr';
 import { PublicOnboardingService } from '../public-onboarding.service';
 import { AuthService } from '../../auth/auth.service';
 
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d])[\s\S]{8,}$/;
+
 function passwordMatchValidator(group: AbstractControl) {
   const password = String(group.get('password')?.value ?? '');
   const confirmPassword = String(group.get('confirmPassword')?.value ?? '');
@@ -39,7 +41,7 @@ export class SetupOrgComponent implements OnInit {
       organizationName: [{ value: '', disabled: true }],
       workEmail: [{ value: '', disabled: true }],
       ownerName: [{ value: '', disabled: true }],
-      password: ['', [Validators.required, Validators.minLength(10)]],
+      password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(PASSWORD_PATTERN)]],
       confirmPassword: ['', [Validators.required]]
     },
     { validators: passwordMatchValidator }

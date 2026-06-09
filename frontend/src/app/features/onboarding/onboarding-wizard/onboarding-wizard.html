@@ -45,21 +45,25 @@
     <div class="lead-card">
       <div class="card-head">
         <div>
-          <div class="card-kicker">Step {{ currentStep }} of 2</div>
-          <h2>{{ currentStep === 1 ? 'Organization settings' : 'Mailbox settings' }}</h2>
+          <div class="card-kicker">Step {{ currentStep }} of 3</div>
+          <h2>{{ currentStep === 1 ? 'Organization settings' : currentStep === 2 ? 'Mailbox settings' : 'Team setup' }}</h2>
         </div>
         <div class="card-badge" *ngIf="orgName">{{ orgName }}</div>
         <div class="card-badge" *ngIf="!orgName">Secure</div>
       </div>
 
       <div class="steps">
-        <button type="button" class="step-pill" [class.active]="currentStep === 1">
-          <span>1</span>
+        <button type="button" class="step-pill" [class.active]="currentStep === 1" [class.done]="currentStep > 1">
+          <span>{{ currentStep > 1 ? '✓' : '1' }}</span>
           Organization
         </button>
-        <button type="button" class="step-pill" [class.active]="currentStep === 2">
-          <span>2</span>
+        <button type="button" class="step-pill" [class.active]="currentStep === 2" [class.done]="currentStep > 2">
+          <span>{{ currentStep > 2 ? '✓' : '2' }}</span>
           Mailbox
+        </button>
+        <button type="button" class="step-pill" [class.active]="currentStep === 3">
+          <span>3</span>
+          Team
         </button>
       </div>
 
@@ -92,13 +96,13 @@
           </label>
         </div>
 
-        <button type="submit" [disabled]="step1Form.invalid">Next</button>
+        <button type="submit" [disabled]="step1Form.invalid">Next →</button>
       </form>
 
       <form
         *ngIf="currentStep === 2"
         [formGroup]="step2Form"
-        (ngSubmit)="finish()"
+        (ngSubmit)="goToStep3()"
         class="lead-form">
         <div class="form-grid">
           <label>
@@ -147,13 +151,69 @@
           <span>Enable email-to-ticket polling</span>
         </label>
 
-        <button type="submit" [disabled]="step2Form.invalid || loading">
-          {{ loading ? 'Saving...' : 'Save & Finish' }}
+        <div class="smtp-test-row">
+          <button type="button" class="link-btn test-btn"
+                  (click)="testSmtp()"
+                  [disabled]="smtpTesting || !step2Form.value.smtpHost || !step2Form.value.smtpUsername">
+            {{ smtpTesting ? '⏳ Testing…' : '⚡ Test SMTP connection' }}
+          </button>
+          <span class="test-ok" *ngIf="smtpTestResult === 'ok'">✓ {{ smtpTestMessage }}</span>
+          <span class="test-err" *ngIf="smtpTestResult === 'error'">✗ {{ smtpTestMessage }}</span>
+        </div>
+
+        <button type="submit" [disabled]="loading">Next →</button>
+
+        <div class="alt-actions">
+          <button type="button" class="link-btn" (click)="currentStep = 1">← Back</button>
+          <button type="button" class="link-btn" (click)="skipMailbox()">Skip for now</button>
+        </div>
+      </form>
+
+      <!-- Step 3: Team setup -->
+      <form
+        *ngIf="currentStep === 3"
+        [formGroup]="step3Form"
+        (ngSubmit)="finish()"
+        class="lead-form">
+        <div class="form-grid">
+          <label class="full-col">
+            <span>Timezone</span>
+            <select formControlName="timezone">
+              <option value="Asia/Kolkata">Asia/Kolkata (India +5:30)</option>
+              <option value="Asia/Dubai">Asia/Dubai (UAE +4)</option>
+              <option value="Asia/Qatar">Asia/Qatar (Qatar +3)</option>
+              <option value="Asia/Riyadh">Asia/Riyadh (Saudi Arabia +3)</option>
+              <option value="Asia/Karachi">Asia/Karachi (Pakistan +5)</option>
+              <option value="Asia/Dhaka">Asia/Dhaka (Bangladesh +6)</option>
+              <option value="Asia/Singapore">Asia/Singapore (+8)</option>
+              <option value="Asia/Tokyo">Asia/Tokyo (Japan +9)</option>
+              <option value="Europe/London">Europe/London (UK +0/+1)</option>
+              <option value="Europe/Paris">Europe/Paris (CET +1/+2)</option>
+              <option value="America/New_York">America/New_York (EST -5)</option>
+              <option value="America/Los_Angeles">America/Los_Angeles (PST -8)</option>
+              <option value="UTC">UTC</option>
+            </select>
+            <small class="field-hint">All dates in the app will use this timezone.</small>
+          </label>
+
+          <label class="full-col">
+            <span>Invite first agent <em class="opt">(optional)</em></span>
+            <input type="email" formControlName="inviteEmail" placeholder="agent@company.com"/>
+            <small class="field-hint">They'll receive an invite email to join your workspace.</small>
+          </label>
+
+          <label class="full-col">
+            <span>Agent's name <em class="opt">(optional)</em></span>
+            <input type="text" formControlName="inviteName" placeholder="e.g. Rahul Sharma"/>
+          </label>
+        </div>
+
+        <button type="submit" [disabled]="loading">
+          {{ loading ? 'Setting up…' : '🎉 Finish setup' }}
         </button>
 
         <div class="alt-actions">
-          <button type="button" class="link-btn" (click)="currentStep = 1">Back</button>
-          <button type="button" class="link-btn" (click)="skipMailbox()">Skip for now</button>
+          <button type="button" class="link-btn" (click)="currentStep = 2">← Back</button>
         </div>
       </form>
     </div>

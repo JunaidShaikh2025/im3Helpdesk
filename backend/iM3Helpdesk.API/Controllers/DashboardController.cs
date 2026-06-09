@@ -40,25 +40,19 @@ public class DashboardController : ControllerBase
     var today = DateTime.UtcNow.Date;
     var weekAgo = DateTime.UtcNow.AddDays(-7);
 
-    // ── 1. Status counts — aggregated IN DATABASE ──────
-    // No more loading all tickets into memory
-    var statusCounts = await _context.Tickets
-        .AsNoTracking()
+    // Sequential awaits — EF Core DbContext is not thread-safe
+    var statusCounts = await _context.Tickets.AsNoTracking()
         .GroupBy(t => t.Status)
         .Select(g => new { Status = g.Key, Count = g.Count() })
         .ToListAsync();
 
-    // ── 2. Priority counts — aggregated IN DATABASE ────
-    var priorityCounts = await _context.Tickets
-        .AsNoTracking()
+    var priorityCounts = await _context.Tickets.AsNoTracking()
         .GroupBy(t => t.Priority)
         .Select(g => new { Priority = g.Key, Count = g.Count() })
         .ToListAsync();
 
-    // ── 3. Date-based counts — aggregated IN DATABASE ──
-    var dateCounts = await _context.Tickets
-        .AsNoTracking()
-        .GroupBy(_ => 1)  // single group for multiple aggregates
+    var dateCounts = await _context.Tickets.AsNoTracking()
+        .GroupBy(_ => 1)
         .Select(g => new
         {
           Total = g.Count(),
@@ -67,74 +61,51 @@ public class DashboardController : ControllerBase
         })
         .FirstOrDefaultAsync();
 
-    // ── 4. Avg resolution — only resolved tickets ──────
-    var avgResHours = await _context.Tickets
-        .AsNoTracking()
-        .Where(t => t.ResolvedAt.HasValue)
-        .Select(t => EF.Functions.DateDiffHour(
-            t.CreatedAt, t.ResolvedAt!.Value))
-        .AverageAsync(h => (double?)h) ?? 0;
+    var avgResHours = Math.Round(
+        await _context.Tickets.AsNoTracking()
+            .Where(t => t.ResolvedAt.HasValue)
+            .Select(t => EF.Functions.DateDiffHour(t.CreatedAt, t.ResolvedAt!.Value))
+            .AverageAsync(h => (double?)h) ?? 0, 1);
 
-    // ── 5. Agent count ────────────────────────────────
-    var agentCount = await _context.Users
-        .AsNoTracking()
-        .IgnoreQueryFilters()
-        .CountAsync(u =>
-            u.OrganizationId == orgId &&
-            (u.Role == UserRole.Agent ||
-             u.Role == UserRole.CompanyAdmin));
+    var agentCount = await _context.Users.AsNoTracking().IgnoreQueryFilters()
+        .CountAsync(u => u.OrganizationId == orgId &&
+            (u.Role == UserRole.Agent || u.Role == UserRole.CompanyAdmin));
 
-    // ── 6. Organization name ──────────────────────────
-    var orgName = await _context.Organizations
-        .AsNoTracking()
-        .Where(o => o.Id == orgId)
-        .Select(o => o.Name)
-        .FirstOrDefaultAsync() ?? "";
+    var orgName = await _context.Organizations.AsNoTracking()
+        .Where(o => o.Id == orgId).Select(o => o.Name).FirstOrDefaultAsync() ?? "";
 
-    // ── 7. Recent 5 tickets ───────────────────────────
-    var recent = await _context.Tickets
-        .AsNoTracking()
-        .OrderByDescending(t => t.CreatedAt)
-        .Take(5)
+    var recent = await _context.Tickets.AsNoTracking()
+        .OrderByDescending(t => t.CreatedAt).Take(5)
         .Select(t => new
         {
-          t.Id,
-          t.Title,
-          t.TicketNumber,
+          t.Id, t.Title, t.TicketNumber,
           Status = t.Status.ToString(),
           Priority = t.Priority.ToString(),
           t.CreatedAt
         })
         .ToListAsync();
 
-    // ── Build result from DB aggregates ───────────────
-    int GetStatus(TicketStatus s) =>
-        statusCounts.FirstOrDefault(x => x.Status == s)?.Count ?? 0;
-
-    int GetPriority(TicketPriority p) =>
-        priorityCounts.FirstOrDefault(x => x.Priority == p)?.Count ?? 0;
-
     var result = new
     {
       totalTickets = dateCounts?.Total ?? 0,
-      openTickets = GetStatus(TicketStatus.Open),
-      inProgressTickets = GetStatus(TicketStatus.InProgress),
-      resolvedTickets = GetStatus(TicketStatus.Resolved),
-      closedTickets = GetStatus(TicketStatus.Closed),
+      openTickets = statusCounts.FirstOrDefault(x => x.Status == TicketStatus.Open)?.Count ?? 0,
+      inProgressTickets = statusCounts.FirstOrDefault(x => x.Status == TicketStatus.InProgress)?.Count ?? 0,
+      resolvedTickets = statusCounts.FirstOrDefault(x => x.Status == TicketStatus.Resolved)?.Count ?? 0,
+      closedTickets = statusCounts.FirstOrDefault(x => x.Status == TicketStatus.Closed)?.Count ?? 0,
       totalAgents = agentCount,
       newTicketsToday = dateCounts?.NewToday ?? 0,
       newTicketsThisWeek = dateCounts?.NewThisWeek ?? 0,
       avgResolutionHours = Math.Round(avgResHours, 1),
-      lowPriority = GetPriority(TicketPriority.Low),
-      mediumPriority = GetPriority(TicketPriority.Medium),
-      highPriority = GetPriority(TicketPriority.High),
-      criticalPriority = GetPriority(TicketPriority.Critical),
+      lowPriority = priorityCounts.FirstOrDefault(x => x.Priority == TicketPriority.Low)?.Count ?? 0,
+      mediumPriority = priorityCounts.FirstOrDefault(x => x.Priority == TicketPriority.Medium)?.Count ?? 0,
+      highPriority = priorityCounts.FirstOrDefault(x => x.Priority == TicketPriority.High)?.Count ?? 0,
+      criticalPriority = priorityCounts.FirstOrDefault(x => x.Priority == TicketPriority.Critical)?.Count ?? 0,
       organizationName = orgName,
       recentTickets = recent,
       trialDaysLeft = 30   // TODO: calculate from org.TrialEndsAt
     };
 
-    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(30));
+    _cache.Set(cacheKey, result, TimeSpan.FromMinutes(2));
     return Ok(result);
   }
 
@@ -149,48 +120,32 @@ public class DashboardController : ControllerBase
 
     var weekAgo = DateTime.UtcNow.AddDays(-7);
 
-    // All queries run IN DATABASE — no in-memory aggregation
-    var trend = await _context.Tickets
-        .AsNoTracking()
+    // Sequential awaits — EF Core DbContext is not thread-safe
+    var trend = await _context.Tickets.AsNoTracking()
         .Where(t => t.CreatedAt >= weekAgo)
         .GroupBy(t => t.CreatedAt.Date)
         .Select(g => new { date = g.Key, count = g.Count() })
         .OrderBy(x => x.date)
         .ToListAsync();
 
-    var byStatus = await _context.Tickets
-        .AsNoTracking()
+    var byStatus = await _context.Tickets.AsNoTracking()
         .GroupBy(t => t.Status)
-        .Select(g => new
-        {
-          status = g.Key.ToString(),
-          count = g.Count()
-        })
+        .Select(g => new { status = g.Key.ToString(), count = g.Count() })
         .ToListAsync();
 
-    var byPriority = await _context.Tickets
-        .AsNoTracking()
+    var byPriority = await _context.Tickets.AsNoTracking()
         .GroupBy(t => t.Priority)
-        .Select(g => new
-        {
-          priority = g.Key.ToString(),
-          count = g.Count()
-        })
+        .Select(g => new { priority = g.Key.ToString(), count = g.Count() })
         .ToListAsync();
 
-    var byCategory = await _context.Tickets
-        .AsNoTracking()
+    var byCategory = await _context.Tickets.AsNoTracking()
         .GroupBy(t => t.Category)
-        .Select(g => new
-        {
-          category = g.Key,
-          count = g.Count()
-        })
+        .Select(g => new { category = g.Key, count = g.Count() })
         .ToListAsync();
 
     var result = new { trend, byStatus, byPriority, byCategory };
 
-    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(60));
+    _cache.Set(cacheKey, result, TimeSpan.FromMinutes(2));
     return Ok(result);
   }
 }

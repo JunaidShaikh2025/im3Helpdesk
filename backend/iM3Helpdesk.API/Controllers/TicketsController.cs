@@ -86,9 +86,13 @@ public class TicketsController : TicketsControllerBase
   }
 
   [HttpGet]
-  public async Task<IActionResult> GetAll()
+  public async Task<IActionResult> GetAll(
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 50)
   {
     var userId = GetUserId();
+    pageSize = Math.Clamp(pageSize, 1, 200); // max 200 per page
+    page = Math.Max(1, page);
 
     var roleClaim = User.FindFirst(
         "http://schemas.microsoft.com/ws/2008/06/" +
@@ -100,12 +104,14 @@ public class TicketsController : TicketsControllerBase
         .Include(t => t.CreatedBy)
         .Include(t => t.AssignedTo)
         .AsSplitQuery()
+        .OrderByDescending(t => t.CreatedAt)
         .AsQueryable();
     // Freshdesk-style visibility: agents can see all tickets in their org.
     // Assignment/group is ownership metadata, not list visibility gate.
+    var totalCount = await query.CountAsync();
     var tickets = await query
-        .OrderByDescending(t => t.CreatedAt)
-        .Take(500)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
         .Select(t => new
         {
           t.Id,
@@ -132,7 +138,7 @@ public class TicketsController : TicketsControllerBase
         })
         .ToListAsync();
 
-    return Ok(tickets);
+    return Ok(new { totalCount, page, pageSize, data = tickets });
   }
 
   private static TimeZoneInfo? TryGetIst()

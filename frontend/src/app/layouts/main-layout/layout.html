@@ -289,6 +289,17 @@
 
   <div class="main-area" [class.collapsed]="isSidebarCollapsed">
 
+    <!-- Trial Banner -->
+    <div class="trial-banner"
+         *ngIf="!isSuperAdmin && !isCustomer && sub.subscription()?.isTrial && (sub.subscription()?.daysRemaining ?? 0) > 0">
+      <span class="tb-icon">⏳</span>
+      <span class="tb-text">
+        <strong>{{ sub.subscription()?.daysRemaining }} day{{ sub.subscription()?.daysRemaining === 1 ? '' : 's' }} left</strong>
+        in your free trial
+      </span>
+      <button class="tb-cta" (click)="goToExplorePlans()">Upgrade Now →</button>
+    </div>
+
     <div class="topbar">
       <button class="hamburger" (click)="sidebarOpen = !sidebarOpen">☰</button>
 

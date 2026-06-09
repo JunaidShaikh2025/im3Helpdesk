@@ -214,10 +214,14 @@ export class TicketListComponent
     this.loading = true;
     this.cdr.markForCheck();
 
-    this.http.get<any[]>(`${environment.apiUrl}/Tickets`)
+    // Fetch up to 2000 tickets — tenant-scoped so safe for org sizes up to ~2k tickets.
+    // TODO: Replace with server-side filtered pagination when org ticket counts exceed 2000.
+    this.http.get<any>(`${environment.apiUrl}/Tickets?page=1&pageSize=2000`)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => {
+        next: (res) => {
+          // Backend returns { totalCount, page, pageSize, data: [...] }
+          const data = Array.isArray(res) ? res : (res?.data ?? []);
           this.allTickets = data;
           this.recomputeDerivedFilterOptions();
           this.applyFilters();

@@ -36,11 +36,14 @@
     border-color: #dbeafe;
     color: #1d4ed8;
     background: #eff6ff;
+    span { background: #2563eb; color: #fff; }
+  }
 
-    span {
-      background: #2563eb;
-      color: #ffffff;
-    }
+  &.done {
+    border-color: #bbf7d0;
+    color: #15803d;
+    background: #f0fdf4;
+    span { background: #16a34a; color: #fff; }
   }
 }
 
@@ -81,3 +84,22 @@ button.link-btn {
 button.link-btn:hover {
   text-decoration: underline;
 }
+
+.smtp-test-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+.test-btn { font-size: 12.5px !important; }
+.test-ok  { font-size: 12.5px; color: #16a34a; font-weight: 700; }
+.test-err { font-size: 12.5px; color: #dc2626; font-weight: 700; }
+
+select {
+  width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0;
+  border-radius: 8px; font-size: 13px; background: #fff;
+  color: #1e293b; outline: none; font-family: inherit;
+  &:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+}
+
+.full-col { grid-column: 1 / -1; }
+.opt { font-weight: 400; color: #94a3b8; font-style: normal; font-size: 11px; }

@@ -68,15 +68,16 @@
               <input type="text" formControlName="ownerName" />
             </label>
 
-            <label>
+            <label class="full-col">
               <span>Password</span>
-              <input type="password" formControlName="password" placeholder="Create a strong password" autocomplete="new-password" />
-              <small class="field-hint">Minimum 10 characters.</small>
+              <input type="password" formControlName="password" placeholder="Min 8 chars, uppercase, number &amp; special char" autocomplete="new-password" />
+              <small class="field-hint">Must be 8+ characters with uppercase, lowercase, number and special character (e.g. @, #, !).</small>
               <small class="field-error" *ngIf="form.get('password')?.touched && form.get('password')?.hasError('required')">Password is required.</small>
-              <small class="field-error" *ngIf="form.get('password')?.touched && form.get('password')?.hasError('minlength')">Password must be at least 10 characters.</small>
+              <small class="field-error" *ngIf="form.get('password')?.touched && form.get('password')?.hasError('minlength')">At least 8 characters required.</small>
+              <small class="field-error" *ngIf="form.get('password')?.touched && form.get('password')?.hasError('pattern')">Must include uppercase, lowercase, number and special character.</small>
             </label>
 
-            <label>
+            <label class="full-col">
               <span>Confirm Password</span>
               <input type="password" formControlName="confirmPassword" placeholder="Repeat password" autocomplete="new-password" />
               <small class="field-error" *ngIf="form.get('confirmPassword')?.touched && form.get('confirmPassword')?.hasError('required')">Confirm password is required.</small>

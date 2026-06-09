@@ -314,7 +314,7 @@ public class AuthController : ControllerBase
       Slug = dto.CompanyName.ToLower()
             .Replace(" ", "-").Replace(".", "")
             + "-" + Guid.NewGuid().ToString()[..6],
-      TrialEndsAt = DateTime.UtcNow.AddDays(30),
+      TrialEndsAt = DateTime.UtcNow.AddDays(14),
       IsActive = true
     };
     _context.Organizations.Add(organization);

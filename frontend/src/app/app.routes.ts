@@ -5,6 +5,7 @@ import { companyAdminGuard } from './core/guards/company-admin.guard';
 import { setupOrgGuard } from './core/guards/setup-org.guard';
 import { permissionGuard } from './core/guards/permission.guard';
 import { featureGuard } from './core/guards/feature.guard';
+import { subscriptionGuard } from './core/guards/subscription.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -65,10 +66,16 @@ export const routes: Routes = [
       import('./features/auth/reset-password/reset-password').then(m => m.ResetPasswordComponent)
   },
   {
+    path: 'trial-expired',
+    loadComponent: () =>
+      import('./features/trial-expired/trial-expired').then(m => m.TrialExpiredComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'contacts',
     loadComponent: () =>
       import('./features/contacts/contacts-page/contacts-page').then(m => m.ContactsPageComponent),
-    canActivate: [authGuard, permissionGuard('contacts')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('contacts')]
   },
   {
     path: 'todo',
@@ -86,7 +93,7 @@ export const routes: Routes = [
     path: 'chat',
     loadComponent: () =>
       import('./features/chat/chat-page/chat-page').then(m => m.ChatPageComponent),
-    canActivate: [authGuard, permissionGuard('chat')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('chat')]
   },
   {
     path: 'onboarding',
@@ -98,7 +105,7 @@ export const routes: Routes = [
     path: 'dashboard',
     loadChildren: () =>
       import('./features/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES),
-    canActivate: [authGuard, permissionGuard('dashboard')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('dashboard')]
   },
   {
     path: 'ai-dashboard',
@@ -110,13 +117,13 @@ export const routes: Routes = [
     path: 'tickets/create',
     loadComponent: () =>
       import('./features/tickets/ticket-create/ticket-create').then(m => m.TicketCreateComponent),
-    canActivate: [authGuard, permissionGuard('tickets')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('tickets')]
   },
   {
     path: 'tickets',
     loadChildren: () =>
       import('./features/tickets/tickets.routes').then(m => m.TICKETS_ROUTES),
-    canActivate: [authGuard, permissionGuard('tickets')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('tickets')]
   },
   {
     path: 'agents/groups',
@@ -221,13 +228,13 @@ export const routes: Routes = [
     path: 'notifications',
     loadComponent: () =>
       import('./features/notifications/notifications-page/notifications-page').then(m => m.NotificationsPageComponent),
-    canActivate: [authGuard, permissionGuard('notifications')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('notifications')]
   },
   {
     path: 'reports',
     loadComponent: () =>
       import('./features/reports/reports-page/reports-page').then(m => m.ReportsComponent),
-    canActivate: [authGuard, permissionGuard('reports'), featureGuard('reports')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('reports'), featureGuard('reports')]
   },
   {
     path: 'admin',
@@ -306,7 +313,7 @@ export const routes: Routes = [
     path: 'settings',
     loadComponent: () =>
       import('./features/settings/settings-page/settings-page').then(m => m.SettingsPageComponent),
-    canActivate: [authGuard, permissionGuard('settings')]
+    canActivate: [authGuard, subscriptionGuard, permissionGuard('settings')]
   },
   {
     path: 'audit',

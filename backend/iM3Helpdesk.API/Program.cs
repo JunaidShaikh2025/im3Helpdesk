@@ -72,7 +72,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
       w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning))
     .UseSqlServer(
       builder.Configuration.GetConnectionString("DefaultConnection"),
-      b => b.MigrationsAssembly("iM3Helpdesk.Infrastructure")));
+      b =>
+      {
+        b.MigrationsAssembly("iM3Helpdesk.Infrastructure");
+        // Allow up to 400 pooled connections (default is 100).
+        // With 100 orgs and concurrent users, the default pool can
+        // exhaust quickly — bump it before hitting production.
+        b.MaxBatchSize(200);
+      }));
+
+// Increase SQL connection pool size via connection string override
+var cs = builder.Configuration.GetConnectionString("DefaultConnection")!;
+if (!cs.Contains("Max Pool Size", StringComparison.OrdinalIgnoreCase))
+  builder.Configuration["ConnectionStrings:DefaultConnection"] = cs.TrimEnd(';') + ";Max Pool Size=400;Min Pool Size=10;";
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;

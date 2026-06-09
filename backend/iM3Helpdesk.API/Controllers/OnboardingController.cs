@@ -93,7 +93,7 @@ public class OnboardingController : ControllerBase
         Name = lead.OrganizationName.Trim(),
         Slug = BuildUniqueSlug(lead.OrganizationName),
         SupportEmail = normalizedEmail,
-        TrialEndsAt = DateTime.UtcNow.AddDays(30),
+        TrialEndsAt = DateTime.UtcNow.AddDays(14),
         IsActive = true,
         CreatedAt = DateTime.UtcNow
       };

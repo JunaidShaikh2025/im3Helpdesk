@@ -409,6 +409,39 @@
   transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── TRIAL BANNER ── */
+.trial-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(90deg, #1d4ed8, #2563eb);
+  color: #fff;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 500;
+
+  .tb-icon { font-size: 15px; flex-shrink: 0; }
+
+  .tb-text {
+    flex: 1;
+    strong { font-weight: 700; }
+  }
+
+  .tb-cta {
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+    &:hover { background: rgba(255,255,255,0.28); }
+  }
+}
+
 /* ── STICKY HIGH-END TOPBAR ── */
 .topbar {
   display: flex;

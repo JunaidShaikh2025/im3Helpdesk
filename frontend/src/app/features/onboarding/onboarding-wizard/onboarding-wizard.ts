@@ -29,10 +29,16 @@ export class OnboardingWizardComponent implements OnInit {
   private authService = inject(AuthService);
 
   currentStep = 1;
+  totalSteps = 3;
   loading = false;
   logoPreview = '';
   orgName = '';
   orgLoaded = false;
+
+  // SMTP test state
+  smtpTesting = false;
+  smtpTestResult: 'idle' | 'ok' | 'error' = 'idle';
+  smtpTestMessage = '';
 
   step1Form: FormGroup = this.fb.group({
     supportEmail: ['', [Validators.required, Validators.email]],
@@ -50,6 +56,12 @@ export class OnboardingWizardComponent implements OnInit {
     imapHost: ['imap.gmail.com', Validators.required],
     imapPort: [993, [Validators.required, Validators.min(1)]],
     emailPollingEnabled: [true]
+  });
+
+  step3Form: FormGroup = this.fb.group({
+    timezone: ['Asia/Kolkata'],
+    inviteEmail: ['', Validators.email],
+    inviteName: ['']
   });
 
   ngOnInit() {
@@ -81,6 +93,10 @@ export class OnboardingWizardComponent implements OnInit {
           imapHost: org?.imapHost || 'imap.gmail.com',
           imapPort: org?.imapPort || 993,
           emailPollingEnabled: org?.emailPollingEnabled !== false
+        }, { emitEvent: false });
+
+        this.step3Form.patchValue({
+          timezone: org?.timezone || 'Asia/Kolkata'
         }, { emitEvent: false });
 
         this.cdr.detectChanges();
@@ -122,40 +138,88 @@ export class OnboardingWizardComponent implements OnInit {
     this.currentStep = 2;
   }
 
-  skipMailbox() {
-    this.completeOnboarding('You can complete email setup later from Profile');
+  testSmtp() {
+    const v = this.step2Form.value;
+    if (!v.smtpHost || !v.smtpUsername) return;
+    this.smtpTesting = true;
+    this.smtpTestResult = 'idle';
+    this.smtpTestMessage = '';
+    this.cdr.detectChanges();
+
+    this.http.post<any>(`${environment.apiUrl}/Organizations/test-smtp`, {
+      smtpHost: v.smtpHost,
+      smtpPort: v.smtpPort,
+      smtpUsername: v.smtpUsername,
+      smtpPassword: v.smtpPassword || undefined,
+      smtpFromEmail: v.smtpFromEmail || v.smtpUsername,
+    }).subscribe({
+      next: (res) => {
+        this.smtpTesting = false;
+        this.smtpTestResult = 'ok';
+        this.smtpTestMessage = res?.message || 'Connection successful!';
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.smtpTesting = false;
+        this.smtpTestResult = 'error';
+        this.smtpTestMessage = err?.error?.error || err?.error?.message || 'Connection failed.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  finish() {
+  goToStep3() {
     if (this.step2Form.invalid) {
       this.step2Form.markAllAsTouched();
       return;
     }
+    this.saveStep2().subscribe({
+      next: () => { this.currentStep = 3; this.cdr.detectChanges(); },
+      error: () => { this.currentStep = 3; this.cdr.detectChanges(); }
+    });
+  }
 
+  skipMailbox() {
+    this.currentStep = 3;
+    this.cdr.detectChanges();
+  }
+
+  private saveStep2() {
+    const v = this.step2Form.value;
+    const payload: any = {
+      smtpHost: v.smtpHost, smtpPort: Number(v.smtpPort),
+      smtpFromEmail: v.smtpFromEmail, smtpFromName: v.smtpFromName || 'Support',
+      smtpUsername: v.smtpUsername, imapHost: v.imapHost,
+      imapPort: Number(v.imapPort), emailPollingEnabled: v.emailPollingEnabled === true
+    };
+    if (v.smtpPassword) payload.smtpPassword = v.smtpPassword;
+    return this.http.put(`${environment.apiUrl}/Organizations/current`, payload);
+  }
+
+  finish() {
     this.loading = true;
     this.cdr.detectChanges();
 
-    const payload = {
+    const s3 = this.step3Form.value;
+    const payload: any = {
       supportEmail: this.step1Form.value.supportEmail,
       brandColor: this.step1Form.value.brandColor || '#2563eb',
       logoUrl: this.step1Form.value.logoUrl || '',
-      smtpHost: this.step2Form.value.smtpHost,
-      smtpPort: Number(this.step2Form.value.smtpPort),
-      smtpFromEmail: this.step2Form.value.smtpFromEmail,
-      smtpFromName: this.step2Form.value.smtpFromName || 'Support',
-      smtpUsername: this.step2Form.value.smtpUsername,
-      smtpPassword: this.step2Form.value.smtpPassword,
-      imapHost: this.step2Form.value.imapHost,
-      imapPort: Number(this.step2Form.value.imapPort),
-      emailPollingEnabled: this.step2Form.value.emailPollingEnabled === true
+      timezone: s3.timezone || 'Asia/Kolkata'
     };
 
-    this.http.put(
-      `${environment.apiUrl}/Organizations/current`,
-      payload
-    ).subscribe({
+    this.http.put(`${environment.apiUrl}/Organizations/current`, payload).subscribe({
       next: () => {
-        this.completeOnboarding('Workspace email setup saved');
+        // Invite agent if email provided
+        const inviteEmail = (s3.inviteEmail || '').trim();
+        if (inviteEmail) {
+          this.http.post(`${environment.apiUrl}/Agents/invite`, {
+            email: inviteEmail,
+            fullName: (s3.inviteName || '').trim() || inviteEmail.split('@')[0],
+            role: 'Agent'
+          }).subscribe({ error: () => {} }); // non-blocking
+        }
+        this.completeOnboarding('Workspace setup complete! Welcome aboard 🎉');
       },
       error: (err) => {
         this.loading = false;
