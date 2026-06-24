@@ -222,6 +222,10 @@ public class TicketsController : TicketsControllerBase
         t.UpdatedAt,
         t.ResolvedAt,
         t.LastActivityAt,
+        t.FromName,
+        t.FromEmail,
+        t.InboundMessageId,
+        t.SlaStatus,
         CreatedBy = t.CreatedBy != null
               ? t.CreatedBy.FullName : "",
         AssignedTo = t.AssignedTo != null
