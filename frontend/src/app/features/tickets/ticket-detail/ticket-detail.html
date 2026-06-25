@@ -339,13 +339,36 @@
                 </div>
                 <div class="fr-info">
                   <div class="fr-name-row">
-                    <span class="fr-name is-clickable"
-                      role="button"
-                      tabindex="0"
-                      [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
-                      (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
-                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)">
-                      {{ commentAuthor(c) }}
+                    <span class="pc-wrap"
+                      (mouseenter)="openProfileCard(c.id)"
+                      (mouseleave)="closeProfileCard()">
+                      <span class="fr-name is-clickable"
+                        role="button"
+                        tabindex="0"
+                        [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
+                        (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
+                        (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)">
+                        {{ commentAuthor(c) }}
+                      </span>
+                      <!-- Profile hover card -->
+                      <div class="person-card" *ngIf="profileCardId === c.id"
+                        (mouseenter)="keepProfileCard()"
+                        (mouseleave)="closeProfileCard()">
+                        <div class="pc-top">
+                          <div class="pc-avatar"
+                            [style.background]="getAvatarColor(commentAuthor(c))">
+                            {{ getInitials(commentAuthor(c)) }}
+                          </div>
+                          <div class="pc-meta">
+                            <div class="pc-name">{{ commentAuthor(c) }}</div>
+                            <a class="pc-view-link" (click)="viewPersonTickets(c, $event)">View tickets</a>
+                          </div>
+                        </div>
+                        <div class="pc-email-row" *ngIf="commentEmail(c)">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                          <span>{{ commentEmail(c) }}</span>
+                        </div>
+                      </div>
                     </span>
                     <span class="fr-via">
                       <ng-container
@@ -446,13 +469,36 @@
                 </div>
                 <div class="fr-info">
                   <div class="fr-name-row">
-                    <span class="fr-name note-name is-clickable"
-                      role="button"
-                      tabindex="0"
-                      [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
-                      (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
-                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)">
-                      {{ commentAuthor(c) }}
+                    <span class="pc-wrap"
+                      (mouseenter)="openProfileCard('n-' + c.id)"
+                      (mouseleave)="closeProfileCard()">
+                      <span class="fr-name note-name is-clickable"
+                        role="button"
+                        tabindex="0"
+                        [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
+                        (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
+                        (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)">
+                        {{ commentAuthor(c) }}
+                      </span>
+                      <!-- Profile hover card -->
+                      <div class="person-card" *ngIf="profileCardId === 'n-' + c.id"
+                        (mouseenter)="keepProfileCard()"
+                        (mouseleave)="closeProfileCard()">
+                        <div class="pc-top">
+                          <div class="pc-avatar"
+                            [style.background]="getAvatarColor(commentAuthor(c))">
+                            {{ getInitials(commentAuthor(c)) }}
+                          </div>
+                          <div class="pc-meta">
+                            <div class="pc-name">{{ commentAuthor(c) }}</div>
+                            <a class="pc-view-link" (click)="viewPersonTickets(c, $event)">View tickets</a>
+                          </div>
+                        </div>
+                        <div class="pc-email-row" *ngIf="commentEmail(c)">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                          <span>{{ commentEmail(c) }}</span>
+                        </div>
+                      </div>
                     </span>
                     <span class="fr-note-lbl">
                       added a private note

@@ -90,7 +90,7 @@ export class RoleRightsService {
   // catalogued modules without an explicit row default to deny.
   private static readonly KNOWN_MODULES: ReadonlySet<string> = new Set([
     'dashboard','tickets','contacts','knowledge-base','chat','calendar',
-    'notifications','todo','call-logs','reports','analytics-heatmap',
+    'notifications','todo','notes','call-logs','reports','analytics-heatmap',
     'ai-insights','audit-log','agents','agent-groups','customers','leads',
     'ticket-templates','custom-fields','ticket-masters','settings',
     'organization-profile','holiday-setup','recycle-bin','role-rights',

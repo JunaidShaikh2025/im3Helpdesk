@@ -107,6 +107,11 @@ public class ApplicationDbContext : DbContext
   public DbSet<OrganizationSubscription> OrganizationSubscriptions => Set<OrganizationSubscription>();
   public DbSet<PaymentRecord> PaymentRecords => Set<PaymentRecord>();
 
+  // ✅ NEW — Notes (OneNote-style per-user notebooks)
+  public DbSet<NoteBook>     NoteBooks     => Set<NoteBook>();
+  public DbSet<NoteSection>  NoteSections  => Set<NoteSection>();
+  public DbSet<NotePage>     NotePages     => Set<NotePage>();
+
   // ✅ NEW — SLA Policies (Freshdesk-style)
   public DbSet<SlaPolicy>     SlaPolicies     => Set<SlaPolicy>();
   public DbSet<SlaTarget>     SlaTargets      => Set<SlaTarget>();
@@ -683,6 +688,43 @@ public class ApplicationDbContext : DbContext
           _isSuperAdmin ||
           c.OrganizationId ==
               _currentTenantId);
+    });
+
+    // ── NoteBook ──────────────────
+    modelBuilder.Entity<NoteBook>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+      e.Property(x => x.Color).HasMaxLength(50);
+      e.HasMany(x => x.Sections)
+          .WithOne(s => s.NoteBook)
+          .HasForeignKey(s => s.NoteBookId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasQueryFilter(x =>
+          _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    });
+
+    // ── NoteSection ───────────────
+    modelBuilder.Entity<NoteSection>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+      e.Property(x => x.Color).HasMaxLength(50);
+      e.HasMany(x => x.Pages)
+          .WithOne(p => p.Section)
+          .HasForeignKey(p => p.NoteSectionId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasQueryFilter(x =>
+          _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    });
+
+    // ── NotePage ──────────────────
+    modelBuilder.Entity<NotePage>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Title).HasMaxLength(500).IsRequired();
+      e.HasQueryFilter(x =>
+          _isSuperAdmin || x.OrganizationId == _currentTenantId);
     });
 
     // ── TodoItem ──────────────────

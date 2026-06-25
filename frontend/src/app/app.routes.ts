@@ -77,6 +77,12 @@ export const routes: Routes = [
     canActivate: [authGuard, permissionGuard('todo')]
   },
   {
+    path: 'notes',
+    loadComponent: () =>
+      import('./features/notes/notes-workspace/notes-workspace').then(m => m.NotesWorkspaceComponent),
+    canActivate: [authGuard, permissionGuard('notes')]
+  },
+  {
     path: 'chat',
     loadComponent: () =>
       import('./features/chat/chat-page/chat-page').then(m => m.ChatPageComponent),

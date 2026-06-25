@@ -190,6 +190,38 @@ export class TicketDetailComponent
   activityPanelOpen = false;
   viewerPopoverOpen = false;
 
+  // ─── Profile hover card ──────────────
+  profileCardId: string | null = null;
+  private _profileCardTimer: any = null;
+
+  openProfileCard(commentId: string) {
+    clearTimeout(this._profileCardTimer);
+    this.profileCardId = commentId;
+  }
+
+  closeProfileCard() {
+    this._profileCardTimer = setTimeout(() => {
+      this.profileCardId = null;
+    }, 160);
+  }
+
+  keepProfileCard() {
+    clearTimeout(this._profileCardTimer);
+  }
+
+  viewPersonTickets(c: any, ev?: Event) {
+    ev?.stopPropagation();
+    const name = this.commentAuthor(c);
+    const userId = c.user?.id;
+    const params: any = {};
+    if (userId) {
+      params.assignedTo = userId;
+    } else {
+      params.search = name;
+    }
+    this.router.navigate(['/tickets'], { queryParams: params });
+  }
+
   toggleStar(ev?: Event) {
     ev?.stopPropagation();
     this.runUiUpdate(() => {

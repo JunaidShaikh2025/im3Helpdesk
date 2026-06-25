@@ -50,6 +50,46 @@ import { SubscriptionService } from '../../core/services/subscription';
   styleUrls: ['./layout.scss']
 })
 export class LayoutComponent implements OnInit, OnDestroy {
+  private closeOtherTopbarPopups(except: 'profile' | 'search' | 'birthday' | 'kb' | 'notif' | 'todo') {
+    let changed = false;
+
+    if (except !== 'profile' && this.showProfileDropdown) {
+      this.showProfileDropdown = false;
+      window.removeEventListener('keydown', this.handleProfileDropdownEsc, { capture: true } as any);
+      changed = true;
+    }
+
+    if (except !== 'search' && this.searchPanelOpen) {
+      this.searchPanelOpen = false;
+      this.searchLoading = false;
+      window.removeEventListener('keydown', this.handleSearchEsc, { capture: true } as any);
+      changed = true;
+    }
+
+    if (except !== 'birthday' && this.showBirthdayDropdown) {
+      this.showBirthdayDropdown = false;
+      window.removeEventListener('keydown', this.handleBirthdayDropdownEsc, { capture: true } as any);
+      changed = true;
+    }
+
+    if (except !== 'kb' && this.showKbDropdown) {
+      this.showKbDropdown = false;
+      changed = true;
+    }
+
+    if (except !== 'notif' && this.showNotifDropdown) {
+      this.showNotifDropdown = false;
+      changed = true;
+    }
+
+    if (except !== 'todo' && this.showTodoPanel) {
+      this.showTodoPanel = false;
+      changed = true;
+    }
+
+    if (changed) this.cdr.detectChanges();
+  }
+
   @ViewChild('globalSearchInput')
   globalSearchInput?: ElementRef<HTMLInputElement>;
   public showProfileDropdown = false;
@@ -62,14 +102,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Profile Dropdown Logic
   public toggleProfileDropdown(event: MouseEvent) {
     event.stopPropagation();
-    this.showProfileDropdown = !this.showProfileDropdown;
     if (this.showProfileDropdown) {
-      if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
-      setTimeout(() => {
-        window.addEventListener('click', this.closeProfileDropdown, { once: true });
-        window.addEventListener('keydown', this.handleProfileDropdownEsc, { once: true });
-      });
+      this.closeProfileDropdown();
+      return;
     }
+
+    this.closeOtherTopbarPopups('profile');
+    this.showProfileDropdown = true;
+    if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
+    setTimeout(() => {
+      window.addEventListener('click', this.closeProfileDropdown, { once: true });
+      window.addEventListener('keydown', this.handleProfileDropdownEsc, { once: true });
+    });
   }
 
   public goToMainSettings() {
@@ -448,15 +492,19 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   toggleBirthdayDropdown(event?: MouseEvent) {
     if (event) event.stopPropagation();
-    this.showBirthdayDropdown = !this.showBirthdayDropdown;
     if (this.showBirthdayDropdown) {
-      this.loadBirthdayReminders(true);
-      this.loadHolidayReminders(true);
-      setTimeout(() => {
-        window.addEventListener('click', this.closeBirthdayDropdown, { once: true });
-        window.addEventListener('keydown', this.handleBirthdayDropdownEsc, { once: true });
-      });
+      this.closeBirthdayDropdown();
+      return;
     }
+
+    this.closeOtherTopbarPopups('birthday');
+    this.showBirthdayDropdown = true;
+    this.loadBirthdayReminders(true);
+    this.loadHolidayReminders(true);
+    setTimeout(() => {
+      window.addEventListener('click', this.closeBirthdayDropdown, { once: true });
+      window.addEventListener('keydown', this.handleBirthdayDropdownEsc, { once: true });
+    });
     this.cdr.detectChanges();
   }
 
@@ -551,9 +599,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   toggleTodoPanel() {
-    this.showTodoPanel = !this.showTodoPanel;
-    // Keep badge fresh when opening.
-    if (this.showTodoPanel) this.loadTodoCount();
+    if (this.showTodoPanel) {
+      this.showTodoPanel = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.closeOtherTopbarPopups('todo');
+    this.showTodoPanel = true;
+    this.loadTodoCount();
     this.cdr.detectChanges();
   }
 
@@ -576,7 +630,14 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   toggleKbDropdown() {
-    this.showKbDropdown = !this.showKbDropdown;
+    if (this.showKbDropdown) {
+      this.showKbDropdown = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.closeOtherTopbarPopups('kb');
+    this.showKbDropdown = true;
     this.cdr.detectChanges();
   }
 
@@ -814,8 +875,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   toggleNotifDropdown() {
-    this.showNotifDropdown = !this.showNotifDropdown;
-    if (this.showNotifDropdown) this.loadNotifications();
+    if (this.showNotifDropdown) {
+      this.showNotifDropdown = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.closeOtherTopbarPopups('notif');
+    this.showNotifDropdown = true;
+    this.loadNotifications();
     this.cdr.detectChanges();
   }
 
@@ -889,6 +957,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   openSearchPanel() {
+    this.closeOtherTopbarPopups('search');
     this.searchPanelOpen = true;
     setTimeout(() => {
       window.addEventListener('click', this.closeSearchPanel, { once: true });
