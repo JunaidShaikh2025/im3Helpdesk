@@ -1,0 +1,41 @@
+name: Deploy Angular Frontend to Azure
+
+on:
+  push:
+    branches:
+      - main  # Apni main/master branch ka naam likhein
+    paths:
+      - 'frontend/**'  # Sirf tab chalega jab frontend folder mein change ho
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Code checkout karna
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 2. Node.js setup karna
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Aapka Angular version jis Node version ko support karta ho
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    # 3. Dependencies install aur Production Build banana
+    - name: Install Dependencies and Build Angular
+      run: |
+        cd frontend
+        npm ci
+        npm run build -- --configuration production
+
+    # 4. Azure Web App (deskmate) par deploy karna
+    - name: 'Deploy to Azure Web App'
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'deskmate'
+        publish-profile: ${{ secrets.AZURE_FRONTEND_PUBLISH_PROFILE }}
+        # NOTE: 'dist/deskmate' ko apne angular.json ke outputPath ke mutabik check kar lein
+        package: './frontend/dist/deskmate'

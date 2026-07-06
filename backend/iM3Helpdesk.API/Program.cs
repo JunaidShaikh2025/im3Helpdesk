@@ -30,12 +30,14 @@ builder.Services.AddCors(options =>
 {
   options.AddPolicy("AllowAngular", policy =>
   {
-    policy
-        .SetIsOriginAllowed(origin =>
-            new Uri(origin).Host == "localhost")
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+    policy.WithOrigins(
+            "http://localhost:4200",  // Local Angular Frontend (ng serve)
+            "https://localhost:4200", // Agar aap local angular ko SSL/https par chala rahe hain
+            "https://deskmate-b2c3bjhjftd0g5at.centralindia-01.azurewebsites.net" // Live Angular Production URL
+          )
+          .AllowAnyHeader()
+          .AllowAnyMethod()
+          .AllowCredentials(); // Cookies aur SignalR ke liye zaroori hai
   });
 });
 
@@ -162,11 +164,11 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSignalR();
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
   app.UseSwagger();
   app.UseSwaggerUI();
-}
+//}
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
