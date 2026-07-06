@@ -41,11 +41,15 @@ export class GlobalChatNotificationService implements OnDestroy {
   private subs: Subscription[] = [];
   private timers = new Map<string, any>();
   private initialized = false;
+  private audioCtx: AudioContext | null = null;
+  private unlockHandlersBound = false;
+  private lastSoundAt = 0;
 
   /** Wire up SignalR subscription. Safe to call multiple times. */
   init(): void {
     if (this.initialized) return;
     this.initialized = true;
+    this.bindAudioUnlockHandlers();
 
     this.subs.push(
       this.chat.newMessage$.subscribe(msg => this.onIncomingMessage(msg))
@@ -100,6 +104,73 @@ export class GlobalChatNotificationService implements OnDestroy {
     });
 
     this.armAutoDismiss(toast.id);
+    this.playMessageSound();
+  }
+
+  private bindAudioUnlockHandlers(): void {
+    if (this.unlockHandlersBound) return;
+    this.unlockHandlersBound = true;
+
+    const unlock = () => {
+      this.ensureAudioContext().catch(() => {});
+    };
+
+    window.addEventListener('pointerdown', unlock, { passive: true, capture: true });
+    window.addEventListener('keydown', unlock, { capture: true });
+  }
+
+  private async ensureAudioContext(): Promise<AudioContext | null> {
+    try {
+      const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctor) return null;
+      if (!this.audioCtx || this.audioCtx.state === 'closed') {
+        this.audioCtx = new Ctor();
+      }
+      const ctx = this.audioCtx;
+      if (!ctx) return null;
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      return ctx;
+    } catch {
+      return null;
+    }
+  }
+
+  private playMessageSound(): void {
+    const now = Date.now();
+    // Avoid noisy burst when many events land together.
+    if (now - this.lastSoundAt < 700) return;
+    this.lastSoundAt = now;
+
+    this.ensureAudioContext().then(ctx => {
+      if (!ctx) return;
+      try {
+        // Two short, soft pings (Teams-like).
+        this.playTone(ctx, 880, 0.045, 0);
+        this.playTone(ctx, 1175, 0.05, 0.11);
+      } catch {}
+    }).catch(() => {});
+  }
+
+  private playTone(
+    ctx: AudioContext,
+    frequency: number,
+    duration: number,
+    delaySec: number
+  ): void {
+    const t0 = ctx.currentTime + delaySec;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(frequency, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.08, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.02);
   }
 
   private buildPreview(msg: any): string {
@@ -173,5 +244,7 @@ export class GlobalChatNotificationService implements OnDestroy {
     this.subs.forEach(s => s.unsubscribe());
     this.subs = [];
     this.dismissAll();
+    try { this.audioCtx?.close(); } catch {}
+    this.audioCtx = null;
   }
 }
