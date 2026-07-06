@@ -31,7 +31,7 @@ builder.Services.AddCors(options =>
   options.AddPolicy("AllowAngular", policy =>
   {
     policy.WithOrigins(
-            "http://localhost:4200",  // Local Angular Frontend (ng serve)
+            "http://localhost:4200",  // Local Angular Frontend. (ng serve)
             "https://localhost:4200", // Agar aap local angular ko SSL/https par chala rahe hain
             "https://deskmate-b2c3bjhjftd0g5at.centralindia-01.azurewebsites.net" // Live Angular Production URL
           )
