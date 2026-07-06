@@ -4,7 +4,7 @@ import { AuthService } from '../../features/auth/auth.service';
 
 /**
  * Allows CompanyAdmin and SuperAdmin only.
- * Non-admin agents are redirected to the dashboard.
+ * Non-admin agents are redirected to the dashboard
  */
 export const companyAdminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
