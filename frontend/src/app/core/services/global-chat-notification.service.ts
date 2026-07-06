@@ -1,8 +1,7 @@
 // Microsoft Teams-style global chat toast notifications.
 // Listens to ChatService.newMessage$ and surfaces a stack of
 // dismissible toasts in the top-right corner whenever a chat message
-// arrives — for direct messages, group chats, and ticket-room chats.
-// Suppresses the toast when the user is already viewing that thread.
+// arrives - for direct messages and group chats.
 
 import { Injectable, OnDestroy, inject, signal, computed } from '@angular/core';
 import { Subscription } from 'rxjs';
@@ -12,7 +11,7 @@ import { ChatService } from './chat.service';
 export interface ChatToast {
   id: string;
   kind: 'dm' | 'group';
-  /** Conversation key — userId for DM, groupId for group. */
+  // Conversation key - userId for DM, groupId for group.
   threadId: string;
   senderId: string;
   senderName: string;
@@ -29,24 +28,25 @@ export class GlobalChatNotificationService implements OnDestroy {
   private chat = inject(ChatService);
   private router = inject(Router);
 
-  /** Visible toast stack (newest first). Capped at MAX_VISIBLE. */
+  // Visible toast stack (newest first). Capped at MAX_VISIBLE.
   readonly toasts = signal<ChatToast[]>([]);
-  /** Total accumulated unread popups badge — informational only. */
+  // Total accumulated unread popups badge - informational only.
   readonly recentCount = computed(() => this.toasts().length);
 
   private readonly MAX_VISIBLE = 4;
-  /** Auto-dismiss after this many ms unless user hovers/replies. */
+  // Auto-dismiss after this many ms unless user hovers/replies.
   private readonly AUTO_DISMISS_MS = 8000;
 
   private subs: Subscription[] = [];
   private timers = new Map<string, any>();
   private initialized = false;
+
   private audioCtx: AudioContext | null = null;
   private unlockHandlersBound = false;
   private lastSoundAt = 0;
   private lastSoundMessageId = '';
 
-  /** Wire up SignalR subscription. Safe to call multiple times. */
+  // Wire up SignalR subscription. Safe to call multiple times.
   init(): void {
     if (this.initialized) return;
     this.initialized = true;
@@ -55,39 +55,42 @@ export class GlobalChatNotificationService implements OnDestroy {
     this.subs.push(
       this.chat.newMessage$.subscribe(msg => this.onIncomingMessage(msg))
     );
+
     this.subs.push(
       this.chat.currentlyViewing$.subscribe(view => {
         if (!view) return;
         // If the user opens the thread, clear any pending toast for it.
         this.toasts.update(list =>
-          list.filter(t => !(t.kind === view.kind && t.threadId === view.id)));
+          list.filter(t => !(t.kind === view.kind && t.threadId === view.id))
+        );
       })
     );
   }
 
   private onIncomingMessage(msg: any): void {
     if (!msg) return;
-    // Ignore own messages (hub stamps IsFromMe=false on receiver side).
+    // Ignore own messages.
     if (msg.isFromMe === true || msg.IsFromMe === true) return;
+
     const msgId = String(msg.id ?? msg.Id ?? '');
     if (msgId) {
       if (msgId === this.lastSoundMessageId) return;
       this.lastSoundMessageId = msgId;
       this.playMessageSound();
     } else {
-      // Some payloads may not carry a stable message id.
+      // Some payloads may not carry a stable id.
       this.playMessageSound();
     }
+
     const senderId = String(msg.senderId ?? msg.SenderId ?? '');
     if (!senderId) return;
 
     const isGroup = !!(msg.groupId ?? msg.GroupId);
     const groupId = String(msg.groupId ?? msg.GroupId ?? '');
-    // For DMs the thread key from the recipient's POV is the sender.
     const threadId = isGroup ? groupId : senderId;
     const kind: 'dm' | 'group' = isGroup ? 'group' : 'dm';
 
-    // Suppress if the user is currently viewing this thread.
+    // Suppress toast if user is already viewing this thread.
     const view = this.chat.currentlyViewing$.value;
     if (view && view.kind === kind && view.id === threadId) return;
 
@@ -96,20 +99,20 @@ export class GlobalChatNotificationService implements OnDestroy {
       kind,
       threadId,
       senderId,
-      senderName: String(
-        msg.senderName ?? msg.SenderName ?? 'New message'),
+      senderName: String(msg.senderName ?? msg.SenderName ?? 'New message'),
       senderPhoto: msg.senderPhoto ?? msg.SenderPhoto ?? null,
       groupName: msg.groupName ?? msg.GroupName ?? undefined,
       preview: this.buildPreview(msg),
       isAttachment: !!(msg.attachmentUrl ?? msg.AttachmentUrl),
       attachmentType: msg.attachmentType ?? msg.AttachmentType ?? null,
-      receivedAt: Date.now(),
+      receivedAt: Date.now()
     };
 
     // Coalesce: if a toast for the same thread already exists, replace it.
     this.toasts.update(list => {
       const filtered = list.filter(
-        t => !(t.kind === toast.kind && t.threadId === toast.threadId));
+        t => !(t.kind === toast.kind && t.threadId === toast.threadId)
+      );
       return [toast, ...filtered].slice(0, this.MAX_VISIBLE);
     });
 
@@ -189,14 +192,15 @@ export class GlobalChatNotificationService implements OnDestroy {
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
-      return stripped.length > 140 ? stripped.slice(0, 137) + '…' : stripped;
+      return stripped.length > 140 ? `${stripped.slice(0, 137)}...` : stripped;
     }
+
     const name = msg.attachmentName ?? msg.AttachmentName;
     const type = msg.attachmentType ?? msg.AttachmentType;
-    if (name) return `📎 ${name}`;
-    if (type?.startsWith('image/')) return '🖼️ Sent a picture';
-    if (type?.startsWith('audio/')) return '🎤 Voice message';
-    if (type?.startsWith('video/')) return '🎬 Video message';
+    if (name) return `Attachment: ${name}`;
+    if (type?.startsWith('image/')) return 'Sent a picture';
+    if (type?.startsWith('audio/')) return 'Voice message';
+    if (type?.startsWith('video/')) return 'Video message';
     return 'Sent an attachment';
   }
 
@@ -209,13 +213,22 @@ export class GlobalChatNotificationService implements OnDestroy {
 
   pauseAutoDismiss(id: string): void {
     const t = this.timers.get(id);
-    if (t) { clearTimeout(t); this.timers.delete(id); }
+    if (t) {
+      clearTimeout(t);
+      this.timers.delete(id);
+    }
   }
-  resumeAutoDismiss(id: string): void { this.armAutoDismiss(id); }
+
+  resumeAutoDismiss(id: string): void {
+    this.armAutoDismiss(id);
+  }
 
   dismiss(id: string): void {
     const t = this.timers.get(id);
-    if (t) { clearTimeout(t); this.timers.delete(id); }
+    if (t) {
+      clearTimeout(t);
+      this.timers.delete(id);
+    }
     this.toasts.update(list => list.filter(x => x.id !== id));
   }
 
@@ -225,7 +238,7 @@ export class GlobalChatNotificationService implements OnDestroy {
     this.toasts.set([]);
   }
 
-  /** Open the chat page focused on the toast's thread, then dismiss. */
+  // Open the chat page focused on the toast's thread, then dismiss.
   openThread(toast: ChatToast): void {
     const queryParams = toast.kind === 'group'
       ? { groupId: toast.threadId }
@@ -234,7 +247,7 @@ export class GlobalChatNotificationService implements OnDestroy {
     this.dismiss(toast.id);
   }
 
-  /** Send a quick reply directly from the toast. */
+  // Send a quick reply directly from the toast.
   async quickReply(toast: ChatToast, text: string): Promise<void> {
     const trimmed = (text ?? '').trim();
     if (!trimmed) return;

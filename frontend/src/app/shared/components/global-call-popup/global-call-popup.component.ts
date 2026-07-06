@@ -1448,45 +1448,17 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     const local = this.callSvc.localStream;
 
     if (this.popupRemoteVideo?.nativeElement && remote && this.callSvc.callType === 'video') {
-      this.setMediaStream(this.popupRemoteVideo.nativeElement, remote, true);
+      this.popupRemoteVideo.nativeElement.srcObject = remote;
     }
 
     if (this.popupRemoteAudio?.nativeElement && remote) {
-      this.setMediaStream(this.popupRemoteAudio.nativeElement, remote, true);
+      this.popupRemoteAudio.nativeElement.srcObject = remote;
+      this.popupRemoteAudio.nativeElement.play().catch(() => {});
     }
 
     if (this.popupLocalVideo?.nativeElement && local && this.callSvc.callType === 'video') {
-      this.setMediaStream(this.popupLocalVideo.nativeElement, local, true);
+      this.popupLocalVideo.nativeElement.srcObject = local;
     }
-  }
-
-  private setMediaStream(
-    el: HTMLMediaElement,
-    stream: MediaStream,
-    autoPlay: boolean
-  ) {
-    if (!el || !stream) return;
-    if (el.srcObject !== stream) {
-      el.srcObject = stream;
-    }
-    if (autoPlay) this.tryPlay(el);
-  }
-
-  private tryPlay(el: HTMLMediaElement) {
-    if (!el) return;
-    el.autoplay = true;
-    (el as any).playsInline = true;
-    const p = el.play();
-    if (!p || typeof p.catch !== 'function') return;
-    p.catch(() => {
-      const retry = () => {
-        el.play().catch(() => {});
-        window.removeEventListener('pointerdown', retry, true);
-        window.removeEventListener('keydown', retry, true);
-      };
-      window.addEventListener('pointerdown', retry, true);
-      window.addEventListener('keydown', retry, true);
-    });
   }
 
   getInitials(name: string): string {

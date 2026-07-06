@@ -442,7 +442,11 @@ export class GlobalCallNotificationService implements OnDestroy {
     };
 
     try {
-      this.localStream = await this.openLocalMedia(this.callType);
+      this.localStream = await navigator.mediaDevices
+        .getUserMedia({
+          audio: true,
+          video: this.callType === 'video'
+        });
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
@@ -491,7 +495,8 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.iceCandidateQueue     = [];
 
     try {
-      this.localStream = await this.openLocalMedia(type);
+      this.localStream = await navigator.mediaDevices
+        .getUserMedia({ audio: true, video: type === 'video' });
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
@@ -746,7 +751,10 @@ export class GlobalCallNotificationService implements OnDestroy {
     if (this._navigateToChat) this._navigateToChat();
 
     try {
-      this.localStream = await this.openLocalMedia(callType);
+      this.localStream = await navigator.mediaDevices
+        .getUserMedia({
+          audio: true, video: callType === 'video'
+        });
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
@@ -1274,52 +1282,6 @@ export class GlobalCallNotificationService implements OnDestroy {
     return 'poor';
   }
 
-  private async flushIceCandidates() {
-    if (!this.pc) return;
-    while (this.iceCandidateQueue.length) {
-      const c = this.iceCandidateQueue.shift()!;
-      try {
-        await this.pc.addIceCandidate(new RTCIceCandidate(c));
-      } catch {}
-    }
-  }
-
-  private startCallTimer() {
-    clearInterval(this.callTimer);
-    this.callTimer = setInterval(() => this.callDuration++, 1000);
-  }
-
-  private playRingtone() {
-    this.ensureRingContext().then(ctx => {
-      if (!ctx) return;
-      try {
-        this.stopRingtone();
-        let stopped = false;
-        const beep = () => {
-          if (stopped) return;
-          const now = ctx.currentTime;
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.connect(g); g.connect(ctx.destination);
-          o.frequency.setValueAtTime(440, now);
-          o.type = 'sine';
-          g.gain.setValueAtTime(0.0001, now);
-          g.gain.exponentialRampToValueAtTime(0.20, now + 0.03);
-          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
-          o.start(now);
-          o.stop(now + 0.48);
-          if (!stopped) setTimeout(beep, 1200);
-        };
-        beep();
-        this._stopRingFn = () => { stopped = true; };
-      } catch {}
-    }).catch(() => {});
-  }
-
-  private stopRingtone() {
-    if (this._stopRingFn) { this._stopRingFn(); this._stopRingFn = null; }
-  }
-
   private bindAudioUnlock(): void {
     if (this.audioUnlockBound) return;
     this.audioUnlockBound = true;
@@ -1385,14 +1347,55 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.remoteAudioEl = null;
   }
 
+  private async flushIceCandidates() {
+    if (!this.pc) return;
+    while (this.iceCandidateQueue.length) {
+      const c = this.iceCandidateQueue.shift()!;
+      try {
+        await this.pc.addIceCandidate(new RTCIceCandidate(c));
+      } catch {}
+    }
+  }
+
+  private startCallTimer() {
+    clearInterval(this.callTimer);
+    this.callTimer = setInterval(() => this.callDuration++, 1000);
+  }
+
+  private playRingtone() {
+    this.ensureRingContext().then(ctx => {
+      if (!ctx) return;
+      try {
+        this.stopRingtone();
+        let stopped = false;
+        const beep = () => {
+          if (stopped) return;
+          const now = ctx.currentTime;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.setValueAtTime(440, now);
+          o.type = 'sine';
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.exponentialRampToValueAtTime(0.20, now + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+          o.start(now);
+          o.stop(now + 0.48);
+          if (!stopped) setTimeout(beep, 1200);
+        };
+        beep();
+        this._stopRingFn = () => { stopped = true; };
+      } catch {}
+    }).catch(() => {});
+  }
+
+  private stopRingtone() {
+    if (this._stopRingFn) { this._stopRingFn(); this._stopRingFn = null; }
+  }
+
   ngOnDestroy() {
     this.subs.forEach(s => s.unsubscribe());
     this.stopRingtone();
-    try { this.ringCtx?.close(); } catch {}
-    this.ringCtx = null;
-    this.detachRemoteAudioSink();
-    this.stopDiagnostics();
-    this.diagnostics$.next(null);
     clearInterval(this.callTimer);
     clearTimeout(this.disconnectTimer);
   }
