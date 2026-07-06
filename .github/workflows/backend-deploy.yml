@@ -3,7 +3,7 @@ name: Deploy .NET Core Backend to Azure
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'backend/**'  # Sirf tab chalega jab backend folder mein change ho
 
