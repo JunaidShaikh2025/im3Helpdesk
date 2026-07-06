@@ -28,7 +28,7 @@ jobs:
     - name: Install Dependencies and Build Angular
       run: |
         cd frontend
-        npm ci
+        npm install --legacy-peer-deps
         npm run build -- --configuration production
 
     # 4. Azure Web App (deskmate) par deploy karna
