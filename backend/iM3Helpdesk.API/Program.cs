@@ -150,7 +150,7 @@ builder.Services.AddControllers()
       options.JsonSerializerOptions.Converters.Add(
           new iM3Helpdesk.API.Json.NullableUtcDateTimeConverter());
       // Serialize/deserialize enums as their string names (e.g. "Monthly"
-      // instead of 0). Frontend submits and consumes string enum values.
+      // instead of 0). Frontend submits and consumes string enum values
       options.JsonSerializerOptions.Converters.Add(
           new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
