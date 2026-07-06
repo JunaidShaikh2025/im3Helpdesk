@@ -98,6 +98,7 @@ export class GlobalCallNotificationService implements OnDestroy {
   private diagnosticsTimer: any;
   private ringCtx: AudioContext | null = null;
   private audioUnlockBound = false;
+  private remoteAudioEl: HTMLAudioElement | null = null;
   private prevInboundBytes = 0;
   private prevOutboundBytes = 0;
   private prevDiagAt = 0;
@@ -116,14 +117,13 @@ export class GlobalCallNotificationService implements OnDestroy {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
-    channelCount: 1,
-    sampleRate: 48000,
-    sampleSize: 16
+    channelCount: { ideal: 1 },
+    sampleRate: { ideal: 48000 }
   };
 
   private readonly videoConstraints: MediaTrackConstraints = {
-    width: { min: 640, ideal: 1280, max: 1920 },
-    height: { min: 360, ideal: 720, max: 1080 },
+    width: { min: 320, ideal: 1280, max: 1920 },
+    height: { min: 240, ideal: 720, max: 1080 },
     frameRate: { ideal: 30, max: 30 },
     facingMode: 'user'
   };
@@ -443,7 +443,10 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     try {
       this.localStream = await navigator.mediaDevices
-        .getUserMedia(this.getMediaConstraints(this.callType));
+        .getUserMedia({
+          audio: true,
+          video: this.callType === 'video'
+        });
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
@@ -493,7 +496,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     try {
       this.localStream = await navigator.mediaDevices
-        .getUserMedia(this.getMediaConstraints(type));
+        .getUserMedia({ audio: true, video: type === 'video' });
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
@@ -552,6 +555,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.localStream  = null;
     this.remoteStream = null;
     this.remoteStream$.next(null);
+    this.detachRemoteAudioSink();
 
     if (this.pc) { try { this.pc.close(); } catch {} this.pc = null; }
 
@@ -748,7 +752,9 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     try {
       this.localStream = await navigator.mediaDevices
-        .getUserMedia(this.getMediaConstraints(callType));
+        .getUserMedia({
+          audio: true, video: callType === 'video'
+        });
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
@@ -963,6 +969,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     pc.ontrack = (e) => {
       this.remoteStream = this.ensureMainRemoteStream(e);
+      this.ensureRemoteAudioSink(this.remoteStream);
       this.remoteStream$.next(this.remoteStream);
       if (this.activeCallOtherId) {
         this.attachAudioWatcher(
@@ -1039,6 +1046,18 @@ export class GlobalCallNotificationService implements OnDestroy {
     };
   }
 
+  private async openLocalMedia(type: 'audio' | 'video'): Promise<MediaStream> {
+    try {
+      return await navigator.mediaDevices.getUserMedia(
+        this.getMediaConstraints(type));
+    } catch {
+      return navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: type === 'video'
+      });
+    }
+  }
+
   private async attachLocalTracks(
     pc: RTCPeerConnection,
     stream: MediaStream
@@ -1067,12 +1086,12 @@ export class GlobalCallNotificationService implements OnDestroy {
         : [{} as RTCRtpEncodingParameters];
 
       if (kind === 'video') {
-        enc[0].maxBitrate = 2500000;
+        enc[0].maxBitrate = 1500000;
         enc[0].maxFramerate = 30;
         enc[0].scaleResolutionDownBy = 1;
-        (params as any).degradationPreference = 'maintain-resolution';
+        (params as any).degradationPreference = 'balanced';
       } else {
-        enc[0].maxBitrate = 128000;
+        enc[0].maxBitrate = 96000;
         (params as any).degradationPreference = 'balanced';
       }
 
@@ -1082,24 +1101,36 @@ export class GlobalCallNotificationService implements OnDestroy {
   }
 
   private ensureMainRemoteStream(e: RTCTrackEvent): MediaStream {
-    const stream = e.streams?.[0];
-    if (stream) return stream;
-
     if (!this.remoteStream) this.remoteStream = new MediaStream();
-    const exists = this.remoteStream
+    const source = e.streams?.[0];
+    if (source) {
+      source.getTracks().forEach(t => {
+        const exists = this.remoteStream!
+          .getTracks()
+          .some(x => x.id === t.id);
+        if (!exists) this.remoteStream!.addTrack(t);
+      });
+    }
+
+    const selfExists = this.remoteStream
       .getTracks()
       .some(t => t.id === e.track.id);
-    if (!exists) this.remoteStream.addTrack(e.track);
+    if (!selfExists) this.remoteStream.addTrack(e.track);
     return this.remoteStream;
   }
 
   private getPeerRemoteStream(peerId: string, e: RTCTrackEvent): MediaStream {
-    const stream = e.streams?.[0];
-    if (stream) return stream;
-
     const current = this.remoteStreams.get(peerId) || new MediaStream();
-    const exists = current.getTracks().some(t => t.id === e.track.id);
-    if (!exists) current.addTrack(e.track);
+    const source = e.streams?.[0];
+    if (source) {
+      source.getTracks().forEach(t => {
+        const exists = current.getTracks().some(x => x.id === t.id);
+        if (!exists) current.addTrack(t);
+      });
+    }
+
+    const selfExists = current.getTracks().some(t => t.id === e.track.id);
+    if (!selfExists) current.addTrack(e.track);
     return current;
   }
 
@@ -1251,6 +1282,71 @@ export class GlobalCallNotificationService implements OnDestroy {
     return 'poor';
   }
 
+  private bindAudioUnlock(): void {
+    if (this.audioUnlockBound) return;
+    this.audioUnlockBound = true;
+    const unlock = () => { this.ensureRingContext().catch(() => {}); };
+    window.addEventListener('pointerdown', unlock, { passive: true, capture: true });
+    window.addEventListener('keydown', unlock, { capture: true });
+  }
+
+  private async ensureRingContext(): Promise<AudioContext | null> {
+    try {
+      const Ctor = (window as any).AudioContext
+        || (window as any).webkitAudioContext;
+      if (!Ctor) return null;
+      if (!this.ringCtx || this.ringCtx.state === 'closed') {
+        this.ringCtx = new Ctor();
+      }
+      const ctx = this.ringCtx;
+      if (!ctx) return null;
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      return ctx;
+    } catch {
+      return null;
+    }
+  }
+
+  private ensureRemoteAudioSink(stream: MediaStream | null): void {
+    if (!stream) return;
+    if (!this.remoteAudioEl) {
+      const el = document.createElement('audio');
+      el.autoplay = true;
+      (el as any).playsInline = true;
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      this.remoteAudioEl = el;
+    }
+
+    if (this.remoteAudioEl.srcObject !== stream) {
+      this.remoteAudioEl.srcObject = stream;
+    }
+
+    const p = this.remoteAudioEl.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {
+        const retry = () => {
+          this.remoteAudioEl?.play().catch(() => {});
+          window.removeEventListener('pointerdown', retry, true);
+          window.removeEventListener('keydown', retry, true);
+        };
+        window.addEventListener('pointerdown', retry, true);
+        window.addEventListener('keydown', retry, true);
+      });
+    }
+  }
+
+  private detachRemoteAudioSink(): void {
+    if (!this.remoteAudioEl) return;
+    try {
+      this.remoteAudioEl.srcObject = null;
+      this.remoteAudioEl.remove();
+    } catch {}
+    this.remoteAudioEl = null;
+  }
+
   private async flushIceCandidates() {
     if (!this.pc) return;
     while (this.iceCandidateQueue.length) {
@@ -1297,40 +1393,9 @@ export class GlobalCallNotificationService implements OnDestroy {
     if (this._stopRingFn) { this._stopRingFn(); this._stopRingFn = null; }
   }
 
-  private bindAudioUnlock(): void {
-    if (this.audioUnlockBound) return;
-    this.audioUnlockBound = true;
-    const unlock = () => { this.ensureRingContext().catch(() => {}); };
-    window.addEventListener('pointerdown', unlock, { passive: true, capture: true });
-    window.addEventListener('keydown', unlock, { capture: true });
-  }
-
-  private async ensureRingContext(): Promise<AudioContext | null> {
-    try {
-      const Ctor = (window as any).AudioContext
-        || (window as any).webkitAudioContext;
-      if (!Ctor) return null;
-      if (!this.ringCtx || this.ringCtx.state === 'closed') {
-        this.ringCtx = new Ctor();
-      }
-      const ctx = this.ringCtx;
-      if (!ctx) return null;
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-      }
-      return ctx;
-    } catch {
-      return null;
-    }
-  }
-
   ngOnDestroy() {
     this.subs.forEach(s => s.unsubscribe());
     this.stopRingtone();
-    try { this.ringCtx?.close(); } catch {}
-    this.ringCtx = null;
-    this.stopDiagnostics();
-    this.diagnostics$.next(null);
     clearInterval(this.callTimer);
     clearTimeout(this.disconnectTimer);
   }

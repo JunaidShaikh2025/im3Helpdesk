@@ -17,7 +17,24 @@ import { ChatService } from '../../../core/services/chat.service';
 @Directive({ selector: '[srcObject]', standalone: true })
 export class SrcObjectDirective {
   @Input() set srcObject(s: MediaStream | null) {
-    (this.el.nativeElement as HTMLMediaElement).srcObject = s;
+    const media = this.el.nativeElement as HTMLMediaElement;
+    if (media.srcObject !== s) {
+      media.srcObject = s;
+    }
+    media.autoplay = true;
+    (media as any).playsInline = true;
+    const p = media.play?.();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {
+        const retry = () => {
+          media.play?.().catch(() => {});
+          window.removeEventListener('pointerdown', retry, true);
+          window.removeEventListener('keydown', retry, true);
+        };
+        window.addEventListener('pointerdown', retry, true);
+        window.addEventListener('keydown', retry, true);
+      });
+    }
   }
   constructor(private el: ElementRef) {}
 }
@@ -72,7 +89,7 @@ export class SrcObjectDirective {
 <!-- ═══════════════════════════════════════     INCOMING CALL POPUP
 ══════════════════════════════════════ -->
 <div class="gcall-overlay"
-  *ngIf="callSvc.isVisible && callSvc.incomingCall">
+  *ngIf="callSvc.isVisible && callSvc.incomingCall && !isChatRoute">
   <div class="gcall-popup">
 
     <div class="gcall-ring-wrap">
@@ -1085,9 +1102,8 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
     // Keep timer text and media bindings in sync while minimized/popup is alive.
     this.uiTick = setInterval(() => {
-      this.syncStreams();
       this.cdr.detectChanges();
-    }, 500);
+    }, 1000);
   }
 
   ngOnDestroy() {
@@ -1433,35 +1449,16 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
     if (this.popupRemoteVideo?.nativeElement && remote && this.callSvc.callType === 'video') {
       this.popupRemoteVideo.nativeElement.srcObject = remote;
-      this.tryPlay(this.popupRemoteVideo.nativeElement);
     }
 
     if (this.popupRemoteAudio?.nativeElement && remote) {
       this.popupRemoteAudio.nativeElement.srcObject = remote;
-      this.tryPlay(this.popupRemoteAudio.nativeElement);
+      this.popupRemoteAudio.nativeElement.play().catch(() => {});
     }
 
     if (this.popupLocalVideo?.nativeElement && local && this.callSvc.callType === 'video') {
       this.popupLocalVideo.nativeElement.srcObject = local;
-      this.tryPlay(this.popupLocalVideo.nativeElement);
     }
-  }
-
-  private tryPlay(el: HTMLMediaElement) {
-    if (!el) return;
-    el.autoplay = true;
-    (el as any).playsInline = true;
-    const p = el.play();
-    if (!p || typeof p.catch !== 'function') return;
-    p.catch(() => {
-      const retry = () => {
-        el.play().catch(() => {});
-        window.removeEventListener('pointerdown', retry, true);
-        window.removeEventListener('keydown', retry, true);
-      };
-      window.addEventListener('pointerdown', retry, true);
-      window.addEventListener('keydown', retry, true);
-    });
   }
 
   getInitials(name: string): string {
