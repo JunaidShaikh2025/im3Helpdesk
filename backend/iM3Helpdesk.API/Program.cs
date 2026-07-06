@@ -169,6 +169,7 @@ var app = builder.Build();
   app.UseSwagger();
   app.UseSwaggerUI();
 //}
+app.UseCors("AllowAngular");
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -208,7 +209,6 @@ app.UseStaticFiles(new StaticFileOptions
   }
 });
 
-app.UseCors("AllowAngular");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
