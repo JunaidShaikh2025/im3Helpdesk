@@ -405,12 +405,24 @@
           [class.active]="sidebarTab==='chat'"
           (click)="setSidebarTab('chat')">
           💬 Chat
+          <span class="cs-tab-badge"
+            *ngIf="unreadTotalCount > 0">
+            {{ unreadTotalCount > 99
+              ? '99+'
+              : unreadTotalCount }}
+          </span>
         </button>
         <button type="button"
           class="cs-main-tab"
           [class.active]="sidebarTab==='calls'"
           (click)="setSidebarTab('calls')">
           📞 Calls
+          <span class="cs-tab-badge badge-call"
+            *ngIf="missedCallCount > 0">
+            {{ missedCallCount > 99
+              ? '99+'
+              : missedCallCount }}
+          </span>
         </button>
       </div>
       <button type="button"
@@ -452,9 +464,11 @@
           activeFilter==='unread'"
         (click)="setFilter('unread')">
         Unread
-        <span class="cs-tab-dot"
-          *ngIf="users.some(
-            u => (u.unreadCount||0) > 0)">
+        <span class="cs-tab-badge"
+          *ngIf="unreadTotalCount > 0">
+          {{ unreadTotalCount > 99
+            ? '99+'
+            : unreadTotalCount }}
         </span>
       </button>
       <button type="button"
@@ -463,6 +477,12 @@
           activeFilter==='online'"
         (click)="setFilter('online')">
         Online
+        <span class="cs-tab-badge"
+          *ngIf="onlineTotalCount > 0">
+          {{ onlineTotalCount > 99
+            ? '99+'
+            : onlineTotalCount }}
+        </span>
       </button>
       <button type="button"
         class="cs-tab"

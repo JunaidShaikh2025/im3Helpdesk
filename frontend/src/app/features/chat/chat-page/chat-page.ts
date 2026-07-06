@@ -61,6 +61,20 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   myId   = '';
   myName = '';
   sidebarTab: 'chat' | 'calls' = 'chat';
+  missedCallCount = 0;
+
+  get unreadTotalCount(): number {
+    const userUnread = this.users
+      .reduce((sum, u) => sum + Number(u?.unreadCount || 0), 0);
+    const groupUnread = this.groups
+      .reduce((sum, g) => sum + Number(g?.unreadCount || 0), 0);
+    return userUnread + groupUnread;
+  }
+
+  get onlineTotalCount(): number {
+    return this.users
+      .reduce((sum, u) => sum + (u?.isOnline ? 1 : 0), 0);
+  }
 
   // ── Call UI state ─────────────────────────
   callState: 'idle' | 'calling' | 'receiving' | 'active' | 'minimized' = 'idle';
@@ -113,6 +127,17 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.loadGroups();
     this.subscribeToEvents();
     this.restoreCallState();
+    this.loadMissedCallCount();
+  }
+
+  private loadMissedCallCount() {
+    this.chatService.getMissedCallCount().subscribe({
+      next: (d: any) => {
+        this.missedCallCount = Number(d?.count ?? d?.missedCount ?? 0);
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
   }
 
   private loadMyProfile() {
@@ -338,6 +363,13 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
       })
     );
 
+    this.subs.push(
+      this.chatService.missedCallCount$.subscribe(count => {
+        this.missedCallCount = Number(count || 0);
+        this.cdr.detectChanges();
+      })
+    );
+
     // Remote stream arrived
     this.subs.push(
       this.callSvc.remoteStream$.subscribe(stream => {
@@ -430,7 +462,15 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   // ── Sidebar ──────────────────────────────
   setSidebarTab(t: 'chat' | 'calls') {
     this.sidebarTab = t;
-    if (t === 'calls') this.chatService.markCallsRead().subscribe();
+    if (t === 'calls') {
+      this.chatService.markCallsRead().subscribe({
+        next: () => {
+          this.missedCallCount = 0;
+          this.cdr.detectChanges();
+        },
+        error: () => {}
+      });
+    }
   }
 
   // ── Call actions ─────────────────────────

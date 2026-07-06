@@ -44,6 +44,7 @@ export class GlobalChatNotificationService implements OnDestroy {
   private audioCtx: AudioContext | null = null;
   private unlockHandlersBound = false;
   private lastSoundAt = 0;
+  private lastSoundMessageId = '';
 
   /** Wire up SignalR subscription. Safe to call multiple times. */
   init(): void {
@@ -68,6 +69,15 @@ export class GlobalChatNotificationService implements OnDestroy {
     if (!msg) return;
     // Ignore own messages (hub stamps IsFromMe=false on receiver side).
     if (msg.isFromMe === true || msg.IsFromMe === true) return;
+    const msgId = String(msg.id ?? msg.Id ?? '');
+    if (msgId) {
+      if (msgId === this.lastSoundMessageId) return;
+      this.lastSoundMessageId = msgId;
+      this.playMessageSound();
+    } else {
+      // Some payloads may not carry a stable message id.
+      this.playMessageSound();
+    }
     const senderId = String(msg.senderId ?? msg.SenderId ?? '');
     if (!senderId) return;
 
@@ -104,7 +114,6 @@ export class GlobalChatNotificationService implements OnDestroy {
     });
 
     this.armAutoDismiss(toast.id);
-    this.playMessageSound();
   }
 
   private bindAudioUnlockHandlers(): void {
