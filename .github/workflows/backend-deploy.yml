@@ -26,9 +26,9 @@ jobs:
     - name: Restore, Build and Publish .NET App
       run: |
         cd backend
-        dotnet restore
-        dotnet build --configuration Release --no-restore
-        dotnet publish --configuration Release --output ./publish
+        dotnet restore --no-cache
+        dotnet build --configuration Release
+        dotnet publish --configuration Release --output ./publish --no-build
 
     # 4. Azure Web App (dmwebapi) par deploy karna
     - name: 'Deploy to Azure Web App'
