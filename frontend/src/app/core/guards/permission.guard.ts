@@ -8,7 +8,7 @@ import { RoleRightsService } from '../services/role-rights.service';
  *
  * Waits for the permission map to load, then checks `can(module, 'view')`.
  * If denied, shows a toast and redirects to /dashboard (or /profile when the
- * denied module IS dashboard).
+ * denied module IS dashboard)
  */
 export function permissionGuard(moduleKey: string): CanActivateFn {
   return async () => {

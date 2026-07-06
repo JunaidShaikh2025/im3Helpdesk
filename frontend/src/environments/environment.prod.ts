@@ -1,1 +1,1 @@
-export const environment = { production: true, apiUrl: 'https://localhost:7071/api', baseUrl: 'https://localhost:7071' };
+export const environment = { production: true, apiUrl: 'https://dmwebapi-dmahdwf7c5c3e4cq.centralindia-01.azurewebsites.net/api',baseUrl: 'https://dmwebapi-dmahdwf7c5c3e4cq.centralindia-01.azurewebsites.net' };

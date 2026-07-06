@@ -30,12 +30,14 @@ builder.Services.AddCors(options =>
 {
   options.AddPolicy("AllowAngular", policy =>
   {
-    policy
-        .SetIsOriginAllowed(origin =>
-            new Uri(origin).Host == "localhost")
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+    policy.WithOrigins(
+            "http://localhost:4200",  // Local Angular Frontend (ng serve)
+            "https://localhost:4200", // Agar aap local angular ko SSL/https par chala rahe hain
+            "https://deskmate-b2c3bjhjftd0g5at.centralindia-01.azurewebsites.net" // Live Angular Production URL
+          )
+          .AllowAnyHeader()
+          .AllowAnyMethod()
+          .AllowCredentials(); // Cookies aur SignalR ke liye zaroori hai
   });
 });
 
@@ -148,7 +150,7 @@ builder.Services.AddControllers()
       options.JsonSerializerOptions.Converters.Add(
           new iM3Helpdesk.API.Json.NullableUtcDateTimeConverter());
       // Serialize/deserialize enums as their string names (e.g. "Monthly"
-      // instead of 0). Frontend submits and consumes string enum values.
+      // instead of 0). Frontend submits and consumes string enum values
       options.JsonSerializerOptions.Converters.Add(
           new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
@@ -162,11 +164,12 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSignalR();
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
   app.UseSwagger();
   app.UseSwaggerUI();
-}
+//}
+app.UseCors("AllowAngular");
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -206,7 +209,6 @@ app.UseStaticFiles(new StaticFileOptions
   }
 });
 
-app.UseCors("AllowAngular");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

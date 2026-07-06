@@ -1,0 +1,39 @@
+name: Deploy .NET Core Backend to Azure
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'backend/**'  # Sirf tab chalega jab backend folder mein change ho
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Code checkout karna
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 2. .NET Core SDK setup karna
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0' # Aapka jo bhi version hai (e.g., 6.0, 7.0, 8.0)
+
+    # 3. Restore, Build aur Publish karna
+    - name: Restore, Build and Publish .NET App
+      run: |
+        cd backend
+        dotnet restore --no-cache
+        dotnet build --configuration Release
+        dotnet publish --configuration Release --output ./publish --no-build
+
+    # 4. Azure Web App (dmwebapi) par deploy karna
+    - name: 'Deploy to Azure Web App'
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'dmwebapi'
+        publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}
+        package: './backend/publish'

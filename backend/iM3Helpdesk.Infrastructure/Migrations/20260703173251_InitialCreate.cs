@@ -19,11 +19,40 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    BusinessHoursId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AgentGroups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BusinessHours",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
+                    Mode = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    Monday = table.Column<bool>(type: "bit", nullable: false),
+                    Tuesday = table.Column<bool>(type: "bit", nullable: false),
+                    Wednesday = table.Column<bool>(type: "bit", nullable: false),
+                    Thursday = table.Column<bool>(type: "bit", nullable: false),
+                    Friday = table.Column<bool>(type: "bit", nullable: false),
+                    Saturday = table.Column<bool>(type: "bit", nullable: false),
+                    Sunday = table.Column<bool>(type: "bit", nullable: false),
+                    StartTime = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: false),
+                    EndTime = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: false),
+                    Timezone = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BusinessHours", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -112,6 +141,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     ToEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     Subject = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Body = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -128,6 +158,91 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Holidays",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Year = table.Column<int>(type: "int", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    Occasion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    Day = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
+                    IsFloating = table.Column<bool>(type: "bit", nullable: false),
+                    HolidayYearSetupId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Holidays", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HolidayYearSetups",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Year = table.Column<int>(type: "int", nullable: false),
+                    PdfFileUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    PdfFileName = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    FloatingHolidayAllowance = table.Column<int>(type: "int", nullable: false),
+                    PolicyText = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HolidayYearSetups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Leads",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    OwnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    WorkEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    RegistrationToken = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    TokenUsedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ApprovedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RejectedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ApprovedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Leads", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NoteBooks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Color = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    DisplayOrder = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NoteBooks", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Organizations",
                 columns: table => new
                 {
@@ -136,7 +251,19 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     Slug = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     LogoUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     BrandColor = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SupportEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SupportEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    SmtpHost = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    SmtpPort = table.Column<int>(type: "int", nullable: true),
+                    SmtpFromEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    SmtpFromName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    SmtpUsername = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    SmtpPassword = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ImapHost = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ImapPort = table.Column<int>(type: "int", nullable: true),
+                    EmailPollingEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    EmailPollingOnboardedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EmailPollingIntervalSeconds = table.Column<int>(type: "int", nullable: false),
+                    Timezone = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     TrialEndsAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -144,11 +271,150 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     TwilioAccountSid = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     TwilioAuthToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     SlackWebhookUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TeamsWebhookUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    TeamsWebhookUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RecycleBinRetentionValue = table.Column<int>(type: "int", nullable: false),
+                    RecycleBinRetentionUnit = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Organizations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrganizationSubscriptions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PlanId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BillingCycle = table.Column<int>(type: "int", nullable: false),
+                    AgentSeats = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(12,2)", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    StartedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CurrentPeriodEnd = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CancelledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrganizationSubscriptions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PaymentRecords",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PlanId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SubscriptionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    BillingCycle = table.Column<int>(type: "int", nullable: false),
+                    AgentSeats = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(12,2)", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    BillingName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    BillingEmail = table.Column<string>(type: "nvarchar(320)", maxLength: 320, nullable: true),
+                    BillingAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CardLast4 = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
+                    CardBrand = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    GatewayReference = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    SubmittedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SubmittedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReviewedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReviewNotes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PaymentRecords", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RolePermissions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Role = table.Column<int>(type: "int", nullable: false),
+                    Module = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: false),
+                    CanView = table.Column<bool>(type: "bit", nullable: false),
+                    CanAdd = table.Column<bool>(type: "bit", nullable: false),
+                    CanEdit = table.Column<bool>(type: "bit", nullable: false),
+                    CanDelete = table.Column<bool>(type: "bit", nullable: false),
+                    CanExport = table.Column<bool>(type: "bit", nullable: false),
+                    UpdatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SlaPolicies",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    Order = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SlaPolicies", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SubscriptionPlans",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TierKey = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: false),
+                    Tagline = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    Accent = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    MonthlyPricePerAgent = table.Column<decimal>(type: "decimal(12,2)", nullable: false),
+                    AnnualDiscountPct = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FeatureKeysCsv = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubscriptionPlans", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TicketFieldMasters",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Field = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Value = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    Label = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TicketFieldMasters", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -189,6 +455,69 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TicketWatchers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TicketId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TicketWatchers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BusinessHoursHolidays",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BusinessHoursId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    IsRecurring = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BusinessHoursHolidays", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BusinessHoursHolidays_BusinessHours_BusinessHoursId",
+                        column: x => x.BusinessHoursId,
+                        principalTable: "BusinessHours",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NoteSections",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    NoteBookId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Color = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    DisplayOrder = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NoteSections", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NoteSections_NoteBooks_NoteBookId",
+                        column: x => x.NoteBookId,
+                        principalTable: "NoteBooks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -208,7 +537,14 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     FailedLoginAttempts = table.Column<int>(type: "int", nullable: false),
                     LockedUntil = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Signature = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Department = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: true),
+                    Location = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: true),
+                    Designation = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: true),
+                    DateOfBirth = table.Column<DateOnly>(type: "date", nullable: true),
+                    DateOfJoining = table.Column<DateOnly>(type: "date", nullable: true),
+                    Gender = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    IsTwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -218,6 +554,99 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         column: x => x.OrganizationId,
                         principalTable: "Organizations",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SlaEscalations",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SlaPolicyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TargetType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    EscalateAfterMinutes = table.Column<int>(type: "int", nullable: false),
+                    Recipients = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SlaEscalations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SlaEscalations_SlaPolicies_SlaPolicyId",
+                        column: x => x.SlaPolicyId,
+                        principalTable: "SlaPolicies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SlaReminders",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SlaPolicyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TargetType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    ApproachInMinutes = table.Column<int>(type: "int", nullable: false),
+                    Recipients = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SlaReminders", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SlaReminders_SlaPolicies_SlaPolicyId",
+                        column: x => x.SlaPolicyId,
+                        principalTable: "SlaPolicies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SlaTargets",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SlaPolicyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Priority = table.Column<int>(type: "int", nullable: false),
+                    FirstResponseMinutes = table.Column<int>(type: "int", nullable: false),
+                    ResolutionMinutes = table.Column<int>(type: "int", nullable: false),
+                    OperationalHours = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    EscalationEnabled = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SlaTargets", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SlaTargets_SlaPolicies_SlaPolicyId",
+                        column: x => x.SlaPolicyId,
+                        principalTable: "SlaPolicies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NotePages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    NoteSectionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DisplayOrder = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NotePages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NotePages_NoteSections_NoteSectionId",
+                        column: x => x.NoteSectionId,
+                        principalTable: "NoteSections",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -311,7 +740,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CallLogId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -336,7 +766,9 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     IsPublished = table.Column<bool>(type: "bit", nullable: false),
                     ViewCount = table.Column<int>(type: "int", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    AuthorType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SystemAuthorLabel = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     MediaUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false, defaultValue: ""),
@@ -360,11 +792,16 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FromEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FromName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CcEmails = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BccEmails = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    InboundMessageId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Category = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     Priority = table.Column<int>(type: "int", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     AssignedToUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -377,7 +814,10 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     LastActivityAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     TicketType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AgentGroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    TicketNumber = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
+                    TicketNumber = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeletedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -435,7 +875,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastReadAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -596,7 +1037,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContentType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    UploadedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UploadedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UploadedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -623,13 +1064,22 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TicketId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    FromEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FromName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Comment = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsInternal = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EmailMessageId = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Source = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    EmailMessageId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Source = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Cc = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Bcc = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NotifiedTo = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    InReplyTo = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    References = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    EditedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EditedById = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -640,6 +1090,12 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         principalTable: "Tickets",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TicketComments_Users_EditedById",
+                        column: x => x.EditedById,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_TicketComments_Users_UserId",
                         column: x => x.UserId,
@@ -687,8 +1143,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId1 = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -704,12 +1159,40 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_TodoItems_Users_UserId1",
-                        column: x => x.UserId1,
-                        principalTable: "Users",
-                        principalColumn: "Id");
                 });
+
+            migrationBuilder.CreateTable(
+                name: "CommentReactions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReactionType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "like"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommentReactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CommentReactions_TicketComments_CommentId",
+                        column: x => x.CommentId,
+                        principalTable: "TicketComments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommentReactions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.InsertData(
+                table: "Users",
+                columns: new[] { "Id", "CreatedAt", "DateOfBirth", "DateOfJoining", "Department", "Designation", "Email", "EmailVerificationToken", "FailedLoginAttempts", "FullName", "Gender", "IsEmailVerified", "LastLoginAt", "Location", "LockedUntil", "OrganizationId", "PasswordHash", "PhoneNumber", "PhotoUrl", "RefreshToken", "RefreshTokenExpiresAt", "Role", "Signature" },
+                values: new object[] { new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, null, "aadil080933@gmail.com", null, 0, "Super Admin", null, true, null, null, null, null, "$2a$11$5mzOVht3guIDVrfa/Ju01eBo7TgkNkPz.HPoNgPHsgyRGxiU6DG6e", "9999999999", null, null, null, 0, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ActivityLogs_OrganizationId",
@@ -730,6 +1213,26 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 name: "IX_AgentGroupMembers_UserId",
                 table: "AgentGroupMembers",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AgentGroups_BusinessHoursId",
+                table: "AgentGroups",
+                column: "BusinessHoursId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BusinessHours_OrganizationId",
+                table: "BusinessHours",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BusinessHours_OrganizationId_IsDefault",
+                table: "BusinessHours",
+                columns: new[] { "OrganizationId", "IsDefault" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BusinessHoursHolidays_BusinessHoursId",
+                table: "BusinessHoursHolidays",
+                column: "BusinessHoursId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CalendarEvents_OrganizationId_CreatedByUserId_StartDate",
@@ -798,6 +1301,17 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 columns: new[] { "SenderId", "ReceiverId" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_CommentReactions_CommentId_UserId",
+                table: "CommentReactions",
+                columns: new[] { "CommentId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommentReactions_UserId",
+                table: "CommentReactions",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Contacts_OrganizationId_Email",
                 table: "Contacts",
                 columns: new[] { "OrganizationId", "Email" },
@@ -807,6 +1321,17 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 name: "IX_EmailNotificationSettings_OrganizationId_NotifKey",
                 table: "EmailNotificationSettings",
                 columns: new[] { "OrganizationId", "NotifKey" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Holidays_OrganizationId_Year_Date",
+                table: "Holidays",
+                columns: new[] { "OrganizationId", "Year", "Date" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HolidayYearSetups_OrganizationId_Year",
+                table: "HolidayYearSetups",
+                columns: new[] { "OrganizationId", "Year" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_KbArticles_CreatedByUserId",
@@ -835,6 +1360,38 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Leads_CreatedAt",
+                table: "Leads",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Leads_RegistrationToken",
+                table: "Leads",
+                column: "RegistrationToken",
+                unique: true,
+                filter: "[RegistrationToken] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Leads_Status",
+                table: "Leads",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Leads_WorkEmail",
+                table: "Leads",
+                column: "WorkEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NotePages_NoteSectionId",
+                table: "NotePages",
+                column: "NoteSectionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NoteSections_NoteBookId",
+                table: "NoteSections",
+                column: "NoteBookId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Notifications_TicketId",
                 table: "Notifications",
                 column: "TicketId");
@@ -851,6 +1408,64 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrganizationSubscriptions_OrganizationId",
+                table: "OrganizationSubscriptions",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrganizationSubscriptions_OrganizationId_Status",
+                table: "OrganizationSubscriptions",
+                columns: new[] { "OrganizationId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PaymentRecords_OrganizationId_Status",
+                table: "PaymentRecords",
+                columns: new[] { "OrganizationId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PaymentRecords_Status",
+                table: "PaymentRecords",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RolePermissions_OrganizationId_Role_Module",
+                table: "RolePermissions",
+                columns: new[] { "OrganizationId", "Role", "Module" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SlaEscalations_SlaPolicyId",
+                table: "SlaEscalations",
+                column: "SlaPolicyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SlaPolicies_OrganizationId",
+                table: "SlaPolicies",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SlaPolicies_OrganizationId_IsDefault",
+                table: "SlaPolicies",
+                columns: new[] { "OrganizationId", "IsDefault" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SlaReminders_SlaPolicyId",
+                table: "SlaReminders",
+                column: "SlaPolicyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SlaTargets_SlaPolicyId_Priority",
+                table: "SlaTargets",
+                columns: new[] { "SlaPolicyId", "Priority" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubscriptionPlans_TierKey",
+                table: "SubscriptionPlans",
+                column: "TierKey",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TicketAttachments_TicketId",
                 table: "TicketAttachments",
                 column: "TicketId");
@@ -859,6 +1474,16 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 name: "IX_TicketAttachments_UploadedByUserId",
                 table: "TicketAttachments",
                 column: "UploadedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketComments_EditedById",
+                table: "TicketComments",
+                column: "EditedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketComments_EmailMessageId",
+                table: "TicketComments",
+                column: "EmailMessageId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TicketComments_TicketId",
@@ -881,6 +1506,17 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 column: "TicketId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TicketFieldMasters_OrganizationId_Field_IsActive_SortOrder",
+                table: "TicketFieldMasters",
+                columns: new[] { "OrganizationId", "Field", "IsActive", "SortOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketFieldMasters_OrganizationId_Field_Value",
+                table: "TicketFieldMasters",
+                columns: new[] { "OrganizationId", "Field", "Value" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Tickets_AgentGroupId",
                 table: "Tickets",
                 column: "AgentGroupId");
@@ -899,6 +1535,11 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 name: "IX_Tickets_CreatedByUserId",
                 table: "Tickets",
                 column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tickets_IsDeleted",
+                table: "Tickets",
+                column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tickets_OrganizationId",
@@ -921,6 +1562,22 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 columns: new[] { "TicketId", "UserId" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_TicketWatchers_TicketId",
+                table: "TicketWatchers",
+                column: "TicketId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketWatchers_TicketId_UserId",
+                table: "TicketWatchers",
+                columns: new[] { "TicketId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketWatchers_UserId",
+                table: "TicketWatchers",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TodoItems_TicketId",
                 table: "TodoItems",
                 column: "TicketId");
@@ -929,11 +1586,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 name: "IX_TodoItems_UserId",
                 table: "TodoItems",
                 column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TodoItems_UserId1",
-                table: "TodoItems",
-                column: "UserId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserOnlineStatuses_UserId",
@@ -951,34 +1603,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 name: "IX_Users_OrganizationId",
                 table: "Users",
                 column: "OrganizationId");
-
-            migrationBuilder.Sql(@"
-IF NOT EXISTS (
-    SELECT 1
-    FROM [Users]
-    WHERE [Email] = 'Aadil080399@gmail.com'
-)
-BEGIN
-    INSERT INTO [Users] (
-        [Id], [FullName], [Email], [PasswordHash],
-        [PhoneNumber], [IsEmailVerified], [Role],
-        [FailedLoginAttempts],
-        [OrganizationId], [CreatedAt]
-    )
-    VALUES (
-        NEWID(),
-        'Super Admin',
-        'Aadil080399@gmail.com',
-        '$2a$11$VRmeVCZ3iQcMmEa2i3rRpu33SW73kuhzEkm2.yzo.mvsPfTuXN6V6',
-        '9579818081',
-        1,
-        0,
-        0,
-        NULL,
-        GETUTCDATE()
-    );
-END
-");
         }
 
         /// <inheritdoc />
@@ -989,6 +1613,9 @@ END
 
             migrationBuilder.DropTable(
                 name: "AgentGroupMembers");
+
+            migrationBuilder.DropTable(
+                name: "BusinessHoursHolidays");
 
             migrationBuilder.DropTable(
                 name: "CalendarEvents");
@@ -1003,6 +1630,9 @@ END
                 name: "ChatMessages");
 
             migrationBuilder.DropTable(
+                name: "CommentReactions");
+
+            migrationBuilder.DropTable(
                 name: "Contacts");
 
             migrationBuilder.DropTable(
@@ -1012,22 +1642,55 @@ END
                 name: "EmailQueues");
 
             migrationBuilder.DropTable(
+                name: "Holidays");
+
+            migrationBuilder.DropTable(
+                name: "HolidayYearSetups");
+
+            migrationBuilder.DropTable(
                 name: "KbComments");
 
             migrationBuilder.DropTable(
                 name: "KbReactions");
 
             migrationBuilder.DropTable(
+                name: "Leads");
+
+            migrationBuilder.DropTable(
+                name: "NotePages");
+
+            migrationBuilder.DropTable(
                 name: "Notifications");
+
+            migrationBuilder.DropTable(
+                name: "OrganizationSubscriptions");
+
+            migrationBuilder.DropTable(
+                name: "PaymentRecords");
+
+            migrationBuilder.DropTable(
+                name: "RolePermissions");
+
+            migrationBuilder.DropTable(
+                name: "SlaEscalations");
+
+            migrationBuilder.DropTable(
+                name: "SlaReminders");
+
+            migrationBuilder.DropTable(
+                name: "SlaTargets");
+
+            migrationBuilder.DropTable(
+                name: "SubscriptionPlans");
 
             migrationBuilder.DropTable(
                 name: "TicketAttachments");
 
             migrationBuilder.DropTable(
-                name: "TicketComments");
+                name: "TicketCustomFieldValues");
 
             migrationBuilder.DropTable(
-                name: "TicketCustomFieldValues");
+                name: "TicketFieldMasters");
 
             migrationBuilder.DropTable(
                 name: "TicketTemplates");
@@ -1036,22 +1699,40 @@ END
                 name: "TicketViewers");
 
             migrationBuilder.DropTable(
+                name: "TicketWatchers");
+
+            migrationBuilder.DropTable(
                 name: "TodoItems");
 
             migrationBuilder.DropTable(
                 name: "UserOnlineStatuses");
 
             migrationBuilder.DropTable(
+                name: "BusinessHours");
+
+            migrationBuilder.DropTable(
                 name: "ChatGroups");
 
             migrationBuilder.DropTable(
+                name: "TicketComments");
+
+            migrationBuilder.DropTable(
                 name: "KbArticles");
+
+            migrationBuilder.DropTable(
+                name: "NoteSections");
+
+            migrationBuilder.DropTable(
+                name: "SlaPolicies");
 
             migrationBuilder.DropTable(
                 name: "CustomFields");
 
             migrationBuilder.DropTable(
                 name: "Tickets");
+
+            migrationBuilder.DropTable(
+                name: "NoteBooks");
 
             migrationBuilder.DropTable(
                 name: "AgentGroups");

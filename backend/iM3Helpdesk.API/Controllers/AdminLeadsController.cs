@@ -142,7 +142,7 @@ public class AdminLeadsController : ControllerBase
     {
       _logger.LogWarning(ex, "Failed to send onboarding email for lead {LeadId}", lead.Id);
       emailSent = false;
-      // Prefer a short, user-facing message while still being specific.
+      // Prefer a short, user-facing message while still being specific
       var messages = new List<string>();
       for (var e = ex; e != null; e = e.InnerException)
       {
