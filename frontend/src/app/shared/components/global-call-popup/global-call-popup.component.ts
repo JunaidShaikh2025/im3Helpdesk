@@ -200,6 +200,22 @@ export class SrcObjectDirective {
     {{ connectionLabel }}
   </div>
 
+  <!-- Live diagnostics -->
+  <div class="floating-diag" *ngIf="callSvc.diagnostics$ | async as d">
+    <span class="diag-pill" [class.p-good]="d.quality === 'excellent' || d.quality === 'good'"
+      [class.p-fair]="d.quality === 'fair'" [class.p-poor]="d.quality === 'poor'">
+      {{ d.quality | titlecase }}
+    </span>
+    <span>RTT {{ d.rttMs }}ms</span>
+    <span>Jitter {{ d.jitterMs }}ms</span>
+    <span>Loss {{ d.packetLossPct }}%</span>
+    <span>Down {{ d.inboundKbps }} kbps</span>
+    <span>Up {{ d.outboundKbps }} kbps</span>
+    <span *ngIf="d.localCandidateType || d.remoteCandidateType">
+      Path {{ d.localCandidateType || 'n/a' }}→{{ d.remoteCandidateType || 'n/a' }}
+    </span>
+  </div>
+
   <!-- Body: stage (video) + chat sidebar -->
   <div class="fcw-body">
     <!-- ── STAGE ── -->
@@ -773,6 +789,28 @@ export class SrcObjectDirective {
       border-bottom: 1px solid #bfdbfe;
     }
     .floating-conn.warn { color: #92400e; background: #fef3c7; border-color: #fde68a; }
+    .floating-diag {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      align-items: center;
+      padding: 7px 12px;
+      font-size: 11px;
+      color: #374151;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .diag-pill {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .2px;
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .diag-pill.p-good { background: #dcfce7; color: #166534; }
+    .diag-pill.p-fair { background: #fef3c7; color: #92400e; }
+    .diag-pill.p-poor { background: #fee2e2; color: #991b1b; }
 
     /* Chat sidebar */
     .fcw-chat {
@@ -1395,16 +1433,35 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
     if (this.popupRemoteVideo?.nativeElement && remote && this.callSvc.callType === 'video') {
       this.popupRemoteVideo.nativeElement.srcObject = remote;
+      this.tryPlay(this.popupRemoteVideo.nativeElement);
     }
 
     if (this.popupRemoteAudio?.nativeElement && remote) {
       this.popupRemoteAudio.nativeElement.srcObject = remote;
-      this.popupRemoteAudio.nativeElement.play().catch(() => {});
+      this.tryPlay(this.popupRemoteAudio.nativeElement);
     }
 
     if (this.popupLocalVideo?.nativeElement && local && this.callSvc.callType === 'video') {
       this.popupLocalVideo.nativeElement.srcObject = local;
+      this.tryPlay(this.popupLocalVideo.nativeElement);
     }
+  }
+
+  private tryPlay(el: HTMLMediaElement) {
+    if (!el) return;
+    el.autoplay = true;
+    (el as any).playsInline = true;
+    const p = el.play();
+    if (!p || typeof p.catch !== 'function') return;
+    p.catch(() => {
+      const retry = () => {
+        el.play().catch(() => {});
+        window.removeEventListener('pointerdown', retry, true);
+        window.removeEventListener('keydown', retry, true);
+      };
+      window.addEventListener('pointerdown', retry, true);
+      window.addEventListener('keydown', retry, true);
+    });
   }
 
   getInitials(name: string): string {

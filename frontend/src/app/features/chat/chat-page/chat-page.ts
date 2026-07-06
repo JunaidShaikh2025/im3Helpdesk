@@ -183,11 +183,13 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
       // Remote audio/video
       const remote = this.callSvc.remoteStream;
       if (remote) {
-        if (this.remoteVideoRef?.nativeElement)
+        if (this.remoteVideoRef?.nativeElement) {
           this.remoteVideoRef.nativeElement.srcObject = remote;
+          this.tryPlay(this.remoteVideoRef.nativeElement);
+        }
         if (this.remoteAudioRef?.nativeElement) {
           this.remoteAudioRef.nativeElement.srcObject = remote;
-          this.remoteAudioRef.nativeElement.play().catch(() => {});
+          this.tryPlay(this.remoteAudioRef.nativeElement);
         }
       }
       // Local video
@@ -195,6 +197,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.localVideoRef?.nativeElement &&
           this.callType === 'video') {
         this.localVideoRef.nativeElement.srcObject = this.callSvc.localStream;
+        this.tryPlay(this.localVideoRef.nativeElement);
       }
     }, 200);
   }
@@ -340,11 +343,13 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.callSvc.remoteStream$.subscribe(stream => {
         if (!stream) return;
         setTimeout(() => {
-          if (this.remoteVideoRef?.nativeElement)
+          if (this.remoteVideoRef?.nativeElement) {
             this.remoteVideoRef.nativeElement.srcObject = stream;
+            this.tryPlay(this.remoteVideoRef.nativeElement);
+          }
           if (this.remoteAudioRef?.nativeElement) {
             this.remoteAudioRef.nativeElement.srcObject = stream;
-            this.remoteAudioRef.nativeElement.play().catch(() => {});
+            this.tryPlay(this.remoteAudioRef.nativeElement);
           }
         }, 100);
         this.cdr.detectChanges();
@@ -450,8 +455,26 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.localVideoRef?.nativeElement &&
           type === 'video') {
         this.localVideoRef.nativeElement.srcObject = this.callSvc.localStream;
+        this.tryPlay(this.localVideoRef.nativeElement);
       }
     }, 200);
+  }
+
+  private tryPlay(el: HTMLMediaElement) {
+    if (!el) return;
+    el.autoplay = true;
+    (el as any).playsInline = true;
+    const p = el.play();
+    if (!p || typeof p.catch !== 'function') return;
+    p.catch(() => {
+      const retry = () => {
+        el.play().catch(() => {});
+        window.removeEventListener('pointerdown', retry, true);
+        window.removeEventListener('keydown', retry, true);
+      };
+      window.addEventListener('pointerdown', retry, true);
+      window.addEventListener('keydown', retry, true);
+    });
   }
 
   async answerCall() {

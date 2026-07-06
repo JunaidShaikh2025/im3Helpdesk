@@ -4,11 +4,25 @@
 import { Injectable, inject, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { ChatService } from './chat.service';
+import { environment } from '../../../environments/environment';
 
 export interface ConferenceParticipant {
   id: string;
   name: string;
   photoUrl?: string | null;
+}
+
+export interface CallDiagnostics {
+  quality: 'excellent' | 'good' | 'fair' | 'poor';
+  rttMs: number;
+  jitterMs: number;
+  packetLossPct: number;
+  inboundKbps: number;
+  outboundKbps: number;
+  availableOutgoingKbps: number;
+  localCandidateType: string;
+  remoteCandidateType: string;
+  updatedAt: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -76,18 +90,48 @@ export class GlobalCallNotificationService implements OnDestroy {
   remoteStream$      = new BehaviorSubject<MediaStream | null>(null);
   /** Emits whenever conference roster / streams change so UI re-renders. */
   conferenceChanged$ = new BehaviorSubject<number>(0);
+  /** Live call-network diagnostics for quality verification. */
+  diagnostics$ = new BehaviorSubject<CallDiagnostics | null>(null);
 
   private callTimer: any;
   private disconnectTimer: any;
+  private diagnosticsTimer: any;
+  private ringCtx: AudioContext | null = null;
+  private audioUnlockBound = false;
+  private prevInboundBytes = 0;
+  private prevOutboundBytes = 0;
+  private prevDiagAt = 0;
   private _stopRingFn: (() => void) | null = null;
   private _navigateToChat: (() => void) | null = null;
 
   // ── Flag: prevent re-entrant endCall ────
   private _isEnding = false;
 
+  private readonly fallbackIceServers: RTCIceServer[] = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ];
+
+  private readonly audioConstraints: MediaTrackConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    channelCount: 1,
+    sampleRate: 48000,
+    sampleSize: 16
+  };
+
+  private readonly videoConstraints: MediaTrackConstraints = {
+    width: { min: 640, ideal: 1280, max: 1920 },
+    height: { min: 360, ideal: 720, max: 1080 },
+    frameRate: { ideal: 30, max: 30 },
+    facingMode: 'user'
+  };
+
   // ─────────────────────────────────────────
   init(navigateToChatFn: () => void) {
     this._navigateToChat = navigateToChatFn;
+    this.bindAudioUnlock();
 
     // Capture our own user id from JWT once for `mine` flag in chat.
     try {
@@ -147,7 +191,8 @@ export class GlobalCallNotificationService implements OnDestroy {
         if (this.pc.signalingState !== 'have-local-offer') return;
         try {
           this.isSettingRemoteAnswer = true;
-          const ans = JSON.parse(d.answer);
+          const ans = this.parseRtcJson(d.answer || d.Answer);
+          if (!ans) return;
           await this.pc.setRemoteDescription(
             new RTCSessionDescription(ans));
           await this.flushIceCandidates();
@@ -187,7 +232,9 @@ export class GlobalCallNotificationService implements OnDestroy {
       this.chatSvc.iceCandidate$.subscribe(async d => {
         if (!d || !this.pc) return;
         try {
-          const c = JSON.parse(d.candidate) as RTCIceCandidateInit;
+          const c = this.parseRtcJson(
+            d.candidate || d.Candidate) as RTCIceCandidateInit | null;
+          if (!c) return;
           if (!this.pc.remoteDescription) {
             this.iceCandidateQueue.push(c);
           } else {
@@ -277,7 +324,8 @@ export class GlobalCallNotificationService implements OnDestroy {
         const pc = this.peers.get(fromId);
         if (!pc) return;
         try {
-          const ans = JSON.parse(d.answer || d.Answer);
+          const ans = this.parseRtcJson(d.answer || d.Answer);
+          if (!ans) return;
           if (pc.signalingState === 'have-local-offer') {
             await pc.setRemoteDescription(
               new RTCSessionDescription(ans));
@@ -294,9 +342,9 @@ export class GlobalCallNotificationService implements OnDestroy {
         if (!d) return;
         const fromId = String(d.fromUserId || d.FromUserId);
         const pc = this.peers.get(fromId);
-        let cand: RTCIceCandidateInit;
-        try { cand = JSON.parse(d.candidate || d.Candidate); }
-        catch { return; }
+        const cand = this.parseRtcJson(
+          d.candidate || d.Candidate) as RTCIceCandidateInit | null;
+        if (!cand) return;
         if (!pc || !pc.remoteDescription) {
           const q = this.peerIceQueue.get(fromId) || [];
           q.push(cand);
@@ -395,18 +443,16 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     try {
       this.localStream = await navigator.mediaDevices
-        .getUserMedia({
-          audio: true,
-          video: this.callType === 'video'
-        });
+        .getUserMedia(this.getMediaConstraints(this.callType));
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
       this.pc = this.createPeerConnection();
-      this.localStream.getTracks()
-        .forEach(t => this.pc!.addTrack(t, this.localStream!));
+      await this.attachLocalTracks(this.pc, this.localStream);
 
-      const offer = JSON.parse(this.incomingCallData.offer);
+      const offer = this.parseRtcJson(
+        this.incomingCallData.offer || this.incomingCallData.Offer);
+      if (!offer) throw new Error('Incoming offer missing');
       await this.pc.setRemoteDescription(
         new RTCSessionDescription(offer));
       await this.flushIceCandidates();
@@ -447,13 +493,12 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     try {
       this.localStream = await navigator.mediaDevices
-        .getUserMedia({ audio: true, video: type === 'video' });
+        .getUserMedia(this.getMediaConstraints(type));
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
       this.pc = this.createPeerConnection();
-      this.localStream.getTracks()
-        .forEach(t => this.pc!.addTrack(t, this.localStream!));
+      await this.attachLocalTracks(this.pc, this.localStream);
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
@@ -492,6 +537,8 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.currentCallLogId = null;
     this.callMessages = [];
     this.callChatChanged$.next(0);
+    this.stopDiagnostics();
+    this.diagnostics$.next(null);
     this._seenMsgKeys.clear();
     // Stop every audio level watcher so the mic visualiser doesn't keep
     // running after the call ends.
@@ -701,9 +748,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     try {
       this.localStream = await navigator.mediaDevices
-        .getUserMedia({
-          audio: true, video: callType === 'video'
-        });
+        .getUserMedia(this.getMediaConstraints(callType));
       this.attachAudioWatcher(
         this.myUserId || 'me', this.localStream);
 
@@ -749,8 +794,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.peers.set(peerId, pc);
 
     if (this.localStream) {
-      this.localStream.getTracks()
-        .forEach(t => pc.addTrack(t, this.localStream!));
+      await this.attachLocalTracks(pc, this.localStream);
     }
 
     try {
@@ -796,12 +840,12 @@ export class GlobalCallNotificationService implements OnDestroy {
       pc = this.makeConferencePc(fromId);
       this.peers.set(fromId, pc);
       if (this.localStream) {
-        this.localStream.getTracks()
-          .forEach(t => pc!.addTrack(t, this.localStream!));
+        await this.attachLocalTracks(pc, this.localStream);
       }
     }
     try {
-      const offer = JSON.parse(d.offer || d.Offer);
+      const offer = this.parseRtcJson(d.offer || d.Offer);
+      if (!offer) throw new Error('Conference offer missing');
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       await this.flushPeerIce(fromId);
       const answer = await pc.createAnswer();
@@ -815,19 +859,14 @@ export class GlobalCallNotificationService implements OnDestroy {
   }
 
   private makeConferencePc(peerId: string): RTCPeerConnection {
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    });
+    const pc = new RTCPeerConnection(this.buildRtcConfig());
     pc.onicecandidate = (e) => {
       if (!e.candidate || !this.currentCallLogId) return;
       this.chatSvc.relayConferenceIce(
         this.currentCallLogId, peerId, JSON.stringify(e.candidate));
     };
     pc.ontrack = (e) => {
-      const stream = e.streams[0];
+      const stream = this.getPeerRemoteStream(peerId, e);
       this.remoteStreams.set(peerId, stream);
       this.attachAudioWatcher(peerId, stream);
       this.bumpConferenceUI();
@@ -912,12 +951,8 @@ export class GlobalCallNotificationService implements OnDestroy {
 
   // ── PeerConnection ───────────────────────
   private createPeerConnection(): RTCPeerConnection {
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    });
+    const pc = new RTCPeerConnection(this.buildRtcConfig());
+    this.startDiagnostics(pc);
 
     pc.onicecandidate = (e) => {
       if (!e.candidate || !this.activeCallOtherId) return;
@@ -927,7 +962,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     };
 
     pc.ontrack = (e) => {
-      this.remoteStream = e.streams[0];
+      this.remoteStream = this.ensureMainRemoteStream(e);
       this.remoteStream$.next(this.remoteStream);
       if (this.activeCallOtherId) {
         this.attachAudioWatcher(
@@ -958,12 +993,262 @@ export class GlobalCallNotificationService implements OnDestroy {
       }
 
       if (state === 'failed' || state === 'closed') {
+        this.stopDiagnostics();
         clearTimeout(this.disconnectTimer);
         if (this.isCallActive) this.endCall(false);
       }
     };
 
     return pc;
+  }
+
+  private parseRtcJson(value: unknown): any | null {
+    if (!value) return null;
+    if (typeof value === 'string') {
+      try { return JSON.parse(value); }
+      catch { return null; }
+    }
+    if (typeof value === 'object') return value;
+    return null;
+  }
+
+  private buildRtcConfig(): RTCConfiguration {
+    const envCfg = environment as any;
+    const configured = Array.isArray(envCfg.rtcIceServers)
+      ? envCfg.rtcIceServers
+      : [];
+    const servers = (configured.length
+      ? configured
+      : this.fallbackIceServers) as RTCIceServer[];
+
+    const cfg: RTCConfiguration = {
+      iceServers: servers,
+      iceCandidatePoolSize: 10
+    };
+
+    if (envCfg.rtcForceRelay === true) {
+      cfg.iceTransportPolicy = 'relay';
+    }
+    return cfg;
+  }
+
+  private getMediaConstraints(type: 'audio' | 'video'): MediaStreamConstraints {
+    return {
+      audio: this.audioConstraints,
+      video: type === 'video' ? this.videoConstraints : false
+    };
+  }
+
+  private async attachLocalTracks(
+    pc: RTCPeerConnection,
+    stream: MediaStream
+  ): Promise<void> {
+    for (const track of stream.getTracks()) {
+      try {
+        (track as any).contentHint =
+          track.kind === 'video' ? 'motion' : 'speech';
+      } catch {}
+
+      const sender = pc.addTrack(track, stream);
+      await this.tuneSender(sender, track.kind);
+    }
+  }
+
+  private async tuneSender(
+    sender: RTCRtpSender,
+    kind: string
+  ): Promise<void> {
+    if (!sender?.getParameters || !sender?.setParameters) return;
+    if (kind !== 'audio' && kind !== 'video') return;
+    try {
+      const params = sender.getParameters() || {};
+      const enc = (params.encodings && params.encodings.length)
+        ? params.encodings
+        : [{} as RTCRtpEncodingParameters];
+
+      if (kind === 'video') {
+        enc[0].maxBitrate = 2500000;
+        enc[0].maxFramerate = 30;
+        enc[0].scaleResolutionDownBy = 1;
+        (params as any).degradationPreference = 'maintain-resolution';
+      } else {
+        enc[0].maxBitrate = 128000;
+        (params as any).degradationPreference = 'balanced';
+      }
+
+      params.encodings = enc;
+      await sender.setParameters(params);
+    } catch {}
+  }
+
+  private ensureMainRemoteStream(e: RTCTrackEvent): MediaStream {
+    const stream = e.streams?.[0];
+    if (stream) return stream;
+
+    if (!this.remoteStream) this.remoteStream = new MediaStream();
+    const exists = this.remoteStream
+      .getTracks()
+      .some(t => t.id === e.track.id);
+    if (!exists) this.remoteStream.addTrack(e.track);
+    return this.remoteStream;
+  }
+
+  private getPeerRemoteStream(peerId: string, e: RTCTrackEvent): MediaStream {
+    const stream = e.streams?.[0];
+    if (stream) return stream;
+
+    const current = this.remoteStreams.get(peerId) || new MediaStream();
+    const exists = current.getTracks().some(t => t.id === e.track.id);
+    if (!exists) current.addTrack(e.track);
+    return current;
+  }
+
+  private startDiagnostics(pc: RTCPeerConnection): void {
+    this.stopDiagnostics();
+    this.prevInboundBytes = 0;
+    this.prevOutboundBytes = 0;
+    this.prevDiagAt = 0;
+
+    const tick = () => {
+      this.collectDiagnostics(pc).catch(() => {});
+    };
+
+    tick();
+    this.diagnosticsTimer = setInterval(tick, 3000);
+  }
+
+  private stopDiagnostics(): void {
+    clearInterval(this.diagnosticsTimer);
+    this.diagnosticsTimer = null;
+    this.prevInboundBytes = 0;
+    this.prevOutboundBytes = 0;
+    this.prevDiagAt = 0;
+  }
+
+  private async collectDiagnostics(pc: RTCPeerConnection): Promise<void> {
+    if (!pc || pc.connectionState === 'closed') return;
+
+    const report = await pc.getStats();
+    const statsById = new Map<string, any>();
+    report.forEach((s: any) => statsById.set(s.id, s));
+
+    const targetKind = this.callType === 'video' ? 'video' : 'audio';
+
+    let selectedPair: any = null;
+    let inboundBytes = 0;
+    let outboundBytes = 0;
+    let packetsLost = 0;
+    let packetsReceived = 0;
+    let jitterMs = 0;
+
+    report.forEach((s: any) => {
+      if (s.type === 'transport' && s.selectedCandidatePairId) {
+        selectedPair = statsById.get(s.selectedCandidatePairId) || selectedPair;
+      }
+    });
+
+    if (!selectedPair) {
+      report.forEach((s: any) => {
+        if (s.type === 'candidate-pair' &&
+            (s.selected || (s.nominated && s.state === 'succeeded'))) {
+          selectedPair = s;
+        }
+      });
+    }
+
+    let primaryInbound: any = null;
+    let primaryOutbound: any = null;
+    report.forEach((s: any) => {
+      if (s.type === 'inbound-rtp' && !s.isRemote) {
+        const kind = s.kind || s.mediaType;
+        if (kind === targetKind) primaryInbound = s;
+      }
+      if (s.type === 'outbound-rtp' && !s.isRemote) {
+        const kind = s.kind || s.mediaType;
+        if (kind === targetKind) primaryOutbound = s;
+      }
+    });
+
+    if (!primaryInbound) {
+      report.forEach((s: any) => {
+        if (!primaryInbound && s.type === 'inbound-rtp' && !s.isRemote) {
+          primaryInbound = s;
+        }
+      });
+    }
+    if (!primaryOutbound) {
+      report.forEach((s: any) => {
+        if (!primaryOutbound && s.type === 'outbound-rtp' && !s.isRemote) {
+          primaryOutbound = s;
+        }
+      });
+    }
+
+    if (primaryInbound) {
+      inboundBytes = Number(primaryInbound.bytesReceived || 0);
+      packetsLost = Number(primaryInbound.packetsLost || 0);
+      packetsReceived = Number(primaryInbound.packetsReceived || 0);
+      jitterMs = Number(primaryInbound.jitter || 0) * 1000;
+    }
+    if (primaryOutbound) {
+      outboundBytes = Number(primaryOutbound.bytesSent || 0);
+    }
+
+    const now = Date.now();
+    let inboundKbps = 0;
+    let outboundKbps = 0;
+    if (this.prevDiagAt > 0 && now > this.prevDiagAt) {
+      const deltaMs = now - this.prevDiagAt;
+      const inDelta = Math.max(0, inboundBytes - this.prevInboundBytes);
+      const outDelta = Math.max(0, outboundBytes - this.prevOutboundBytes);
+      inboundKbps = Math.round((inDelta * 8) / deltaMs);
+      outboundKbps = Math.round((outDelta * 8) / deltaMs);
+    }
+    this.prevDiagAt = now;
+    this.prevInboundBytes = inboundBytes;
+    this.prevOutboundBytes = outboundBytes;
+
+    const rttMs = Math.round(Number(selectedPair?.currentRoundTripTime || 0) * 1000);
+    const availableOutgoingKbps = Math.round(
+      Number(selectedPair?.availableOutgoingBitrate || 0) / 1000
+    );
+    const totalPackets = packetsReceived + packetsLost;
+    const packetLossPct = totalPackets > 0
+      ? Math.round((packetsLost * 10000) / totalPackets) / 100
+      : 0;
+
+    const localCandidateType = String(
+      statsById.get(selectedPair?.localCandidateId)?.candidateType || ''
+    );
+    const remoteCandidateType = String(
+      statsById.get(selectedPair?.remoteCandidateId)?.candidateType || ''
+    );
+
+    this.diagnostics$.next({
+      quality: this.estimateQuality(rttMs, jitterMs, packetLossPct),
+      rttMs: isFinite(rttMs) ? rttMs : 0,
+      jitterMs: isFinite(jitterMs) ? Math.round(jitterMs) : 0,
+      packetLossPct: isFinite(packetLossPct) ? packetLossPct : 0,
+      inboundKbps,
+      outboundKbps,
+      availableOutgoingKbps: isFinite(availableOutgoingKbps)
+        ? availableOutgoingKbps
+        : 0,
+      localCandidateType,
+      remoteCandidateType,
+      updatedAt: now
+    });
+  }
+
+  private estimateQuality(
+    rttMs: number,
+    jitterMs: number,
+    packetLossPct: number
+  ): 'excellent' | 'good' | 'fair' | 'poor' {
+    if (packetLossPct <= 1 && rttMs <= 120 && jitterMs <= 20) return 'excellent';
+    if (packetLossPct <= 3 && rttMs <= 220 && jitterMs <= 35) return 'good';
+    if (packetLossPct <= 7 && rttMs <= 350 && jitterMs <= 60) return 'fair';
+    return 'poor';
   }
 
   private async flushIceCandidates() {
@@ -982,33 +1267,70 @@ export class GlobalCallNotificationService implements OnDestroy {
   }
 
   private playRingtone() {
-    try {
-      this.stopRingtone();
-      const ctx = new AudioContext();
-      let stopped = false;
-      const beep = () => {
-        if (stopped) return;
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.frequency.value = 440; o.type = 'sine';
-        g.gain.setValueAtTime(0.3, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
-        if (!stopped) setTimeout(beep, 1200);
-      };
-      beep();
-      this._stopRingFn = () => { stopped = true; try { ctx.close(); } catch {} };
-    } catch {}
+    this.ensureRingContext().then(ctx => {
+      if (!ctx) return;
+      try {
+        this.stopRingtone();
+        let stopped = false;
+        const beep = () => {
+          if (stopped) return;
+          const now = ctx.currentTime;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.setValueAtTime(440, now);
+          o.type = 'sine';
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.exponentialRampToValueAtTime(0.20, now + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+          o.start(now);
+          o.stop(now + 0.48);
+          if (!stopped) setTimeout(beep, 1200);
+        };
+        beep();
+        this._stopRingFn = () => { stopped = true; };
+      } catch {}
+    }).catch(() => {});
   }
 
   private stopRingtone() {
     if (this._stopRingFn) { this._stopRingFn(); this._stopRingFn = null; }
   }
 
+  private bindAudioUnlock(): void {
+    if (this.audioUnlockBound) return;
+    this.audioUnlockBound = true;
+    const unlock = () => { this.ensureRingContext().catch(() => {}); };
+    window.addEventListener('pointerdown', unlock, { passive: true, capture: true });
+    window.addEventListener('keydown', unlock, { capture: true });
+  }
+
+  private async ensureRingContext(): Promise<AudioContext | null> {
+    try {
+      const Ctor = (window as any).AudioContext
+        || (window as any).webkitAudioContext;
+      if (!Ctor) return null;
+      if (!this.ringCtx || this.ringCtx.state === 'closed') {
+        this.ringCtx = new Ctor();
+      }
+      const ctx = this.ringCtx;
+      if (!ctx) return null;
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      return ctx;
+    } catch {
+      return null;
+    }
+  }
+
   ngOnDestroy() {
     this.subs.forEach(s => s.unsubscribe());
     this.stopRingtone();
+    try { this.ringCtx?.close(); } catch {}
+    this.ringCtx = null;
+    this.stopDiagnostics();
+    this.diagnostics$.next(null);
     clearInterval(this.callTimer);
     clearTimeout(this.disconnectTimer);
   }
