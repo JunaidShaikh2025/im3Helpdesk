@@ -38,4 +38,4 @@ jobs:
         app-name: 'deskmate'
         publish-profile: ${{ secrets.AZURE_FRONTEND_PUBLISH_PROFILE }}
         # NOTE: 'dist/deskmate' ko apne angular.json ke outputPath ke mutabik check kar lein
-        package: './frontend/dist/deskmate'
+        package: './frontend/dist/browser'
