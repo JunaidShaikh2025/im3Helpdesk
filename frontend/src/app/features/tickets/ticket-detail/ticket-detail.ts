@@ -1256,6 +1256,34 @@ loadTicket() {
     }
   }
 
+  onAssignedAgentChanged(): void {
+    const agentId = String(this.selectedAgentId || '').toLowerCase();
+    if (!agentId) {
+      this.selectedGroupId = '';
+      return;
+    }
+
+    const matchedGroups = this.groups.filter(g => {
+      const memberIds: string[] = (g?.memberIds || g?.MemberIds || [])
+        .map((id: any) => String(id).toLowerCase());
+      return memberIds.includes(agentId);
+    });
+
+    if (matchedGroups.length === 0) {
+      this.selectedGroupId = '';
+      return;
+    }
+
+    const currentGroupId = String(this.selectedGroupId || '').toLowerCase();
+    const belongsToCurrent = matchedGroups.some(g =>
+      String(g?.id || '').toLowerCase() === currentGroupId
+    );
+
+    if (!belongsToCurrent) {
+      this.selectedGroupId = matchedGroups[0]?.id || '';
+    }
+  }
+
   loadTimeline() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Tickets` +

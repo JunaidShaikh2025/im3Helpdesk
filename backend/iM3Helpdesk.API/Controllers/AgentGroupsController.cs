@@ -59,10 +59,22 @@ public class AgentGroupsController : ControllerBase
       [FromBody] AgentGroupDto dto)
   {
     var orgId = _tenant.OrganizationId!.Value;
+    var normalizedName = dto.Name?.Trim() ?? string.Empty;
+
+    if (string.IsNullOrWhiteSpace(normalizedName))
+      return BadRequest(new { message = "Group name is required." });
+
+    var nameExists = await _context.AgentGroups
+        .AnyAsync(g =>
+            g.OrganizationId == orgId &&
+            g.Name.ToLower() == normalizedName.ToLower());
+
+    if (nameExists)
+      return BadRequest(new { message = "Group name already exists." });
 
     var group = new AgentGroup
     {
-      Name = dto.Name?.Trim() ?? "",
+      Name = normalizedName,
       Description = dto.Description ?? "",
       OrganizationId = orgId
     };
@@ -112,8 +124,23 @@ public class AgentGroupsController : ControllerBase
 
     if (group == null) return NotFound();
 
-    group.Name = dto.Name?.Trim()
-        ?? group.Name;
+    if (dto.Name != null && string.IsNullOrWhiteSpace(dto.Name))
+      return BadRequest(new { message = "Group name is required." });
+
+    var updatedName = string.IsNullOrWhiteSpace(dto.Name)
+        ? group.Name
+        : dto.Name.Trim();
+
+    var nameExists = await _context.AgentGroups
+        .AnyAsync(g =>
+            g.OrganizationId == orgId &&
+            g.Id != id &&
+            g.Name.ToLower() == updatedName.ToLower());
+
+    if (nameExists)
+      return BadRequest(new { message = "Group name already exists." });
+
+    group.Name = updatedName;
     group.Description =
         dto.Description ?? group.Description;
 

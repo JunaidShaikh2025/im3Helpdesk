@@ -1136,7 +1136,8 @@
           <div class="fds-grp" *ngIf="isAgent">
             <div class="fds-lbl">ASSIGN TO</div>
             <select class="fds-sel"
-              [(ngModel)]="selectedAgentId">
+              [(ngModel)]="selectedAgentId"
+              (ngModelChange)="onAssignedAgentChanged()">
               <option value="">Unassigned</option>
               <option *ngFor="let a of getAssignableAgents()"
                 [value]="a.id">

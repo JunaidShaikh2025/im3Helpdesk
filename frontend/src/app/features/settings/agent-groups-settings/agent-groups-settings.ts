@@ -37,6 +37,18 @@ export class AgentGroupsSettingsComponent implements OnInit {
     description: ['']
   });
 
+  private normalizeGroupName(name: string): string {
+    return (name || '').trim().toLowerCase();
+  }
+
+  private hasDuplicateGroupName(name: string): boolean {
+    const normalizedName = this.normalizeGroupName(name);
+    return this.groups.some(g =>
+      this.normalizeGroupName(g?.name || '') === normalizedName &&
+      g?.id !== this.editingId
+    );
+  }
+
   ngOnInit() {
     this.loadGroups();
     this.loadAgents();
@@ -83,8 +95,32 @@ export class AgentGroupsSettingsComponent implements OnInit {
   saveGroup() {
     if (this.form.invalid) return;
 
+    const nameControl = this.form.get('name');
+    const trimmedName = (this.form.value.name || '').trim();
+
+    if (!trimmedName) {
+      nameControl?.setErrors({ ...(nameControl.errors || {}), required: true });
+      nameControl?.markAsTouched();
+      return;
+    }
+
+    if (this.hasDuplicateGroupName(trimmedName)) {
+      nameControl?.setErrors({ ...(nameControl.errors || {}), duplicate: true });
+      nameControl?.markAsTouched();
+      Promise.resolve().then(() =>
+        this.toastr.warning('Group name already exists. Please use a different name.')
+      );
+      return;
+    }
+
+    if (nameControl?.hasError('duplicate')) {
+      const errors = { ...(nameControl.errors || {}) };
+      delete errors['duplicate'];
+      nameControl.setErrors(Object.keys(errors).length ? errors : null);
+    }
+
     const payload = {
-      name: this.form.value.name,
+      name: trimmedName,
       description: this.form.value.description || '',
       memberIds: this.selectedGroupMembers
     };
@@ -109,10 +145,16 @@ export class AgentGroupsSettingsComponent implements OnInit {
         this.loadGroups();
         this.cdr.detectChanges();
       },
-      error: () =>
+      error: (err: any) => {
+        const serverMessage = err?.error?.message || 'Failed to save group';
+        if (/already exists/i.test(serverMessage)) {
+          nameControl?.setErrors({ ...(nameControl?.errors || {}), duplicate: true });
+          nameControl?.markAsTouched();
+        }
         Promise.resolve().then(() =>
-          this.toastr.error('Failed to save group')
-        )
+          this.toastr.error(serverMessage)
+        );
+      }
     });
   }
 
