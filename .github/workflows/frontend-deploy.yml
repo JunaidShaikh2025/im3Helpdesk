@@ -3,7 +3,7 @@ name: Deploy Angular Frontend to Azure
 on:
   push:
     branches:
-      - main  # Apni main/master branch ka naam likhein
+      - master  # Apni main/master branch ka naam likhein
     paths:
       - 'frontend/**'  # Sirf tab chalega jab frontend folder mein change ho
 
