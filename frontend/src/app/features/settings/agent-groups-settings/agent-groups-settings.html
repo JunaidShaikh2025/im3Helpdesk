@@ -32,6 +32,10 @@
             placeholder="e.g. Customer Support Tier 1"
             [class.invalid]="form.get('name')?.invalid
               && form.get('name')?.touched"/>
+          <div class="field-error"
+            *ngIf="form.get('name')?.hasError('duplicate') && form.get('name')?.touched">
+            Group name already exists.
+          </div>
         </div>
         <div class="form-group">
           <label>Description</label>

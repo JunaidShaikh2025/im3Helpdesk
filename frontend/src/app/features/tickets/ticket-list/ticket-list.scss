@@ -1,6 +1,12 @@
 .ticket-list-page {
   padding: 24px;
   min-height: 100%;
+
+  &.status-layout-active {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
 }
 
 /* Header */
@@ -626,6 +632,54 @@
   overflow-y: hidden;
   padding-bottom: 8px;
   scroll-snap-type: x proximity;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .status-layout-active & {
+    flex: 1;
+    min-height: 0;
+    align-content: start;
+  }
+}
+
+.status-board-scrollbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 8;
+  height: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--bg-card, var(--ui-color-bg-surface));
+  border: 1px solid var(--border-color, var(--ui-color-border));
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+
+  .status-layout-active & {
+    margin-top: auto;
+  }
+
+  &::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--ui-color-bg-subtle);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 999px;
+  }
+}
+
+.status-board-scrollbar-track {
+  height: 1px;
 }
 
 .status-col {
@@ -637,6 +691,12 @@
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 240px);
+
+  .status-layout-active & {
+    max-height: none;
+    height: 100%;
+    min-height: 0;
+  }
 }
 
 .status-head {
@@ -858,6 +918,7 @@
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
   }
 
@@ -1157,8 +1218,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
-  line-clamp: 2;line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 

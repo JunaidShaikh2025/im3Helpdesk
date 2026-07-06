@@ -1,5 +1,6 @@
 <app-layout>
-  <div class="ticket-list-page">
+  <div class="ticket-list-page"
+    [class.status-layout-active]="currentLayout === 'status' && !loading && tickets.length > 0">
 
     <!-- Page Header -->
     <div class="page-header">
@@ -448,6 +449,8 @@
 
     <!-- STATUS BOARD VIEW -->
     <div class="status-board"
+      #statusBoard
+      (scroll)="onStatusBoardScroll()"
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'status'">
       <div class="status-col"
@@ -502,6 +505,15 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="status-board-scrollbar"
+      #statusScrollbar
+      *ngIf="!loading && tickets.length > 0
+        && currentLayout === 'status'"
+      (scroll)="onStatusScrollbarScroll()">
+      <div class="status-board-scrollbar-track"
+        [style.width.px]="statusBoardScrollWidth"></div>
     </div>
 
     <!-- TABLE VIEW -->

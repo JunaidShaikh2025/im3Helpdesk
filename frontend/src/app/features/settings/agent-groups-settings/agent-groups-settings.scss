@@ -97,6 +97,12 @@
 
 .req { color: var(--ui-color-danger); }
 
+.field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ui-color-danger);
+}
+
 /* Agents Section */
 .agents-section {
   margin-bottom: 20px;

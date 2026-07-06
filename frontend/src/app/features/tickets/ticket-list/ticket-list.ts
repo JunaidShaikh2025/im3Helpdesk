@@ -1,8 +1,10 @@
 import {
-  Component, OnInit, OnDestroy,
+  Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject,
   ChangeDetectionStrategy,
-  HostListener
+  HostListener,
+  ElementRef,
+  ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -45,7 +47,7 @@ import { AgentService } from '../../../core/services/agent';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TicketListComponent
-  implements OnInit, OnDestroy {
+  implements OnInit, OnDestroy, AfterViewInit {
 
   private authService = inject(AuthService);
   public router = inject(Router);
@@ -99,6 +101,16 @@ export class TicketListComponent
   statusDropListIds = this.statusBoardColumns
     .map(s => this.getStatusDropListId(s));
 
+  @ViewChild('statusBoard')
+  statusBoardRef?: ElementRef<HTMLDivElement>;
+
+  @ViewChild('statusScrollbar')
+  statusScrollbarRef?: ElementRef<HTMLDivElement>;
+
+  statusBoardScrollWidth = 0;
+  statusBoardClientWidth = 0;
+  private syncingStatusScroll = false;
+
   sortBy = 'createdAt';
   sortDir = 'desc';
 
@@ -150,6 +162,10 @@ export class TicketListComponent
     this.loadTickets();
   }
 
+  ngAfterViewInit() {
+    this.refreshStatusBoardScrollbar();
+  }
+
   loadMasterOptions() {
     this.ticketMasterService.getAll(true).subscribe({
       next: (data) => {
@@ -161,6 +177,7 @@ export class TicketListComponent
           this.statusBoardColumns = boardStatuses;
           this.statusDropListIds = this.statusBoardColumns
             .map(s => this.getStatusDropListId(s));
+          this.refreshStatusBoardScrollbar();
         }
 
         // Default: all statuses checked EXCEPT "Closed".
@@ -294,6 +311,7 @@ export class TicketListComponent
     });
 
     this.tickets = result;
+    this.refreshStatusBoardScrollbar();
     this.cdr.markForCheck();
   }
 
@@ -536,7 +554,57 @@ export class TicketListComponent
     this.currentLayout = layout;
     localStorage.setItem('ticketLayout', layout);
     this.showLayoutMenu = false;
+    this.refreshStatusBoardScrollbar();
     this.cdr.markForCheck();
+  }
+
+  onStatusBoardScroll() {
+    if (this.syncingStatusScroll) return;
+    const board = this.statusBoardRef?.nativeElement;
+    const bar = this.statusScrollbarRef?.nativeElement;
+    if (!board || !bar) return;
+
+    this.syncingStatusScroll = true;
+    bar.scrollLeft = board.scrollLeft;
+    this.syncingStatusScroll = false;
+  }
+
+  onStatusScrollbarScroll() {
+    if (this.syncingStatusScroll) return;
+    const board = this.statusBoardRef?.nativeElement;
+    const bar = this.statusScrollbarRef?.nativeElement;
+    if (!board || !bar) return;
+
+    this.syncingStatusScroll = true;
+    board.scrollLeft = bar.scrollLeft;
+    this.syncingStatusScroll = false;
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.refreshStatusBoardScrollbar();
+  }
+
+  private refreshStatusBoardScrollbar() {
+    requestAnimationFrame(() => {
+      const board = this.statusBoardRef?.nativeElement;
+      if (!board) {
+        this.statusBoardScrollWidth = 0;
+        this.statusBoardClientWidth = 0;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      this.statusBoardScrollWidth = board.scrollWidth;
+      this.statusBoardClientWidth = board.clientWidth;
+
+      const bar = this.statusScrollbarRef?.nativeElement;
+      if (bar) {
+        bar.scrollLeft = board.scrollLeft;
+      }
+
+      this.cdr.markForCheck();
+    });
   }
 
   showLayoutMenu = false;
