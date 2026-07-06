@@ -21,4 +21,8 @@
     <ProjectReference Include="..\iM3Helpdesk.Domain\iM3Helpdesk.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>
