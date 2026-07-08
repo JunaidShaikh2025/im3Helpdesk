@@ -99,6 +99,7 @@ export class GlobalCallNotificationService implements OnDestroy {
   private ringCtx: AudioContext | null = null;
   private audioUnlockBound = false;
   private remoteAudioEl: HTMLAudioElement | null = null;
+  private externalMediaConsumers = 0;
   private prevInboundBytes = 0;
   private prevOutboundBytes = 0;
   private prevDiagAt = 0;
@@ -287,6 +288,7 @@ export class GlobalCallNotificationService implements OnDestroy {
         }
         if (!this.isConference) return;
         const id = String(d.userId || d.UserId);
+        if (this.myUserId && id === this.myUserId) return;
         const name = String(d.fullName || d.FullName || 'Participant');
         const photo = d.photoUrl || d.PhotoUrl || null;
         this.participants.set(id, { id, name, photoUrl: photo });
@@ -627,6 +629,17 @@ export class GlobalCallNotificationService implements OnDestroy {
       .forEach(t => t.enabled = !isCameraOff);
   }
 
+  acquireExternalMediaConsumer(): () => void {
+    this.externalMediaConsumers += 1;
+    this.detachRemoteAudioSink();
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.externalMediaConsumers = Math.max(0, this.externalMediaConsumers - 1);
+    };
+  }
+
   /**
    * Attach a Web Audio AnalyserNode to a media stream and emit speaking
    * activity for the given userId. RMS averaged over a short window;
@@ -764,6 +777,7 @@ export class GlobalCallNotificationService implements OnDestroy {
       // Register each existing peer in the roster, then dial them.
       for (const p of existing) {
         const id = String(p.userId || p.UserId);
+        if (this.myUserId && id === this.myUserId) continue;
         const name = String(p.fullName || p.FullName || 'Participant');
         const photo = p.photoUrl || p.PhotoUrl || null;
         this.participants.set(id, { id, name, photoUrl: photo });
@@ -794,6 +808,7 @@ export class GlobalCallNotificationService implements OnDestroy {
   /** Create a fresh PC to `peerId`, attach local tracks, send offer. */
   private async dialPeer(peerId: string): Promise<void> {
     if (!this.currentCallLogId) return;
+    if (this.myUserId && peerId === this.myUserId) return;
     if (this.peers.has(peerId)) return;
 
     const pc = this.makeConferencePc(peerId);
@@ -817,6 +832,7 @@ export class GlobalCallNotificationService implements OnDestroy {
   /** Handle an incoming conference SDP offer from a (possibly new) peer. */
   private async handleConferenceOffer(d: any): Promise<void> {
     const fromId = String(d.fromUserId || d.FromUserId);
+    if (this.myUserId && fromId === this.myUserId) return;
     if (!this.currentCallLogId) return;
     // Auto-promote: if we get a conference offer while still in 1-to-1
     // mode for this same call, flip into conference mode and migrate
@@ -928,6 +944,7 @@ export class GlobalCallNotificationService implements OnDestroy {
       stream: MediaStream | null
     }> = [];
     this.participants.forEach((p, id) => {
+      if (this.myUserId && id === this.myUserId) return;
       list.push({ ...p, stream: this.remoteStreams.get(id) || null });
     });
     return list;
@@ -1311,6 +1328,11 @@ export class GlobalCallNotificationService implements OnDestroy {
 
   private ensureRemoteAudioSink(stream: MediaStream | null): void {
     if (!stream) return;
+    if (this.externalMediaConsumers > 0) {
+      this.detachRemoteAudioSink();
+      return;
+    }
+    if (this.isProbablyLocalStream(stream)) return;
     if (!this.remoteAudioEl) {
       const el = document.createElement('audio');
       el.autoplay = true;
@@ -1336,6 +1358,16 @@ export class GlobalCallNotificationService implements OnDestroy {
         window.addEventListener('keydown', retry, true);
       });
     }
+  }
+
+  private isProbablyLocalStream(stream: MediaStream): boolean {
+    const local = this.localStream;
+    if (!local) return false;
+    if (stream === local) return true;
+
+    const localTrackIds = new Set(local.getTracks().map(t => t.id));
+    if (!localTrackIds.size) return false;
+    return stream.getTracks().some(t => localTrackIds.has(t.id));
   }
 
   private detachRemoteAudioSink(): void {

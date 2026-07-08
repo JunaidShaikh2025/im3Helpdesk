@@ -275,7 +275,7 @@ export class SrcObjectDirective {
       <!-- Hidden audio element for remote (single peer fallback) -->
       <audio #popupRemoteAudio autoplay playsinline style="display:none"></audio>
       <!-- Audio sinks for every peer (so audio works in conference) -->
-      <audio *ngFor="let p of getTiles(); trackBy: trackTile"
+      <audio *ngFor="let p of getAudioTiles(); trackBy: trackTile"
         autoplay playsinline
         [srcObject]="p.stream"
         style="display:none"></audio>
@@ -1009,6 +1009,9 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
   private subs: Subscription[] = [];
   private uiTick: any;
+  private releaseMediaConsumer: (() => void) | null = null;
+  private manualMainTile = false;
+  private lastAutoStageAt = 0;
 
   get showFloatingWindow(): boolean {
     return this.callSvc.isCallActive && !this.callSvc.isMinimized;
@@ -1037,11 +1040,13 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.updateRouteState();
+    this.syncMediaOwnership();
 
     this.subs.push(
       this.router.events.subscribe(evt => {
         if (evt instanceof NavigationEnd) {
           this.updateRouteState();
+          this.syncMediaOwnership();
           this.syncStreams();
           this.cdr.detectChanges();
         }
@@ -1074,6 +1079,8 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     // Re-render when conference roster/streams change.
     this.subs.push(
       this.callSvc.conferenceChanged$.subscribe(() => {
+        this.ensureValidMainTile();
+        this.autoStageDominantSpeaker();
         this.cdr.detectChanges();
       })
     );
@@ -1082,6 +1089,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     // chips pulse like Microsoft Teams.
     this.subs.push(
       this.callSvc.speakingChanged$.subscribe(() => {
+        this.autoStageDominantSpeaker();
         this.cdr.detectChanges();
       })
     );
@@ -1089,6 +1097,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.chatSvc.callEnded$.subscribe(d => {
         if (!d) return;
+        this.syncMediaOwnership();
         this.resetLocalControls();
       })
     );
@@ -1096,12 +1105,14 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.chatSvc.callRejected$.subscribe(d => {
         if (!d) return;
+        this.syncMediaOwnership();
         this.resetLocalControls();
       })
     );
 
     // Keep timer text and media bindings in sync while minimized/popup is alive.
     this.uiTick = setInterval(() => {
+      this.syncMediaOwnership();
       this.cdr.detectChanges();
     }, 1000);
   }
@@ -1109,6 +1120,8 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.subs.forEach(s => s.unsubscribe());
     clearInterval(this.uiTick);
+    try { this.releaseMediaConsumer?.(); } catch {}
+    this.releaseMediaConsumer = null;
   }
 
   decline() {
@@ -1186,6 +1199,10 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
   // ── Conference grid tiles ──────────────────────────────────
   getTiles() { return this.callSvc.getConferenceTiles(); }
+  getAudioTiles() {
+    return this.getTiles().filter(p =>
+      !!p.stream && !this.isLocalEchoStream(p.stream as MediaStream));
+  }
   trackTile = (_: number, p: { id: string }) => p.id;
 
   // ── Stage / chat helpers (Teams-style layout) ──────────────
@@ -1193,6 +1210,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
   chatDraft = '';
 
   setMainTile(id: string) {
+    this.manualMainTile = true;
     this.mainTileId = id;
     this.cdr.detectChanges();
   }
@@ -1244,6 +1262,57 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
       if (m) return m;
     }
     return tiles[0];
+  }
+
+  private ensureValidMainTile(): void {
+    if (!this.callSvc.isConference) {
+      this.mainTileId = null;
+      this.manualMainTile = false;
+      return;
+    }
+    const tiles = this.getTiles();
+    if (!tiles.length) {
+      this.mainTileId = null;
+      this.manualMainTile = false;
+      return;
+    }
+    if (this.mainTileId && tiles.some(t => t.id === this.mainTileId)) {
+      return;
+    }
+    this.mainTileId = tiles[0].id;
+    this.manualMainTile = false;
+  }
+
+  private autoStageDominantSpeaker(): void {
+    if (!this.callSvc.isConference) return;
+    if (this.manualMainTile) return;
+
+    const now = Date.now();
+    if (now - this.lastAutoStageAt < 900) return;
+
+    const tiles = this.getTiles();
+    if (!tiles.length) return;
+
+    const candidate = tiles.find(t =>
+      !!t.stream && this.callSvc.speakingIds.has(t.id));
+
+    const targetId = candidate?.id || tiles[0].id;
+    if (!targetId || targetId === this.mainTileId) return;
+
+    this.mainTileId = targetId;
+    this.lastAutoStageAt = now;
+  }
+
+  private syncMediaOwnership(): void {
+    const shouldOwn = this.showFloatingWindow;
+    if (shouldOwn && !this.releaseMediaConsumer) {
+      this.releaseMediaConsumer = this.callSvc.acquireExternalMediaConsumer();
+      return;
+    }
+    if (!shouldOwn && this.releaseMediaConsumer) {
+      try { this.releaseMediaConsumer(); } catch {}
+      this.releaseMediaConsumer = null;
+    }
   }
 
   getParticipantCount(): number {
@@ -1446,19 +1515,31 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
     const remote = this.callSvc.remoteStream;
     const local = this.callSvc.localStream;
+    const safeRemote = remote && !this.isLocalEchoStream(remote)
+      ? remote
+      : null;
 
-    if (this.popupRemoteVideo?.nativeElement && remote && this.callSvc.callType === 'video') {
-      this.popupRemoteVideo.nativeElement.srcObject = remote;
+    if (this.popupRemoteVideo?.nativeElement && safeRemote && this.callSvc.callType === 'video') {
+      this.popupRemoteVideo.nativeElement.srcObject = safeRemote;
     }
 
-    if (this.popupRemoteAudio?.nativeElement && remote) {
-      this.popupRemoteAudio.nativeElement.srcObject = remote;
+    if (this.popupRemoteAudio?.nativeElement && safeRemote) {
+      this.popupRemoteAudio.nativeElement.srcObject = safeRemote;
       this.popupRemoteAudio.nativeElement.play().catch(() => {});
     }
 
     if (this.popupLocalVideo?.nativeElement && local && this.callSvc.callType === 'video') {
       this.popupLocalVideo.nativeElement.srcObject = local;
     }
+  }
+
+  private isLocalEchoStream(stream: MediaStream): boolean {
+    const local = this.callSvc.localStream;
+    if (!local) return false;
+    if (stream === local) return true;
+    const ids = new Set(local.getTracks().map(t => t.id));
+    if (!ids.size) return false;
+    return stream.getTracks().some(t => ids.has(t.id));
   }
 
   getInitials(name: string): string {

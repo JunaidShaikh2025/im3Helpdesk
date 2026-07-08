@@ -207,7 +207,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     setTimeout(() => {
       // Remote audio/video
       const remote = this.callSvc.remoteStream;
-      if (remote) {
+      if (remote && !this.isLocalEchoStream(remote)) {
         if (this.remoteVideoRef?.nativeElement) {
           this.remoteVideoRef.nativeElement.srcObject = remote;
           this.tryPlay(this.remoteVideoRef.nativeElement);
@@ -373,7 +373,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     // Remote stream arrived
     this.subs.push(
       this.callSvc.remoteStream$.subscribe(stream => {
-        if (!stream) return;
+        if (!stream || this.isLocalEchoStream(stream)) return;
         setTimeout(() => {
           if (this.remoteVideoRef?.nativeElement) {
             this.remoteVideoRef.nativeElement.srcObject = stream;
@@ -515,6 +515,15 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
       window.addEventListener('pointerdown', retry, true);
       window.addEventListener('keydown', retry, true);
     });
+  }
+
+  private isLocalEchoStream(stream: MediaStream): boolean {
+    const local = this.callSvc.localStream;
+    if (!local) return false;
+    if (stream === local) return true;
+    const ids = new Set(local.getTracks().map(t => t.id));
+    if (!ids.size) return false;
+    return stream.getTracks().some(t => ids.has(t.id));
   }
 
   async answerCall() {
