@@ -54,6 +54,7 @@ builder.Services.AddScoped<ISlaService, SlaService>();
 builder.Services.AddScoped<iM3Helpdesk.API.Services.ISubscriptionService, iM3Helpdesk.API.Services.SubscriptionService>();
 builder.Services.AddScoped<iM3Helpdesk.API.Services.IPermissionService, iM3Helpdesk.API.Services.PermissionService>();
 builder.Services.AddSingleton<IEmailQueueService, EmailQueueService>();
+builder.Services.AddSingleton<IBackgroundTaskService, BackgroundTaskService>();
 builder.Services.AddSingleton<IEscalationService, EscalationService>();
 builder.Services.AddHostedService<EmailWorker>();
 builder.Services.AddHostedService<EscalationWorker>();

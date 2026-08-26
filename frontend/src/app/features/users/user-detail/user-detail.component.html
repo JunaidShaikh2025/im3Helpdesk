@@ -1,19 +1,15 @@
 <app-layout>
-	<section class="user-detail-page">
-		<header class="udp-header">
-			<button type="button" class="udp-back" (click)="goBack()">← Back</button>
-			<div class="udp-head-copy">
-				<h1>System User Profile</h1>
-				<p>Profile details for internal user account</p>
-			</div>
-		</header>
+	<section class="up-page">
+		<button type="button" class="up-back" (click)="goBack()">← Back</button>
 
-		<div class="udp-loading" *ngIf="loading">Loading profile...</div>
+		<div class="up-loading" *ngIf="loading">Loading profile...</div>
 
-		<article class="udp-card" *ngIf="!loading && user">
-			<div class="udp-hero-row">
-				<div class="udp-hero">
-					<div class="udp-avatar" [class.has-photo]="!!user.photoUrl && !photoLoadFailed">
+		<div class="up-layout" *ngIf="!loading && user">
+
+			<!-- LEFT PANEL — 30% User details -->
+			<aside class="up-left">
+				<div class="up-avatar-wrap">
+					<div class="up-avatar" [class.has-photo]="!!user.photoUrl && !photoLoadFailed">
 						<img
 							*ngIf="user.photoUrl && !photoLoadFailed"
 							[src]="profilePhotoUrl()"
@@ -22,57 +18,87 @@
 						/>
 						<span *ngIf="!user.photoUrl || photoLoadFailed">{{ getInitials(user.fullName) }}</span>
 					</div>
-					<div class="udp-meta">
-						<h2>{{ user.fullName || 'Unknown' }}</h2>
-						<p class="udp-designation">{{ designationLabel() }}</p>
-						<div class="udp-meta-row">
-							<span class="udp-role">{{ roleLabel() }}</span>
-							<span class="udp-verified" [class.off]="!user.isEmailVerified">
-								{{ user.isEmailVerified ? 'Verified' : 'Not verified' }}
-							</span>
+					<h2 class="up-name">{{ user.fullName || 'Unknown' }}</h2>
+					<div class="up-badges">
+						<span class="up-badge role">{{ roleLabel() }}</span>
+						<span class="up-badge" [class.verified]="user.isEmailVerified" [class.unverified]="!user.isEmailVerified">
+							{{ user.isEmailVerified ? 'Verified' : 'Not verified' }}
+						</span>
+					</div>
+				</div>
+
+				<hr class="up-divider" />
+
+				<div class="up-info-section">
+					<p class="up-section-title">Agent information</p>
+					<div class="up-info-grid">
+						<div class="up-info-row">
+							<span class="up-info-label">Email</span>
+							<span class="up-info-value">{{ user.email || '-' }}</span>
+						</div>
+						<div class="up-info-row">
+							<span class="up-info-label">Mobile</span>
+							<span class="up-info-value">{{ user.phoneNumber || '-' }}</span>
+						</div>
+						<div class="up-info-row">
+							<span class="up-info-label">Designation</span>
+							<span class="up-info-value">{{ designationLabel() }}</span>
+						</div>
+						<div class="up-info-row">
+							<span class="up-info-label">Location</span>
+							<span class="up-info-value">{{ user.location || '-' }}</span>
 						</div>
 					</div>
 				</div>
 
-				<div class="udp-kpis">
-					<div class="udp-kpi">
-						<span>Joined</span>
-						<strong>{{ joinedAt() ? (joinedAt() | date:'dd MMM yyyy, hh:mm a') : '-' }}</strong>
+				<hr class="up-divider" />
+
+				<div class="up-stat-row">
+					<div class="up-stat">
+						<span class="up-stat-val">{{ assignedTickets.length }}</span>
+						<span class="up-stat-label">Open &amp; Pending</span>
 					</div>
-					<div class="udp-kpi">
-						<span>Last Login</span>
-						<strong>{{ user.lastLoginAt ? (user.lastLoginAt | date:'dd MMM yyyy, hh:mm a') : 'Never' }}</strong>
+					<div class="up-stat">
+						<span class="up-stat-val">{{ joinedAt() ? (joinedAt() | date:'MMM yyyy') : '-' }}</span>
+						<span class="up-stat-label">Joined</span>
 					</div>
 				</div>
-			</div>
+			</aside>
 
-			<div class="udp-section">
-				<h3>Contact & Identity</h3>
-				<dl class="udp-grid">
-					<div>
-						<dt>Email</dt>
-						<dd>{{ user.email || '-' }}</dd>
-					</div>
-					<div>
-						<dt>Phone Number</dt>
-						<dd>{{ user.phoneNumber || '-' }}</dd>
-					</div>
-					<div>
-						<dt>Designation</dt>
-						<dd>{{ designationLabel() }}</dd>
-					</div>
-					<div>
-						<dt>Location</dt>
-						<dd>{{ user.location || '-' }}</dd>
-					</div>
-				</dl>
-			</div>
+			<!-- RIGHT PANEL — 70% Tickets -->
+			<main class="up-right">
+				<div class="up-tickets-header">
+					<h3>Recently assigned tickets</h3>
+					<span class="up-filter-tag">Open &amp; Pending</span>
+				</div>
 
-			<section class="udp-signature" *ngIf="user.signature">
-				<h3>Email Signature</h3>
-				<p>{{ user.signature }}</p>
-			</section>
-		</article>
+				<div class="up-tickets-loading" *ngIf="ticketsLoading">Loading tickets...</div>
+
+				<div class="up-empty" *ngIf="!ticketsLoading && assignedTickets.length === 0">
+					<p>No open or pending tickets assigned to this user</p>
+				</div>
+
+				<div class="up-ticket-list" *ngIf="!ticketsLoading && assignedTickets.length > 0">
+					<div class="up-ticket-item" *ngFor="let t of assignedTickets" [routerLink]="['/tickets', t.id]">
+						<div class="up-ticket-top">
+							<span class="up-ticket-id">#{{ t.ticketNumber || t.id?.slice(0,8) }}</span>
+							<span class="up-status" [ngClass]="'s-' + (t.status | lowercase)">{{ t.status }}</span>
+						</div>
+						<p class="up-ticket-subject">{{ t.subject || t.title || 'No subject' }}</p>
+						<div class="up-ticket-footer">
+							<span class="up-ticket-customer" *ngIf="t.contactName || t.customerName">
+								{{ t.contactName || t.customerName }}
+							</span>
+							<span class="up-priority" [ngClass]="'p-' + (t.priority | lowercase)" *ngIf="t.priority">
+								{{ t.priority }}
+							</span>
+							<span class="up-ticket-date">{{ t.createdAt | date:'dd MMM yyyy' }}</span>
+						</div>
+					</div>
+				</div>
+			</main>
+
+		</div>
 	</section>
 </app-layout>
 

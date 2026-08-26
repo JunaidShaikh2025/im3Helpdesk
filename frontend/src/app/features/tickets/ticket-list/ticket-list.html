@@ -451,6 +451,7 @@
     <div class="status-board"
       #statusBoard
       (scroll)="onStatusBoardScroll()"
+      (wheel)="onStatusBoardWheel($event)"
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'status'">
       <div class="status-col"
@@ -511,7 +512,8 @@
       #statusScrollbar
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'status'"
-      (scroll)="onStatusScrollbarScroll()">
+      (scroll)="onStatusScrollbarScroll()"
+      (wheel)="onStatusScrollbarWheel($event)">
       <div class="status-board-scrollbar-track"
         [style.width.px]="statusBoardScrollWidth"></div>
     </div>

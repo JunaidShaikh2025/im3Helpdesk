@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AgentService } from '../../../core/services/agent';
+import { TicketService } from '../../../core/services/ticket';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
@@ -19,12 +20,15 @@ export class UserDetailComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private location = inject(Location);
   private agentService = inject(AgentService);
+  private ticketService = inject(TicketService);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
   private destroy$ = new Subject<void>();
 
   loading = true;
+  ticketsLoading = false;
   user: any = null;
+  assignedTickets: any[] = [];
   photoLoadFailed = false;
   readonly baseUrl = environment.baseUrl;
 
@@ -101,12 +105,36 @@ export class UserDetailComponent implements OnInit, OnDestroy {
           this.photoLoadFailed = false;
           this.loading = false;
           this.cdr.detectChanges();
+          this.fetchTickets(id);
         },
         error: () => {
           this.loading = false;
           this.cdr.detectChanges();
           this.toastr.error('User profile could not be loaded.');
           this.router.navigate(['/users']);
+        }
+      });
+  }
+
+  private fetchTickets(userId: string): void {
+    this.ticketsLoading = true;
+    this.cdr.detectChanges();
+
+    this.ticketService.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (tickets) => {
+          const statusFilter = ['open', 'pending'];
+          this.assignedTickets = (tickets || []).filter(t =>
+            (t.assignedToId === userId || t.assignedToUserId === userId) &&
+            statusFilter.includes((t.status || '').toLowerCase())
+          );
+          this.ticketsLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.ticketsLoading = false;
+          this.cdr.detectChanges();
         }
       });
   }

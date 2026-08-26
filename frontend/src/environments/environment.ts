@@ -1,7 +1,7 @@
 export const environment = {
 	production: false,
-	apiUrl: 'https://localhost:7071/api',
-	baseUrl: 'https://localhost:7071',
+	apiUrl: 'http://localhost:5071/api',
+	baseUrl: 'http://localhost:5071',
 	rtcIceServers: [
 		{ urls: 'stun:stun.l.google.com:19302' },
 		{ urls: 'stun:stun1.l.google.com:19302' }
