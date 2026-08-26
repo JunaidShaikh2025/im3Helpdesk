@@ -14,6 +14,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg-surface, var(--ui-color-bg-surface));
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--border-color, var(--ui-color-border));
+  box-shadow: 0 6px 14px -14px rgba(15, 23, 42, 0.45);
   margin-bottom: 16px;
   flex-wrap: wrap;
   gap: 12px;
@@ -630,6 +637,8 @@
   gap: 12px;
   overflow-x: auto;
   overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 8px;
   scroll-snap-type: x proximity;
   -ms-overflow-style: none;
@@ -654,6 +663,7 @@
   height: 16px;
   overflow-x: auto;
   overflow-y: hidden;
+  scroll-behavior: smooth;
   background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-top: none;

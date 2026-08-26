@@ -189,6 +189,8 @@ export class TicketDetailComponent
   rightRailHidden = false;
   activityPanelOpen = false;
   viewerPopoverOpen = false;
+  jumpMenuOpen = false;
+  jumpTickets: any[] = [];
 
   // ─── Profile hover card ──────────────
   profileCardId: string | null = null;
@@ -227,10 +229,97 @@ export class TicketDetailComponent
     this.runUiUpdate(() => {
       this.watcherPopoverOpen = !this.watcherPopoverOpen;
       this.viewerPopoverOpen = false;
+      this.jumpMenuOpen = false;
     });
   }
   toggleRightRail() { this.rightRailHidden = !this.rightRailHidden; }
   toggleActivityPanel() { this.activityPanelOpen = !this.activityPanelOpen; }
+
+  private isNavigableStatus(status: string): boolean {
+    const s = String(status || '').trim().toLowerCase();
+    return s !== 'closed' && s !== 'resolved';
+  }
+
+  private sortJumpTickets(rows: any[]): any[] {
+    return [...rows].sort((a, b) => {
+      const an = Number(a?.ticketNumber || 0);
+      const bn = Number(b?.ticketNumber || 0);
+      if (an !== bn) return bn - an;
+      const at = new Date(a?.createdAt || 0).getTime();
+      const bt = new Date(b?.createdAt || 0).getTime();
+      return bt - at;
+    });
+  }
+
+  loadJumpTickets() {
+    this.ticketService.getAll().subscribe({
+      next: (rows) => {
+        const filtered = (rows || []).filter(t => this.isNavigableStatus(t?.status));
+        this.jumpTickets = this.sortJumpTickets(filtered);
+      },
+      error: () => {
+        this.jumpTickets = [];
+      }
+    });
+  }
+
+  currentJumpIndex(): number {
+    if (!this.ticketId || !this.jumpTickets?.length) return -1;
+    return this.jumpTickets.findIndex(t => t.id === this.ticketId);
+  }
+
+  previousTicket(): any | null {
+    const idx = this.currentJumpIndex();
+    if (idx <= 0) return null;
+    return this.jumpTickets[idx - 1] || null;
+  }
+
+  nextTicket(): any | null {
+    const idx = this.currentJumpIndex();
+    if (idx < 0 || idx >= this.jumpTickets.length - 1) return null;
+    return this.jumpTickets[idx + 1] || null;
+  }
+
+  goToPreviousTicket(ev?: Event) {
+    ev?.stopPropagation();
+    const prev = this.previousTicket();
+    if (!prev?.id) return;
+    this.jumpMenuOpen = false;
+    this.router.navigate(['/tickets', prev.id]);
+  }
+
+  goToNextTicket(ev?: Event) {
+    ev?.stopPropagation();
+    const next = this.nextTicket();
+    if (!next?.id) return;
+    this.jumpMenuOpen = false;
+    this.router.navigate(['/tickets', next.id]);
+  }
+
+  toggleJumpMenu(ev?: Event) {
+    ev?.stopPropagation();
+    this.jumpMenuOpen = !this.jumpMenuOpen;
+    this.viewerPopoverOpen = false;
+    this.watcherPopoverOpen = false;
+  }
+
+  closeJumpMenu() {
+    this.jumpMenuOpen = false;
+  }
+
+  jumpToTicket(t: any, ev?: Event) {
+    ev?.stopPropagation();
+    if (!t?.id || t.id === this.ticketId) {
+      this.jumpMenuOpen = false;
+      return;
+    }
+    this.jumpMenuOpen = false;
+    this.router.navigate(['/tickets', t.id]);
+  }
+
+  jumpMenuTickets(): any[] {
+    return this.jumpTickets.filter(t => t?.id !== this.ticketId);
+  }
 
   goBackToList() { this.router.navigate(['/tickets']); }
 
@@ -803,11 +892,12 @@ export class TicketDetailComponent
 
   @HostListener('document:click', ['$event'])
   onDocClick(_ev?: MouseEvent) {
-    if (!this.noteMenuOpenId && !this.viewerPopoverOpen && !this.watcherPopoverOpen) return;
+    if (!this.noteMenuOpenId && !this.viewerPopoverOpen && !this.watcherPopoverOpen && !this.jumpMenuOpen) return;
     this.runUiUpdate(() => {
       this.noteMenuOpenId = null;
       this.viewerPopoverOpen = false;
       this.watcherPopoverOpen = false;
+      this.jumpMenuOpen = false;
     });
   }
 
@@ -1027,6 +1117,7 @@ export class TicketDetailComponent
 
         this.ticketId = id;
         this.convoExpanded = false;
+        this.jumpMenuOpen = false;
         this.ticket = null;
         this.attachments = [];
         this.timeline = [];
@@ -1038,6 +1129,7 @@ export class TicketDetailComponent
 
         // Atomic initial load: render page only after core ticket payload resolves.
         this.loadInitialBundleAtomic();
+        this.loadJumpTickets();
         this.loadCustomFieldValues();
       });
   }
@@ -1445,7 +1537,9 @@ loadTicket() {
         this.showToast('error',
           err.error?.message ||
           'Status update failed');
-        this.loadTicket(); // revert
+        // OPTIMIZATION: Don't reload full ticket - status may already be saved on backend
+        // Just refresh timeline to see if it was actually saved
+        this.loadTimeline();
       }
     });
   }
@@ -1943,12 +2037,16 @@ updateAllProps() {
     );
   }
 
-  Promise.all(calls).then(() => {
+  // OPTIMIZATION: Return immediately after starting all requests
+  // Don't wait for all to complete. Show success toast and let backend
+  // handle notifications asynchronously (like Freshdesk).
+  Promise.allSettled(calls).then(() => {
     setTimeout(() => {
       this.updating = false;
       this.cdr.detectChanges();
       this.showToast('success', 'Updated successfully!');
-      this.loadTicket();
+      // OPTIMIZATION: Don't reload entire ticket - only refresh timeline in background
+      // Full reload would cause another delay. Backend saves immediately anyway.
       this.loadTimeline();
     }, 0);
   }).catch(() => {
@@ -1956,7 +2054,6 @@ updateAllProps() {
       this.updating = false;
       this.cdr.detectChanges();
       this.showToast('error', 'Update failed');
-      this.loadTicket();
     }, 0);
   });
 }

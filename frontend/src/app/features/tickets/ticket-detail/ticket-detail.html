@@ -157,13 +157,39 @@
           <span class="td-tb-ic" aria-hidden="true">⏱</span> Activities
         </button>
         <span class="td-tb-sep" aria-hidden="true"></span>
-        <div class="td-tb-group td-tb-group--nav">
+        <div class="td-tb-group td-tb-group--nav" (click)="$event.stopPropagation()">
           <button type="button" class="td-tb-icon"
-            title="Previous ticket" disabled>‹</button>
+            title="Previous ticket"
+            [disabled]="!previousTicket()"
+            (click)="goToPreviousTicket($event)">‹</button>
           <button type="button" class="td-tb-icon"
-            title="More" disabled>⋯</button>
+            title="Jump to ticket"
+            (click)="toggleJumpMenu($event)">⋯</button>
           <button type="button" class="td-tb-icon"
-            title="Next ticket" disabled>›</button>
+            title="Next ticket"
+            [disabled]="!nextTicket()"
+            (click)="goToNextTicket($event)">›</button>
+
+          <div class="td-jump-pop"
+            *ngIf="jumpMenuOpen"
+            (click)="$event.stopPropagation()">
+            <div class="td-jump-head">All unresolved tickets</div>
+
+            <button type="button" class="td-jump-row"
+              *ngFor="let jt of jumpMenuTickets(); trackBy: trackById"
+              (click)="jumpToTicket(jt, $event)">
+              <span class="td-jump-title">{{ jt.title || ('Ticket #' + (jt.ticketNumber || '')) }}</span>
+              <span class="td-jump-meta">
+                #{{ jt.ticketNumber || 'NA' }}
+                <span class="td-jump-dot">•</span>
+                {{ jt.status || 'Open' }}
+              </span>
+            </button>
+
+            <div class="td-jump-empty" *ngIf="jumpMenuTickets().length === 0">
+              No unresolved tickets
+            </div>
+          </div>
         </div>
         <button type="button" class="td-tb-icon td-tb-rail"
           [class.is-collapsed]="rightRailHidden"

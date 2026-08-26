@@ -382,9 +382,7 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private redirectUser(res: any) {
     const role = res.user?.role;
-    if (res.isFirstLogin && role === 'CompanyAdmin')
-      this.router.navigate(['/onboarding']);
-    else if (role === 'SuperAdmin')
+    if (role === 'SuperAdmin')
       this.router.navigate(['/admin']);
     else if (role === 'Customer')
       this.router.navigate(['/customer']);

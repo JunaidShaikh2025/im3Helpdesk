@@ -580,6 +580,42 @@ export class TicketListComponent
     this.syncingStatusScroll = false;
   }
 
+  onStatusBoardWheel(event: WheelEvent) {
+    this.handleStatusWheel(event, 'board');
+  }
+
+  onStatusScrollbarWheel(event: WheelEvent) {
+    this.handleStatusWheel(event, 'scrollbar');
+  }
+
+  private handleStatusWheel(event: WheelEvent, source: 'board' | 'scrollbar') {
+    if (event.ctrlKey) return;
+
+    const board = this.statusBoardRef?.nativeElement;
+    const bar = this.statusScrollbarRef?.nativeElement;
+    if (!board || !bar) return;
+
+    // Keep native vertical scroll intact; only intercept clear horizontal intent.
+    const horizontalIntent = event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY);
+    if (!horizontalIntent) return;
+
+    const axisDelta = Math.abs(event.deltaX) > 0 ? event.deltaX : event.deltaY;
+    if (axisDelta === 0) return;
+
+    const target = source === 'board' ? board : bar;
+    const maxLeft = Math.max(0, target.scrollWidth - target.clientWidth);
+    if (maxLeft <= 0) return;
+
+    const nextLeft = Math.max(0, Math.min(maxLeft, target.scrollLeft + axisDelta));
+    if (nextLeft === target.scrollLeft) return;
+
+    event.preventDefault();
+    this.syncingStatusScroll = true;
+    board.scrollLeft = nextLeft;
+    bar.scrollLeft = nextLeft;
+    this.syncingStatusScroll = false;
+  }
+
   @HostListener('window:resize')
   onWindowResize() {
     this.refreshStatusBoardScrollbar();

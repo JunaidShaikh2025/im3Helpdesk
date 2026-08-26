@@ -1,4 +1,5 @@
 using iM3Helpdesk.API.Common.Helpers;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Enums;
@@ -18,19 +19,22 @@ public class TicketStatusController : TicketsControllerBase
     private readonly IEmailService _emailService;
     private readonly ISlaService _slaService;
     private readonly ILogger<TicketStatusController> _logger;
+    private readonly IBackgroundTaskService _backgroundTaskService;
 
     public TicketStatusController(
         ApplicationDbContext context,
         INotificationService notificationService,
         IEmailService emailService,
         ISlaService slaService,
-        ILogger<TicketStatusController> logger)
+        ILogger<TicketStatusController> logger,
+        IBackgroundTaskService backgroundTaskService)
         : base(context)
     {
         _notificationService = notificationService;
         _emailService = emailService;
         _slaService = slaService;
         _logger = logger;
+        _backgroundTaskService = backgroundTaskService;
     }
 
     [HttpPut("{id}/status")]
@@ -68,45 +72,68 @@ public class TicketStatusController : TicketsControllerBase
             !ticket.ResolvedAt.HasValue)
             ticket.ResolvedAt = DateTime.UtcNow;
 
+        // OPTIMIZATION: Save core data immediately
         await _context.SaveChangesAsync();
 
+        // OPTIMIZATION: Queue background tasks (fire-and-forget)
+        // This returns immediately without waiting for emails/notifications
         var userId = GetUserId();
-        if (userId != Guid.Empty)
-        {
-            await _notificationService.CreateActivityAsync(
-                userId, ticket.OrganizationId,
-                "StatusChanged",
-                $"Status → {newStatus}: {ticket.Title}",
-                "Ticket", ticket.Id);
-        }
+        var ticketId = ticket.Id;
+        var createdByEmail = ticket.CreatedBy?.Email;
+        var orgId = ticket.OrganizationId;
+        var ticketTitle = ticket.Title;
+        var ticketNumber = ticket.TicketNumber;
 
-        if (ticket.CreatedBy?.Email != null)
+        // Fire-and-forget background tasks
+        _ = Task.Run(async () =>
         {
             try
             {
-                var html = $@"
+                // Create activity log
+                if (userId != Guid.Empty)
+                {
+                    await _backgroundTaskService.QueueActivityAsync(
+                        userId, orgId,
+                        "StatusChanged",
+                        $"Status → {newStatus}: {ticketTitle}",
+                        "Ticket", ticketId);
+                }
+
+                // Send email to ticket creator
+                if (createdByEmail != null)
+                {
+                    try
+                    {
+                        var html = $@"
         <div style='font-family:Arial;max-width:600px'>
-          <p>Your ticket <strong>{ticket.Title}</strong>
-          (#TN{ticket.TicketNumber}) status has been 
+          <p>Your ticket <strong>{ticketTitle}</strong>
+          (#TN{ticketNumber}) status has been 
           updated to <strong>{newStatus}</strong>.</p>
         </div>";
-                await _emailService.SendAsync(
-                    ticket.CreatedBy.Email,
-                    $"Ticket #{ticket.TicketNumber} Status: {newStatus}",
-                    html,
-                    organizationId: ticket.OrganizationId);
+                        await _emailService.SendAsync(
+                            createdByEmail,
+                            $"Ticket #{ticketNumber} Status: {newStatus}",
+                            html,
+                            organizationId: orgId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Status email failed for ticket {TicketId}", ticketId);
+                    }
+                }
+
+                // Notify watchers and assignee
+                await NotifyWatchersAndAssigneeAsync(
+                    ticket,
+                    userId,
+                    "Ticket status updated",
+                    $"Status changed to {newStatus} on #TN{ticketNumber}: {ticketTitle}");
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Status email failed");
+                _logger.LogError(ex, "Background task failed for ticket status update {TicketId}", ticketId);
             }
-        }
-
-        await NotifyWatchersAndAssigneeAsync(
-            ticket,
-            userId,
-            "Ticket status updated",
-            $"Status changed to {newStatus} on #TN{ticket.TicketNumber}: {ticket.Title}");
+        });
 
         return Ok(new { message = "Status updated" });
     }
