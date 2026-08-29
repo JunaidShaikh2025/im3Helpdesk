@@ -798,7 +798,7 @@
 .ticket-card {
   background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 16px;
   cursor: pointer;
   transition: box-shadow 0.15s, transform 0.1s;
@@ -814,9 +814,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   padding: 14px 16px 14px 22px;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   transition:
     box-shadow 180ms ease,
@@ -954,7 +954,10 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border-color, var(--ui-color-border));
+    border-bottom: 1px solid var(--border-color, var(--ui-color-border));
   }
 
   .tag-pill.more {
@@ -974,7 +977,7 @@
   .tc-assign {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-size: 12.5px;
     color: var(--text-secondary, var(--ui-color-text-muted));
   }
@@ -982,6 +985,21 @@
     color: var(--text-muted, var(--ui-color-text-faint));
     font-weight: 500;
   }
+
+  .assignment-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border: 1px solid var(--ui-color-border);
+    border-radius: 4px;
+    background: var(--ui-color-bg-subtle);
+    color: var(--ui-color-primary);
+    cursor: pointer;
+  }
+
+  .assignment-control:hover { background: var(--ui-color-primary-soft); }
+  .assignment-caret { font-size: 10px; color: var(--text-muted, var(--ui-color-text-faint)); }
 
   .tc-foot-right {
     display: flex;
@@ -1025,8 +1043,8 @@
 
 .status-badge {
   padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1048,8 +1066,8 @@
 
 .priority-chip {
   padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -1072,8 +1090,8 @@
   background: var(--accent-light, var(--ui-color-primary-soft));
   color: var(--accent, var(--ui-color-primary));
   padding: 2px 8px;
-  border-radius: 8px;
-  font-size: 11px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
 .card-footer {

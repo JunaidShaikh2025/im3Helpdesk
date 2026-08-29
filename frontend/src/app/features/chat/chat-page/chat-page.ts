@@ -12,7 +12,6 @@ import { HttpClient } from '@angular/common/http';
 import { ChatService } from '../../../core/services/chat.service';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
-import { CallLogComponent } from '../../call-logs/call-log.component';
 import { GlobalCallNotificationService }
   from '../../../core/services/global-call-notification.service';
 import { environment } from '../../../../environments/environment';
@@ -22,7 +21,7 @@ type FilterType = 'all' | 'unread' | 'online' | 'groups';
 @Component({
   selector: 'app-chat-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, LayoutComponent, CallLogComponent],
+  imports: [CommonModule, FormsModule, LayoutComponent],
   templateUrl: './chat-page.html',
   styleUrls: ['./chat-page.scss']
 })
@@ -54,6 +53,8 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   activeFilter: FilterType = 'all';
   loadingUsers         = true;
   loadingMessages      = false;
+  sendingMessage       = false;
+  sendError            = '';
   isTyping             = false;
   typingTimeout: any;
   shouldScrollToBottom = false;
@@ -117,6 +118,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private subs: Subscription[] = [];
+  private messageLoadRequestId = 0;
 
   // ─────────────────────────────────────────
   ngOnInit() {
@@ -243,7 +245,23 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.selectedGroup && msg.groupId === this.selectedGroup.id;
 
         if (forUser || forGroup) {
-          if (!this.messages.some(m => m.id === msg.id)) {
+          const pendingIndex = this.messages.findIndex(m =>
+            typeof m.id === 'string' &&
+            m.id.startsWith('local-') &&
+            m.content === msg.content &&
+            m.receiverId === msg.receiverId &&
+            (m.groupId ?? null) === (msg.groupId ?? null) &&
+            (msg.isFromMe || msg.senderId === this.myId));
+
+          // The sending browser renders an optimistic bubble immediately.
+          // When SignalR later returns the persisted copy (for example from
+          // another open tab), replace that temporary bubble instead of
+          // appending the same message a second time.
+          if (pendingIndex !== -1) {
+            this.messages = this.messages.map((m, index) =>
+              index === pendingIndex ? msg : m);
+            this.queueScrollToBottom();
+          } else if (!this.messages.some(m => m.id === msg.id)) {
             this.messages = [...this.messages, msg];
             this.queueScrollToBottom();
           }
@@ -756,6 +774,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   selectUser(user: any) {
+    const requestId = ++this.messageLoadRequestId;
     this.selectedUser = user;
     this.selectedGroup = null;
     this.chatService.setCurrentlyViewing('dm', user?.id);
@@ -764,6 +783,10 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.cdr.detectChanges();
     this.chatService.getMessages(user.id).subscribe({
       next: (data) => {
+        // Ignore a slower response for a conversation the user has already
+        // left; otherwise its history can overwrite the active thread.
+        if (requestId !== this.messageLoadRequestId ||
+            this.selectedUser?.id !== user.id) return;
         this.messages = data;
         this.loadingMessages = false;
         this.queueScrollToBottom();
@@ -775,11 +798,17 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.applyFilter();
           this.chatService.markRead(user.id);
         }
+      },
+      error: () => {
+        if (requestId !== this.messageLoadRequestId) return;
+        this.loadingMessages = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
   selectGroup(group: any) {
+    const requestId = ++this.messageLoadRequestId;
     this.selectedGroup = group;
     this.selectedUser = null;
     this.chatService.setCurrentlyViewing('group', group?.id);
@@ -803,26 +832,66 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.cdr.detectChanges();
     this.chatService.getGroupMessages(group.id).subscribe({
       next: (data) => {
+        if (requestId !== this.messageLoadRequestId ||
+            this.selectedGroup?.id !== group.id) return;
         this.messages = data;
         this.loadingMessages = false;
         this.queueScrollToBottom();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        if (requestId !== this.messageLoadRequestId) return;
+        this.loadingMessages = false;
         this.cdr.detectChanges();
       }
     });
   }
 
-  sendMessage() {
+  async sendMessage() {
     const content = this.newMessage.trim();
-    if (!content && !this.uploadingFile) return;
+    if (!content || this.uploadingFile || this.sendingMessage) return;
     if (!this.selectedUser && !this.selectedGroup) return;
-    this.newMessage = '';
-    this.queueScrollToBottom();
+    if (!this.chatService.isConnected) {
+      this.sendError = 'Chat is reconnecting. Please try again in a moment.';
+      this.cdr.detectChanges();
+      return;
+    }
 
-    if (this.selectedUser) {
-      this.stopTyping();
-      this.chatService.sendMessage(this.selectedUser.id, content);
-    } else if (this.selectedGroup) {
-      this.chatService.sendGroupMessage(this.selectedGroup.id, content);
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const localMessage = {
+      id: localId,
+      content,
+      senderId: this.myId,
+      receiverId: this.selectedUser?.id ?? null,
+      groupId: this.selectedGroup?.id ?? null,
+      createdAt: new Date().toISOString(),
+      messageType: 'text',
+      isFromMe: true,
+      isRead: false,
+      senderName: this.myName
+    };
+
+    this.newMessage = '';
+    this.sendError = '';
+    this.sendingMessage = true;
+    this.messages = [...this.messages, localMessage];
+    this.queueScrollToBottom();
+    this.cdr.detectChanges();
+
+    try {
+      if (this.selectedUser) {
+        this.stopTyping();
+        await this.chatService.sendMessage(this.selectedUser.id, content);
+      } else if (this.selectedGroup) {
+        await this.chatService.sendGroupMessage(this.selectedGroup.id, content);
+      }
+    } catch {
+      this.messages = this.messages.filter(m => m.id !== localId);
+      this.newMessage = content;
+      this.sendError = 'Message could not be sent. Please try again.';
+    } finally {
+      this.sendingMessage = false;
+      this.cdr.detectChanges();
     }
   }
 

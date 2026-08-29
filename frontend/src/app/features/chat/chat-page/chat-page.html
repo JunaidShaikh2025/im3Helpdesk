@@ -397,50 +397,20 @@
   <!-- ══════════ LEFT SIDEBAR ══════════ -->
   <div class="chat-sidebar">
 
-    <!-- ── Sidebar top: Chat / Calls switcher ── -->
+    <!-- ── Sidebar top ── -->
     <div class="cs-header">
-      <div class="cs-main-tabs">
-        <button type="button"
-          class="cs-main-tab"
-          [class.active]="sidebarTab==='chat'"
-          (click)="setSidebarTab('chat')">
-          💬 Chat
-          <span class="cs-tab-badge"
-            *ngIf="unreadTotalCount > 0">
-            {{ unreadTotalCount > 99
-              ? '99+'
-              : unreadTotalCount }}
-          </span>
-        </button>
-        <button type="button"
-          class="cs-main-tab"
-          [class.active]="sidebarTab==='calls'"
-          (click)="setSidebarTab('calls')">
-          📞 Calls
-          <span class="cs-tab-badge badge-call"
-            *ngIf="missedCallCount > 0">
-            {{ missedCallCount > 99
-              ? '99+'
-              : missedCallCount }}
-          </span>
-        </button>
-      </div>
+      <h2>Chats</h2>
       <button type="button"
         class="cs-new-btn"
-        *ngIf="sidebarTab==='chat'"
         title="Create Group"
         (click)="openCreateGroup()">
-        👥+
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+        <span class="sr-only">Create group chat</span>
       </button>
     </div>
 
-    <!-- ══ CALLS TAB ══ -->
-    <app-call-log
-      *ngIf="sidebarTab==='calls'">
-    </app-call-log>
-
     <!-- ══ CHAT TAB ══ -->
-    <ng-container *ngIf="sidebarTab==='chat'">
+    <ng-container>
 
     <div class="cs-search">
       <span>🔍</span>
@@ -711,22 +681,6 @@
           </div>
         </div>
 
-        <!-- Call buttons (direct only) -->
-        <div class="cm-hd-actions"
-          *ngIf="selectedUser">
-          <button type="button"
-            class="cm-call audio"
-            title="Audio Call"
-            (click)="startCall('audio')">
-            📞
-          </button>
-          <button type="button"
-            class="cm-call video"
-            title="Video Call"
-            (click)="startCall('video')">
-            📹
-          </button>
-        </div>
       </div>
 
       <!-- Messages -->
@@ -879,14 +833,14 @@
       <!-- Input -->
       <div class="cm-input-area">
         <label class="cm-att" title="File">
-          📎
+          <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
           <input type="file" hidden multiple
             accept="*/*"
             (change)="onFileSelect($event)"/>
         </label>
         <label class="cm-att img"
           title="Image">
-          🖼
+          <i class="fa-regular fa-image" aria-hidden="true"></i>
           <input type="file" hidden multiple
             accept="image/*"
             (change)="onFileSelect($event)"/>
@@ -908,10 +862,14 @@
           class="cm-send"
           [disabled]="
             !newMessage.trim() &&
-            !uploadingFile"
+            !uploadingFile ||
+            sendingMessage"
           (click)="sendMessage()">
-          ➤
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
         </button>
+      </div>
+      <div class="cm-send-error" *ngIf="sendError" role="alert">
+        {{ sendError }}
       </div>
 
     </div>

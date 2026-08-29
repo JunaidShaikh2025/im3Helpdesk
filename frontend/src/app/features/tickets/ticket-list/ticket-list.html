@@ -14,6 +14,11 @@
       </div>
 
       <div class="header-right">
+        <label class="search-wrap" aria-label="Search tickets">
+          <span class="s-icon" aria-hidden="true"></span>
+          <input class="search-input" type="search" [(ngModel)]="filters.search"
+            (ngModelChange)="applyFilters()" placeholder="Search tickets" />
+        </label>
         <div class="layout-wrap">
           <button class="icon-btn layout-btn"
             (click)="toggleLayoutMenu($event)">
@@ -425,13 +430,13 @@
               {{ getInitials(t.assignedTo || 'U') }}
             </div>
             <span class="tc-assign-lbl">Assigned:</span>
-            <span class="person-link"
+            <span class="person-link assignment-control"
               role="button"
               tabindex="0"
               title="Open details"
               (click)="openPersonDetails(t.assignedTo || t.createdBy, $event)"
               (keydown.enter)="openPersonDetails(t.assignedTo || t.createdBy, $event)">
-              {{ t.assignedTo || 'Unassigned' }}
+              {{ t.assignedTo || 'Unassigned' }} <span class="assignment-caret" aria-hidden="true">▾</span>
             </span>
           </div>
           <div class="tc-foot-right">
