@@ -1,6 +1,7 @@
 :host { display: block; }
 
 .rr-page {
+  font-family: var(--ui-font-family-sans);
   padding: 24px clamp(16px, 3vw, 32px);
   max-width: 1280px;
   margin: 0 auto;

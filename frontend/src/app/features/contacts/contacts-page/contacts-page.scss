@@ -2,7 +2,7 @@
    PREMIUM PICTURE-PERFECT CONTACTS SAAS
 ═══════════════════════════════════════ */
 .contacts-page {
-  padding: 32px 40px;
+  padding: var(--ui-space-8) var(--ui-space-10);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -14,24 +14,24 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  h1 { font-size: 22px; font-weight: 800; color: var(--ui-color-text-primary); letter-spacing: -0.5px; }
+  margin-bottom: var(--ui-space-6);
+  h1 { font-size: var(--ui-type-h4-size); line-height: var(--ui-type-h4-line-height); font-weight: var(--ui-font-weight-bold); color: var(--ui-color-text-primary); letter-spacing: -0.5px; }
 }
 
 .search-wrap {
-  display: flex; align-items: center; gap: 10px; background: var(--ui-color-bg-page);
-  border: 1px solid var(--ui-color-border); border-radius: 8px; padding: 8px 14px; width: 360px;
+  display: flex; align-items: center; gap: var(--ui-space-2); background: var(--ui-color-bg-page);
+  border: 1px solid var(--ui-color-border); border-radius: var(--ui-radius-8); padding: var(--ui-space-2) var(--ui-space-3); width: 360px;
   transition: all 0.15s ease;
-  &:focus-within { border-color: var(--ui-color-primary); background: var(--ui-color-bg-surface); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.06); }
-  .search-symbol { font-size: 13px; color: var(--ui-color-text-faint); }
-  .search-input { border: none; outline: none; background: transparent; font-size: 13px; color: var(--ui-color-text-primary); width: 100%; &::placeholder { color: var(--ui-color-text-faint); } }
+  &:focus-within { border-color: var(--ui-color-primary); background: var(--ui-color-bg-surface); box-shadow: var(--ui-focus-ring); }
+  .search-symbol { font-size: var(--ui-type-small-size); color: var(--ui-color-text-faint); }
+  .search-input { border: none; outline: none; background: transparent; font-size: var(--ui-type-body-size); color: var(--ui-color-text-primary); width: 100%; &::placeholder { color: var(--ui-color-text-faint); } }
 }
 
 .contact-tabs {
-  display: flex; gap: 16px; border-bottom: 1px solid var(--ui-color-border); margin-bottom: 20px;
+  display: flex; gap: var(--ui-space-4); border-bottom: 1px solid var(--ui-color-border); margin-bottom: var(--ui-space-5);
   .c-tab {
-    padding: 10px 4px; border: none; background: none; font-size: 13.5px; font-weight: 600;
-    color: var(--ui-color-text-muted); cursor: pointer; position: relative; display: flex; align-items: center; gap: 6px;
+    padding: var(--ui-space-2) var(--ui-space-1); border: none; background: none; font-size: var(--ui-type-small-size); font-weight: var(--ui-font-weight-semibold);
+    color: var(--ui-color-text-muted); cursor: pointer; position: relative; display: flex; align-items: center; gap: var(--ui-space-2);
     
     &::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: transparent; }
     &.active { color: var(--ui-color-primary); &::after { background: var(--ui-color-primary); } .tab-count-pill { background: rgba(37, 99, 235, 0.1); color: var(--ui-color-primary); } }
@@ -45,13 +45,13 @@
 .scroll-list-frame { flex: 1; overflow-y: auto; padding-right: 16px; display: flex; flex-direction: column; }
 
 /* Alphabet Sorting List Rows */
-.alpha-group { display: flex; flex-direction: column; margin-bottom: 16px; }
-.alpha-letter { font-size: 11px; font-weight: 700; color: var(--ui-color-text-faint); padding: 6px 12px; text-transform: uppercase; }
+.alpha-group { display: flex; flex-direction: column; margin-bottom: var(--ui-space-4); }
+.alpha-letter { font-size: var(--ui-type-caption-size); font-weight: var(--ui-font-weight-bold); color: var(--ui-color-text-faint); padding: var(--ui-space-2) var(--ui-space-3); text-transform: uppercase; }
 
 .contact-row {
-  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background 0.1s;
+  display: flex; align-items: center; gap: var(--ui-space-3); padding: var(--ui-space-2) var(--ui-space-3); border-radius: var(--ui-radius-8); cursor: pointer; transition: background 0.1s;
   &:hover { background: var(--ui-color-bg-page); }
-  &.active { background: rgba(37, 99, 235, 0.05); }
+  &.active { background: var(--ui-color-primary-soft); }
 }
 .c-avatar-node {
   width: 34px; height: 34px; border-radius: 50%; color: var(--ui-color-bg-surface); font-size: 11.5px; font-weight: 700;
@@ -59,8 +59,8 @@
 }
 .c-meta-info {
   min-width: 0;
-  .c-name { font-size: 13.5px; font-weight: 600; color: var(--ui-color-text-primary); }
-  .c-sub-row { font-size: 12px; color: var(--ui-color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .c-name { font-size: var(--ui-type-small-size); font-weight: var(--ui-font-weight-semibold); color: var(--ui-color-text-primary); }
+  .c-sub-row { font-size: var(--ui-type-small-size); color: var(--ui-color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
 /* Companies Grid Variant */

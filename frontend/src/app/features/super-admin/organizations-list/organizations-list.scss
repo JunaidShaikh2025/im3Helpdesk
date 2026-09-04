@@ -1,5 +1,7 @@
 /* ── Organizations List Page ────────────────────── */
 .ol-page {
+  font-family: var(--ui-font-family-sans);
+  color: var(--ui-color-text-primary);
   padding: 28px;
   background: var(--ui-color-bg-surface);
   min-height: 100%;

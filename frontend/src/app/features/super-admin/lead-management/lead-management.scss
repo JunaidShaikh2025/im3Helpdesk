@@ -1,5 +1,7 @@
 /* ── Leads Management Page (Super Admin) ────────────────────── */
 .lm-page {
+  font-family: var(--ui-font-family-sans);
+  color: var(--ui-color-text-primary);
   /* page wrapper uses white surface to match dashboard/team look */
   padding: 28px;
   background: var(--ui-color-bg-surface);

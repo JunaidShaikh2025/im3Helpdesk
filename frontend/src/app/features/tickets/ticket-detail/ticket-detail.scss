@@ -18,7 +18,7 @@
   --fd-note-bg: var(--ui-color-bg-soft-warm);
   --fd-note-border: var(--ui-color-warning);
   --fd-hover: var(--ui-color-primary-soft);
-  --fd-radius: 10px;
+  --fd-radius: var(--ui-radius-10);
 }
 
 .td-page {
@@ -32,14 +32,14 @@
   /* Scoped font for the ticket-detail content only.
      Applied here (not on :host) because <app-layout> is the host's root child;
      putting font-family on :host would cascade into the sidebar/topbar. */
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--ui-font-family-sans);
 }
 
 .td-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  padding: 0 16px 10px;
+  padding: 0 var(--ui-space-4) var(--ui-space-2);
   display: flex;
   flex-direction: column;
 }
@@ -48,7 +48,7 @@
 .fd-loading {
   display: flex;
   justify-content: center;
-  padding: 80px;
+  padding: var(--ui-space-20);
 }
 
 .fd-spinner {
@@ -65,7 +65,7 @@
 .fd-layout {
   display: grid;
   grid-template-columns: 1fr 290px;
-  gap: 16px;
+  gap: var(--ui-space-4);
   align-items: stretch;
   flex: 1 1 auto;
   min-height: 0;
@@ -90,7 +90,7 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 10px 16px 2px;
+  padding: var(--ui-space-3) var(--ui-space-2) var(--ui-space-4) var(--ui-space-1);
   scrollbar-gutter: stable;
 }
 /* Prevent flex children from shrinking inside scroll columns —
@@ -294,7 +294,7 @@
 .fd-main {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ui-space-2);
   min-width: 0;
   padding-top: 0;
 }
@@ -307,21 +307,21 @@
   background: var(--fd-white);
   border: 1px solid var(--fd-border);
   border-radius: var(--fd-radius);
-  padding: 10px 14px;
-  gap: 12px;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  gap: var(--ui-space-3);
 }
 
 .ab-left, .ab-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--ui-space-2);
 }
 
 .ab-back {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-type-small-size);
   color: var(--fd-accent);
   padding: 0;
   white-space: nowrap;
@@ -329,19 +329,19 @@
 }
 
 .fd-ticket-num {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-bold);
   color: var(--fd-muted);
   background: var(--ui-color-bg-subtle);
-  padding: 3px 10px;
-  border-radius: 6px;
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border-radius: var(--ui-radius-6);
 }
 
 .fd-status-badge {
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border-radius: var(--ui-radius-12);
+  font-size: var(--ui-type-caption-size);
+  font-weight: var(--ui-font-weight-semibold);
   white-space: nowrap;
 
   &.st-open {
@@ -414,8 +414,8 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 2px 8px;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-1) var(--ui-space-1) var(--ui-space-2);
   background: var(--fd-white);
   border: none;
   border-radius: 0;
@@ -424,8 +424,9 @@
 }
 
 .fd-sticky-title-text {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--ui-type-h6-size);
+  line-height: var(--ui-type-h6-line-height);
+  font-weight: var(--ui-font-weight-bold);
   color: var(--fd-text);
   line-height: 1.35;
   margin: 0;
@@ -436,8 +437,8 @@
 .ec-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px 10px;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4) var(--ui-space-2);
   border-bottom: 1px solid var(--fd-border);
 }
 
@@ -464,20 +465,20 @@
 }
 
 .ec-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ui-type-body-size);
+  font-weight: var(--ui-font-weight-semibold);
   color: var(--fd-text);
 }
 
 .ec-sub {
-  font-size: 12px;
+  font-size: var(--ui-type-small-size);
   color: var(--fd-muted);
   margin-top: 2px;
 }
 
 .ec-via {
   color: var(--ui-color-text-faint);
-  font-size: 11px;
+  font-size: var(--ui-type-caption-size);
 }
 
 .ec-right {
@@ -511,8 +512,8 @@
 
 /* Email body */
 .ec-body {
-  padding: 12px 16px 14px;
-  font-size: 14px;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  font-size: var(--ui-type-body-size);
   line-height: 1.7;
   color: var(--fd-text);
   overflow: hidden;

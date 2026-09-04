@@ -677,9 +677,10 @@
             {{ getTimeAgo(t.createdAt) }}
           </span>
           <span *ngIf="t.slaStatus"
+            class="sla-grid-label"
             [style.color]="
               getSlaColor(t.slaStatus)"
-            style="font-size:11px">
+            >
             ⏱ {{ t.slaStatus }}
           </span>
         </div>

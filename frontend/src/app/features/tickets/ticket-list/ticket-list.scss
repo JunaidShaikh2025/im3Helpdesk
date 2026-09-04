@@ -1,5 +1,5 @@
 .ticket-list-page {
-  padding: 24px;
+  padding: var(--ui-layout-page-padding);
   min-height: 100%;
 
   &.status-layout-active {
@@ -18,10 +18,10 @@
   top: 0;
   z-index: 20;
   background: var(--bg-surface, var(--ui-color-bg-surface));
-  padding: 10px 0 12px;
+  padding: var(--ui-space-2) 0 var(--ui-space-3);
   border-bottom: 1px solid var(--border-color, var(--ui-color-border));
   box-shadow: 0 6px 14px -14px rgba(15, 23, 42, 0.45);
-  margin-bottom: 16px;
+  margin-bottom: var(--ui-space-4);
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -32,8 +32,9 @@
   gap: 10px;
 
   h1 {
-    font-size: 22px;
-    font-weight: 600;
+    font-size: var(--ui-type-h4-size);
+    line-height: var(--ui-type-h4-line-height);
+    font-weight: var(--ui-type-h4-weight);
     color: var(--text-primary, var(--ui-color-text-primary));
   }
 }
@@ -41,10 +42,10 @@
 .count-badge {
   background: var(--accent-light, var(--ui-color-primary-soft));
   color: var(--accent, var(--ui-color-primary));
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border-radius: var(--ui-radius-12);
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-semibold);
 
   .filter-active {
     color: var(--ui-color-warning);
@@ -55,27 +56,27 @@
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ui-space-2);
   flex-wrap: wrap;
 }
 
 .search-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--ui-space-2);
   background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 8px;
-  padding: 7px 12px;
+  border-radius: var(--ui-radius-8);
+  padding: var(--ui-space-2) var(--ui-space-3);
   width: 220px;
 
-  .s-icon { font-size: 13px; }
+  .s-icon { font-size: var(--ui-type-small-size); }
 }
 
 .search-input {
   border: none;
   outline: none;
-  font-size: 13px;
+  font-size: var(--ui-type-body-size);
   color: var(--text-primary, var(--ui-color-text-primary));
   background: transparent;
   width: 100%;
@@ -234,9 +235,9 @@
 }
 
 .new-btn {
-  padding: 8px 16px;
+  padding: var(--ui-space-2) var(--ui-space-4);
   background: var(--accent, var(--ui-color-primary));
-  color: white;
+  color: var(--ui-color-on-primary);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -305,26 +306,26 @@
 .filters-panel {
   background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 16px;
+  border-radius: var(--ui-radius-10);
+  padding: var(--ui-space-4);
+  margin-bottom: var(--ui-space-4);
 }
 
 .filter-row {
   display: flex;
-  gap: 12px;
+  gap: var(--ui-space-3);
   flex-wrap: wrap;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--ui-space-1);
   min-width: 140px;
 
   label {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--ui-type-caption-size);
+    font-weight: var(--ui-font-weight-semibold);
     color: var(--text-muted, var(--ui-color-text-faint));
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -348,10 +349,10 @@
 }
 
 .filter-sel {
-  padding: 7px 10px;
+  padding: var(--ui-space-2) var(--ui-space-3);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: var(--ui-radius-6);
+  font-size: var(--ui-type-body-size);
   color: var(--text-primary, var(--ui-color-text-primary));
   background: var(--bg-card, white);
   outline: none;
@@ -359,6 +360,11 @@
   &:focus {
     border-color: var(--accent, var(--ui-color-primary));
   }
+}
+
+.sla-grid-label {
+  font-size: var(--ui-type-caption-size);
+  line-height: var(--ui-type-caption-line-height);
 }
 
 /* Multi-select filter dropdown */
@@ -798,7 +804,7 @@
 .ticket-card {
   background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 8px;
+  border-radius: var(--ui-radius-8);
   padding: 16px;
   cursor: pointer;
   transition: box-shadow 0.15s, transform 0.1s;
@@ -814,7 +820,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ui-space-3);
   padding: 14px 16px 14px 22px;
   border-radius: 8px;
   overflow: hidden;
@@ -1238,8 +1244,8 @@
 }
 
 .grid-title {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--ui-type-button-size);
+  font-weight: var(--ui-font-weight-medium);
   color: var(--text-primary, var(--ui-color-text-primary));
   margin-bottom: 8px;
   line-height: 1.4;
@@ -1280,7 +1286,7 @@
 .bulk-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--ui-space-2);
   padding: 10px 14px;
   background: var(--accent-light, var(--ui-color-primary-soft));
   border: 1px solid var(--accent, var(--ui-color-primary));

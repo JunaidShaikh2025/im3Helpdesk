@@ -1,5 +1,7 @@
 ﻿/* -- Page wrapper ------------------------------------------ */
 .up-page {
+  font-family: var(--ui-font-family-sans);
+  color: var(--ui-color-text-primary);
   max-width: 1200px;
   margin: 0 auto;
   padding: 24px 20px 40px;

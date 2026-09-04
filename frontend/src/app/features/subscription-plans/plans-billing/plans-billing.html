@@ -12,8 +12,13 @@
   </header>
 
   <ng-container *ngIf="loaded(); else loadingTpl">
+    <nav class="pb-tabs" aria-label="Billing sections">
+      <button type="button" [class.active]="activeTab() === 'plan'" (click)="activeTab.set('plan')">Current plan</button>
+      <button type="button" [class.active]="activeTab() === 'features'" (click)="activeTab.set('features')">Plan features <span>{{ features().length }}</span></button>
+      <button type="button" [class.active]="activeTab() === 'payments'" (click)="activeTab.set('payments')">Payment history <span *ngIf="payments().length">{{ payments().length }}</span></button>
+    </nav>
     <!-- ── Active subscription card ─────────────────────────────── -->
-    <section class="pb-card pb-hero" *ngIf="subscription() as sub; else noSub"
+    <section class="pb-card pb-hero" *ngIf="activeTab() === 'plan' && subscription() as sub; else noSub"
              [style.--accent]="plan()?.accent || '#16a34a'">
       <div class="pb-hero-top">
         <div class="pb-hero-title">
@@ -56,10 +61,18 @@
           <span *ngIf="!sub.isTrial">Auto-renews</span>
         </div>
       </div>
+      <div class="pb-cycle-bar">
+        <div class="pb-cycle-copy">
+          <span>Billing cycle · started {{ sub.startedAt | date:'mediumDate' }}</span>
+          <strong>{{ remainingDaysLabel() }}</strong>
+        </div>
+        <div class="pb-progress" aria-label="Billing cycle progress"><i [style.width.%]="billingProgress()"></i></div>
+        <p class="pb-cycle-renewal">Your plan renews on {{ sub.currentPeriodEnd | date:'mediumDate' }}.</p>
+      </div>
     </section>
 
     <ng-template #noSub>
-      <section class="pb-card pb-empty">
+      <section class="pb-card pb-empty" *ngIf="activeTab() === 'plan'">
         <div class="pb-empty-art">📦</div>
         <h2>No active subscription</h2>
         <p>Pick a plan to unlock features for your team.</p>
@@ -68,20 +81,25 @@
     </ng-template>
 
     <!-- ── Features ─────────────────────────────────────────────── -->
-    <section class="pb-card" *ngIf="features().length">
+    <section class="pb-card pb-features-card" *ngIf="activeTab() === 'features' && featureDetails().length">
       <div class="pb-card-head">
-        <h3>Plan features</h3>
+        <div>
+          <h3>Everything included in your plan</h3>
+          <p>Clear capabilities designed to help your support team work better.</p>
+        </div>
         <span class="pb-count">{{ features().length }} included</span>
       </div>
       <div class="pb-feature-grid">
-        <span *ngFor="let f of features()" class="pb-feature-chip">
+        <article *ngFor="let f of features()" class="pb-feature-item">
+          <i class="pb-feature-icon fa-solid" [ngClass]="featureIcon(f)" aria-hidden="true"></i>
           <i class="pb-check">✓</i> {{ f }}
-        </span>
+          <p>{{ featureDescription(f) }}</p>
+        </article>
       </div>
     </section>
 
     <!-- ── Payment history ──────────────────────────────────────── -->
-    <section class="pb-card">
+    <section class="pb-card" *ngIf="activeTab() === 'payments'">
       <div class="pb-card-head">
         <h3>Payment history</h3>
         <span class="pb-count" *ngIf="payments().length">{{ payments().length }} record{{ payments().length === 1 ? '' : 's' }}</span>

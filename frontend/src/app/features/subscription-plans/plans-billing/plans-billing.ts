@@ -25,6 +25,13 @@ export class PlansBillingComponent {
   readonly loaded = this.subSvc.loaded;
 
   readonly payments = signal<any[]>([]);
+  readonly activeTab = signal<'plan' | 'features' | 'payments'>('plan');
+
+  readonly featureDetails = computed(() => this.features().map((name) => ({
+    name,
+    description: this.featureDescription(name),
+    icon: this.featureIcon(name),
+  })));
 
   /** Display label for the cycle. */
   readonly cycleLabel = computed(() => {
@@ -38,6 +45,76 @@ export class PlansBillingComponent {
     if (!s) return '';
     return new Date(s.currentPeriodEnd).toLocaleDateString();
   });
+
+  readonly billingProgress = computed(() => {
+    const sub = this.subscription();
+    if (!sub) return 0;
+    const start = new Date(sub.startedAt).getTime();
+    const end = new Date(sub.currentPeriodEnd).getTime();
+    const total = end - start;
+    if (!Number.isFinite(total) || total <= 0) return 0;
+    return Math.min(100, Math.max(0, ((Date.now() - start) / total) * 100));
+  });
+
+  readonly remainingDaysLabel = computed(() => {
+    const sub = this.subscription();
+    if (!sub) return '';
+    const days = Math.max(0, Math.ceil((new Date(sub.currentPeriodEnd).getTime() - Date.now()) / 86_400_000));
+    return days === 0 ? 'Renews today' : `${days} day${days === 1 ? '' : 's'} left`;
+  });
+
+  featureDescription(feature: string): string {
+    const value = feature.toLowerCase();
+    if (value.includes('agent') || value.includes('seat')) return 'Give the right people access and scale your team as it grows.';
+    if (value.includes('report') || value.includes('analytic')) return 'Track service performance with clear, actionable insights.';
+    if (value.includes('automation') || value.includes('workflow')) return 'Reduce repetitive work with rules that keep tickets moving.';
+    if (value.includes('support') || value.includes('priority')) return 'Get faster help from our team when you need it.';
+    if (value.includes('api') || value.includes('integration')) return 'Connect your helpdesk with the tools your team already uses.';
+    if (value.includes('security') || value.includes('sso')) return 'Keep access controlled with enterprise-grade safeguards.';
+    return 'Included with your current plan and ready for your team to use.';
+  }
+
+  featureIcon(feature: string): string {
+    const value = feature.toLowerCase();
+    if (value.includes('dashboard')) return 'fa-table-cells-large';
+    if (value.includes('ticket')) return 'fa-ticket';
+    if (value.includes('contact')) return 'fa-address-book';
+    if (value.includes('todo')) return 'fa-circle-check';
+    if (value.includes('note')) return 'fa-note-sticky';
+    if (value.includes('calendar')) return 'fa-calendar-days';
+    if (value.includes('knowledge')) return 'fa-book';
+    if (value.includes('chat')) return 'fa-comments';
+    if (value.includes('search')) return 'fa-magnifying-glass';
+    if (value.includes('profile') || value.includes('agent')) return 'fa-user-group';
+    if (value.includes('notification')) return 'fa-bell';
+    if (value.includes('setting')) return 'fa-gear';
+    if (value.includes('email')) return 'fa-envelope';
+    if (value.includes('response')) return 'fa-reply';
+    if (value.includes('analytics') || value.includes('report')) return 'fa-chart-column';
+    if (value.includes('insight')) return 'fa-lightbulb';
+    if (value.includes('sla')) return 'fa-stopwatch';
+    if (value.includes('audit')) return 'fa-clipboard-list';
+    if (value.includes('whatsapp')) return 'fa-comment-dots';
+    if (value.includes('custom-field')) return 'fa-list-check';
+    if (value.includes('business-hour')) return 'fa-clock';
+    if (value.includes('template')) return 'fa-file-lines';
+    if (value.includes('holiday')) return 'fa-umbrella-beach';
+    if (value.includes('mateboard')) return 'fa-table-columns';
+    if (value.includes('recycle') || value.includes('bin')) return 'fa-trash-can';
+    if (value.includes('role') || value.includes('right')) return 'fa-user-shield';
+    if (value.includes('organization') || value.includes('org')) return 'fa-building';
+    if (value.includes('call-log')) return 'fa-phone';
+    if (value.includes('slack')) return 'fa-hashtag';
+    if (value.includes('portal')) return 'fa-door-open';
+    if (value.includes('sso')) return 'fa-key';
+    if (value.includes('lead')) return 'fa-bullseye';
+    return 'fa-circle-check';
+    if (value.includes('report') || value.includes('analytic')) return '↗';
+    if (value.includes('automation') || value.includes('workflow')) return '⚡';
+    if (value.includes('support') || value.includes('priority')) return '✦';
+    if (value.includes('security') || value.includes('sso')) return '⌁';
+    return '✓';
+  }
 
   // ── Manage subscription dialog ─────────────────────────────────
   readonly showManage   = signal(false);

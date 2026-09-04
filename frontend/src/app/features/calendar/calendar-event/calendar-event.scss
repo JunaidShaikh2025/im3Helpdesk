@@ -117,6 +117,7 @@ $radius-sm: 8px;
     width: 8px; height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    background: var(--calendar-color, var(--ui-color-primary));
   }
   .ri-info {
     flex: 1;
@@ -191,6 +192,7 @@ $radius-sm: 8px;
     width: 8px; height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    background: var(--calendar-color, var(--ui-color-primary));
   }
 }
 
@@ -359,6 +361,9 @@ $radius-sm: 8px;
 }
 
 .day-event {
+  background: color-mix(in srgb, var(--calendar-color, var(--ui-color-primary)) 13%, transparent);
+  border-left: 3px solid var(--calendar-color, var(--ui-color-primary));
+  color: var(--calendar-color, var(--ui-color-primary));
   font-size: 11px;
   padding: 2px 4px;
   border-radius: 4px;
@@ -378,7 +383,12 @@ $radius-sm: 8px;
     font-weight: 500;
   }
   .de-time { font-size: 10px; flex-shrink: 0; opacity: .8; }
-  .de-status { font-size: 10px; flex-shrink: 0; font-weight: 500; }
+  .de-status {
+    color: var(--calendar-color, var(--ui-color-text-secondary));
+    font-size: 10px;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
 }
 
 .ticket-ev {
@@ -511,6 +521,8 @@ $radius-sm: 8px;
     &:hover { background: var(--bg-primary); }
   }
   .hour-event {
+    background: color-mix(in srgb, var(--calendar-color, var(--ui-color-primary)) 13%, transparent);
+    border-left: 3px solid var(--calendar-color, var(--ui-color-primary));
     font-size: 11px;
     padding: 2px 4px;
     border-radius: 4px;
@@ -589,6 +601,8 @@ $radius-sm: 8px;
     white-space: nowrap;
   }
   .tr-status {
+    background: color-mix(in srgb, var(--calendar-color, var(--ui-color-primary)) 13%, transparent);
+    color: var(--calendar-color, var(--ui-color-text-secondary));
     font-size: 11px;
     padding: 2px 8px;
     border-radius: 12px;
@@ -596,6 +610,7 @@ $radius-sm: 8px;
     flex-shrink: 0;
   }
   .tr-priority {
+    color: var(--calendar-color, var(--ui-color-text-secondary));
     font-size: 11px;
     font-weight: 500;
     flex-shrink: 0;
@@ -632,7 +647,8 @@ $radius-sm: 8px;
 }
 
 .hour-ev {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--calendar-color, var(--ui-color-primary)) 10%, var(--ui-color-bg-surface));
+  border-left: 3px solid var(--calendar-color, var(--ui-color-primary));
   border-radius: 6px;
   padding: 6px 10px;
   margin-bottom: 4px;
@@ -641,7 +657,7 @@ $radius-sm: 8px;
 
   &:hover { box-shadow: var(--shadow); }
   &.completed { opacity: .5; }
-  &.allday-ev { background: var(--hover-bg); }
+  &.allday-ev { background: var(--ui-color-bg-subtle); }
 
   .hev-header {
     display: flex;
@@ -773,6 +789,7 @@ $radius-sm: 8px;
     position: absolute;
     left: 0; top: 0; bottom: 0;
     width: 3px;
+    background: var(--calendar-color, var(--ui-color-primary));
   }
   .ai-icon { font-size: 18px; flex-shrink: 0; }
   .ai-body {
@@ -1187,3 +1204,16 @@ $radius-sm: 8px;
     cursor: not-allowed;
   }
 }
+
+.ai-event-type,
+.ai-ticket-status,
+.ai-ticket-priority {
+  color: var(--calendar-color, var(--ui-color-text-secondary));
+}
+
+.hev-priority,
+.allday-event-title {
+  color: var(--calendar-color, var(--ui-color-text-secondary));
+}
+
+.ri-dot-danger { background: var(--ui-color-danger); }

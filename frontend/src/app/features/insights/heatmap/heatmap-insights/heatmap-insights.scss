@@ -1,11 +1,11 @@
 .insights {
-  margin-top: 16px;
+  margin-top: var(--ui-space-4);
 }
 
 .cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: var(--ui-space-3);
 
   @media (max-width: 1100px) {
     grid-template-columns: 1fr 1fr;
@@ -18,60 +18,66 @@
 
 .card {
   border: 1px solid var(--ui-color-border);
-  border-radius: 14px;
+  border-radius: var(--ui-radius-12);
   background: var(--ui-color-bg-surface);
-  padding: 12px;
+  padding: var(--ui-space-3);
 
   .k {
     color: var(--ui-color-text-secondary);
-    font-weight: 900;
-    font-size: 12px;
+    font-size: var(--ui-type-small-size);
+    font-weight: var(--ui-font-weight-bold);
+    line-height: var(--ui-type-small-line-height);
   }
 
   .v {
-    margin-top: 8px;
-    font-weight: 900;
-    font-size: 14px;
+    margin-top: var(--ui-space-2);
+    font-size: var(--ui-type-body-size);
+    font-weight: var(--ui-font-weight-bold);
+    line-height: var(--ui-type-body-line-height);
     color: var(--ui-color-text-primary);
   }
 
   .s {
-    margin-top: 6px;
+    margin-top: var(--ui-space-1);
     color: var(--ui-color-text-secondary);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: var(--ui-type-small-size);
+    font-weight: var(--ui-font-weight-semibold);
+    line-height: var(--ui-type-small-line-height);
   }
 }
 
 .staffing {
-  margin-top: 12px;
+  margin-top: var(--ui-space-3);
   border: 1px solid var(--ui-color-border);
-  border-radius: 14px;
+  border-radius: var(--ui-radius-12);
   background: var(--ui-color-bg-subtle);
-  padding: 14px;
+  padding: var(--ui-space-4);
 
   .st-title {
-    font-weight: 900;
-    font-size: 13px;
+    font-size: var(--ui-type-body-size);
+    font-weight: var(--ui-font-weight-bold);
+    line-height: var(--ui-type-body-line-height);
   }
 
   .st-sub {
-    margin-top: 6px;
+    margin-top: var(--ui-space-1);
     color: var(--ui-color-text-secondary);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: var(--ui-type-small-size);
+    font-weight: var(--ui-font-weight-semibold);
+    line-height: var(--ui-type-small-line-height);
   }
 
   ul {
     list-style: none;
-    margin: 10px 0 0;
+    margin: var(--ui-space-2) 0 0;
     padding: 0;
   }
 
   li {
-    margin: 8px 0;
+    margin: var(--ui-space-2) 0;
     color: var(--ui-color-text-primary);
-    font-weight: 800;
-    font-size: 12.5px;
+    font-size: var(--ui-type-small-size);
+    font-weight: var(--ui-font-weight-semibold);
+    line-height: var(--ui-type-small-line-height);
   }
 }

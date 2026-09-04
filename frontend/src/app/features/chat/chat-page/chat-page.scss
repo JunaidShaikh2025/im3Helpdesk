@@ -8,7 +8,7 @@
   height: 100%;
   overflow: hidden;
   --cs-width: 360px;
-  --header-h: 56px;
+  --header-h: var(--ui-layout-topbar-height);
   --accent: var(--ui-color-primary);
   --accent-light: var(--ui-color-primary-soft);
   --border: var(--ui-color-border);
@@ -19,7 +19,7 @@
   --muted: var(--ui-color-text-faint);
   --online: var(--ui-color-success);
   --offline: var(--ui-color-text-faint);
-  --radius: 12px;
+  --radius: var(--ui-radius-12);
 }
 
 /* ── Page layout ── */
@@ -579,13 +579,13 @@
 
 .cs-main-tab {
   flex: 1;
-  padding: 7px 10px;
+  padding: var(--ui-space-2) var(--ui-space-3);
   background: var(--ui-color-bg-subtle);
   border: 1px solid var(--border);
   border-radius: 20px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-medium);
   color: var(--sub);
   font-family: inherit;
   transition: all 0.15s;
@@ -598,7 +598,7 @@
 
   &.active {
     background: var(--accent);
-    color: white;
+    color: var(--ui-color-on-primary);
     border-color: var(--accent);
     font-weight: 600;
   }
@@ -606,22 +606,23 @@
 
 /* Keep old cs-header h2 style */
 .cs-header h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--ui-type-h5-size);
+  line-height: var(--ui-type-h5-line-height);
+  font-weight: var(--ui-font-weight-bold);
   color: var(--text);
   margin: 0;
 }
 
 /* New group button — updated class name */
 .cs-new-btn {
-  padding: 5px 10px;
+  padding: var(--ui-space-1) var(--ui-space-2);
   background: var(--accent-light);
   color: var(--accent);
   border: 1px solid var(--ui-color-primary-soft);
-  border-radius: 8px;
+  border-radius: var(--ui-radius-8);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-semibold);
   transition: background 0.15s;
   &:hover { background: var(--ui-color-primary-soft); }
 }
@@ -1674,7 +1675,7 @@
 }
 
 .cs-item {
-  gap: 12px;
+  gap: var(--ui-space-3);
   padding: 12px 16px;
   border-bottom-color: #f0f2f5;
 

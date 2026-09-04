@@ -524,3 +524,11 @@
 }
 .ep-modal-success h4 { margin: 6px 0 0; font-size: 18px; color: var(--ui-color-text); }
 .ep-modal-success p { margin: 0; color: var(--ui-color-text-muted); }
+
+/* Token alignment for the payment flow. */
+.ep-pricing, .ep-detail, .ep-modal-card, .ep-quote { border-radius: var(--ui-radius-12); }
+.ep-pricing, .ep-modal-total, .ep-quote-foot { background: var(--ui-color-bg-hover); }
+.ep-fld, .ep-detail-body { font-size: var(--ui-type-body-size); line-height: var(--ui-type-body-line-height); }
+.ep-fld input, .ep-fld select, .ep-fld textarea { min-height: var(--ui-control-height-lg); border-color: var(--ui-color-border); border-radius: var(--ui-radius-8); background: var(--ui-color-bg-surface); color: var(--ui-color-text-primary); }
+.ep-fld input:focus, .ep-fld select:focus, .ep-fld textarea:focus { outline: none; border-color: var(--ui-color-primary); box-shadow: var(--ui-focus-ring); }
+.ep-modal-error { color: var(--ui-color-danger); font-size: var(--ui-type-small-size); }

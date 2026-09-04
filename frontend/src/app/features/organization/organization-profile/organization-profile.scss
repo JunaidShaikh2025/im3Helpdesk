@@ -4,6 +4,7 @@
 @use 'sass:color';
 
 :host { display: block; }
+:host { font-family: var(--ui-font-family-sans); color: var(--ui-color-text-primary); }
 
 $brand:        #0078d4;
 $ink:          #1f2937;

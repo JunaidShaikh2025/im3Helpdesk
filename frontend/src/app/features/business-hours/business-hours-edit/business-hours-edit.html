@@ -15,7 +15,12 @@
         </button>
       </div>
       <div class="bhe-name-edit" *ngIf="editingName">
-        <input class="bhe-name-input" [(ngModel)]="nameDraft" (keyup.enter)="commitEditName()" autofocus />
+        <input
+          class="bhe-name-input"
+          [(ngModel)]="nameDraft"
+          (keyup.enter)="commitEditName()"
+          autofocus
+        />
         <button class="bhe-btn-primary small" (click)="commitEditName()">OK</button>
         <button class="bhe-btn-secondary small" (click)="cancelEditName()">Cancel</button>
       </div>
@@ -23,9 +28,15 @@
     </div>
 
     <div class="bhe-tabs">
-      <button class="bhe-tab" [class.active]="tab === 'hours'"    (click)="setTab('hours')">Business hours</button>
-      <button class="bhe-tab" [class.active]="tab === 'holidays'" (click)="setTab('holidays')">Holidays</button>
-      <button class="bhe-tab" [class.active]="tab === 'groups'"   (click)="setTab('groups')">Groups</button>
+      <button class="bhe-tab" [class.active]="tab === 'hours'" (click)="setTab('hours')">
+        Business hours
+      </button>
+      <button class="bhe-tab" [class.active]="tab === 'holidays'" (click)="setTab('holidays')">
+        Holidays
+      </button>
+      <button class="bhe-tab" [class.active]="tab === 'groups'" (click)="setTab('groups')">
+        Groups
+      </button>
     </div>
 
     <!-- TAB 1: Business hours -->
@@ -96,7 +107,12 @@
 
       <table class="bhe-holiday-table" *ngIf="detail.holidays.length">
         <thead>
-          <tr><th>Name</th><th>Date</th><th>Recurring</th><th></th></tr>
+          <tr>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Recurring</th>
+            <th></th>
+          </tr>
         </thead>
         <tbody>
           <tr *ngFor="let h of detail.holidays">
@@ -114,11 +130,22 @@
 
     <!-- TAB 3: Groups -->
     <div class="bhe-panel" *ngIf="tab === 'groups'">
-      <p class="bhe-sub">Select the groups whose tickets should follow this business hours profile.</p>
+      <p class="bhe-sub">
+        Select the groups whose tickets should follow this business hours profile.
+      </p>
 
       <div class="bhe-group-list" *ngIf="groupsDraft.length">
-        <div class="bhe-group-row" *ngFor="let g of groupsDraft" (click)="toggleGroup(g)" [class.active]="g.assigned">
-          <input type="checkbox" [checked]="g.assigned" (click)="$event.stopPropagation(); toggleGroup(g)" />
+        <div
+          class="bhe-group-row"
+          *ngFor="let g of groupsDraft"
+          (click)="toggleGroup(g)"
+          [class.active]="g.assigned"
+        >
+          <input
+            type="checkbox"
+            [checked]="g.assigned"
+            (click)="$event.stopPropagation(); toggleGroup(g)"
+          />
           <span>{{ g.name }}</span>
         </div>
       </div>

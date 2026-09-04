@@ -1,22 +1,22 @@
 .ticket-num-badge {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-semibold);
   color: var(--ui-color-text-faint);
   background: var(--ui-color-bg-subtle);
-  padding: 2px 8px;
+  padding: var(--ui-space-1) var(--ui-space-2);
   border-radius: var(--ui-radius-6);
   white-space: nowrap;
 }
 
 .ticket-id-badge {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-semibold);
   color: var(--ui-color-text-muted);
   background: var(--ui-color-bg-subtle);
-  padding: 4px 12px;
+  padding: var(--ui-space-1) var(--ui-space-3);
   border-radius: var(--ui-radius-8);
   display: inline-block;
-  margin-bottom: 6px;
+  margin-bottom: var(--ui-space-2);
 }
 
 .error-alert {
@@ -24,12 +24,12 @@
   color: var(--ui-color-danger);
   border: 1px solid var(--ui-color-danger-bg);
   border-radius: var(--ui-radius-8);
-  padding: 10px 14px;
-  font-size: 13px;
-  margin-bottom: 14px;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: var(--ui-type-small-size);
+  margin-bottom: var(--ui-space-3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ui-space-2);
 }
 
 .success-alert {
@@ -37,12 +37,12 @@
   color: var(--ui-color-success);
   border: 1px solid var(--ui-color-success-bg);
   border-radius: var(--ui-radius-8);
-  padding: 10px 14px;
-  font-size: 13px;
-  margin-bottom: 14px;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: var(--ui-type-small-size);
+  margin-bottom: var(--ui-space-3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ui-space-2);
 }
 
 /* Shared auth button patterns (register + register-customer) */
@@ -51,31 +51,31 @@ app-register-customer {
   .auth-card-workspace .back-btn {
     background: none;
     border: none;
-    color: #64748b;
-    font-size: 12.5px;
-    font-weight: 600;
+    color: var(--ui-color-text-muted);
+    font-size: var(--ui-type-small-size);
+    font-weight: var(--ui-font-weight-semibold);
     cursor: pointer;
-    margin-bottom: 24px;
+    margin-bottom: var(--ui-space-6);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--ui-space-1);
     padding: 0;
     transition: color 0.15s ease;
 
     &:hover {
-      color: #0f172a;
+      color: var(--ui-color-text-primary);
     }
   }
 
   .auth-card-workspace .submit-btn {
     width: 100%;
-    padding: 12px;
-    background: #0f172a;
-    color: #ffffff;
+    padding: var(--ui-space-3);
+    background: var(--ui-color-text-primary);
+    color: var(--ui-color-on-primary);
     border: none;
-    border-radius: 8px;
-    font-size: 13.5px;
-    font-weight: 600;
+    border-radius: var(--ui-radius-8);
+    font-size: var(--ui-type-button-size);
+    font-weight: var(--ui-type-button-weight);
     cursor: pointer;
     transition: all 0.15s ease;
 
@@ -83,7 +83,7 @@ app-register-customer {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: var(--ui-space-1);
 
       .arrow {
         transition: transform 0.1s ease;
@@ -91,7 +91,7 @@ app-register-customer {
     }
 
     &:hover:not(:disabled) {
-      background: #1e293b;
+      background: var(--ui-color-text-secondary);
 
       .arrow {
         transform: translateX(2px);
@@ -108,14 +108,14 @@ app-register-customer {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--ui-space-2);
   }
 
   .auth-card-workspace .spinner {
-    width: 12px;
-    height: 12px;
+    width: var(--ui-icon-xs);
+    height: var(--ui-icon-xs);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #ffffff;
+    border-top-color: var(--ui-color-on-primary);
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
   }

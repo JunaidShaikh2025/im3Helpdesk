@@ -16,20 +16,29 @@
   /* =========================
      Typography
      ========================= */
-  --ui-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --ui-font-size-10: 10px;
-  --ui-font-size-11: 11px;
-  --ui-font-size-12: 12px;
-  --ui-font-size-13: 13px;
-  --ui-font-size-13-5: 13.5px;
-  --ui-font-size-14: 14px;
-  --ui-font-size-15: 15px;
-  --ui-font-size-16: 16px;
-  --ui-font-size-18: 18px;
-  --ui-font-size-20: 20px;
-  --ui-font-size-22: 22px;
-  --ui-font-size-26: 26px;
-  --ui-font-size-42: 42px;
+  --ui-font-family-sans: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  --ui-font-family-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --ui-font-family: var(--ui-font-family-sans); /* legacy alias */
+  --ui-font-size-11: 0.6875rem; /* 11px */
+  --ui-font-size-12: 0.75rem; /* 12px */
+  --ui-font-size-14: 0.875rem; /* 14px */
+  --ui-font-size-16: 1rem; /* 16px */
+  --ui-font-size-18: 1.125rem; /* 18px */
+  --ui-font-size-20: 1.25rem; /* 20px */
+  --ui-font-size-24: 1.5rem; /* 24px */
+  --ui-font-size-28: 1.75rem; /* 28px */
+  --ui-font-size-32: 2rem; /* 32px */
+  --ui-font-size-40: 2.5rem; /* 40px */
+
+  --ui-line-height-16: 1rem;
+  --ui-line-height-20: 1.25rem;
+  --ui-line-height-24: 1.5rem;
+  --ui-line-height-26: 1.625rem;
+  --ui-line-height-28: 1.75rem;
+  --ui-line-height-32: 2rem;
+  --ui-line-height-36: 2.25rem;
+  --ui-line-height-40: 2.5rem;
+  --ui-line-height-48: 3rem;
 
   --ui-font-weight-regular: 400;
   --ui-font-weight-medium: 500;
@@ -37,23 +46,69 @@
   --ui-font-weight-bold: 700;
   --ui-font-weight-extrabold: 800;
 
+  /* Semantic type roles: components consume these, not raw scale values. */
+  --ui-type-display-size: var(--ui-font-size-40);
+  --ui-type-display-line-height: var(--ui-line-height-48);
+  --ui-type-display-weight: var(--ui-font-weight-bold);
+  --ui-type-h1-size: var(--ui-font-size-32);
+  --ui-type-h1-line-height: var(--ui-line-height-40);
+  --ui-type-h1-weight: var(--ui-font-weight-bold);
+  --ui-type-h2-size: var(--ui-font-size-28);
+  --ui-type-h2-line-height: var(--ui-line-height-36);
+  --ui-type-h2-weight: var(--ui-font-weight-bold);
+  --ui-type-h3-size: var(--ui-font-size-24);
+  --ui-type-h3-line-height: var(--ui-line-height-32);
+  --ui-type-h3-weight: var(--ui-font-weight-bold);
+  --ui-type-h4-size: var(--ui-font-size-20);
+  --ui-type-h4-line-height: var(--ui-line-height-28);
+  --ui-type-h4-weight: var(--ui-font-weight-bold);
+  --ui-type-h5-size: var(--ui-font-size-18);
+  --ui-type-h5-line-height: var(--ui-line-height-26);
+  --ui-type-h5-weight: var(--ui-font-weight-semibold);
+  --ui-type-h6-size: var(--ui-font-size-16);
+  --ui-type-h6-line-height: var(--ui-line-height-24);
+  --ui-type-h6-weight: var(--ui-font-weight-semibold);
+  --ui-type-subtitle-size: var(--ui-font-size-16);
+  --ui-type-subtitle-line-height: var(--ui-line-height-24);
+  --ui-type-subtitle-weight: var(--ui-font-weight-regular);
+  --ui-type-body-size: var(--ui-font-size-14);
+  --ui-type-body-line-height: var(--ui-line-height-20);
+  --ui-type-body-weight: var(--ui-font-weight-regular);
+  --ui-type-small-size: var(--ui-font-size-12);
+  --ui-type-small-line-height: var(--ui-line-height-16);
+  --ui-type-small-weight: var(--ui-font-weight-regular);
+  --ui-type-caption-size: var(--ui-font-size-11);
+  --ui-type-caption-line-height: var(--ui-line-height-16);
+  --ui-type-caption-weight: var(--ui-font-weight-medium);
+  --ui-type-button-size: var(--ui-font-size-14);
+  --ui-type-button-line-height: var(--ui-line-height-20);
+  --ui-type-button-weight: var(--ui-font-weight-semibold);
+
   /* =========================
      Spacing
      ========================= */
-  --ui-space-2: 2px;
-  --ui-space-4: 4px;
-  --ui-space-6: 6px;
-  --ui-space-8: 8px;
-  --ui-space-10: 10px;
-  --ui-space-12: 12px;
-  --ui-space-14: 14px;
-  --ui-space-16: 16px;
-  --ui-space-20: 20px;
-  --ui-space-24: 24px;
-  --ui-space-28: 28px;
-  --ui-space-32: 32px;
-  --ui-space-40: 40px;
-  --ui-space-60: 60px;
+  --ui-space-0: 0;
+  --ui-space-1: 0.25rem; /* 4px */
+  --ui-space-2: 0.5rem; /* 8px */
+  --ui-space-3: 0.75rem; /* 12px */
+  --ui-space-4: 1rem; /* 16px */
+  --ui-space-5: 1.25rem; /* 20px */
+  --ui-space-6: 1.5rem; /* 24px */
+  --ui-space-8: 2rem; /* 32px */
+  --ui-space-10: 2.5rem; /* 40px */
+  --ui-space-12: 3rem; /* 48px */
+  --ui-space-16: 4rem; /* 64px */
+  --ui-space-20: 5rem; /* 80px */
+  --ui-space-24: 6rem; /* 96px */
+
+  --ui-control-height-sm: 2rem; /* 32px */
+  --ui-control-height-md: 2.5rem; /* 40px */
+  --ui-control-height-lg: 3rem; /* 48px */
+
+  --ui-layout-sidebar-width: 15.625rem; /* 250px */
+  --ui-layout-sidebar-collapsed-width: 4.5rem; /* 72px */
+  --ui-layout-topbar-height: 3.75rem; /* 60px */
+  --ui-layout-page-padding: var(--ui-space-6);
 
   /* =========================
      Radius
@@ -97,33 +152,55 @@
   --ui-color-primary-hover: #1d4ed8;
   --ui-color-primary-soft: rgba(37, 99, 235, 0.06);
   --ui-color-primary-soft-strong: rgba(37, 99, 235, 0.1);
+  --ui-color-primary-subtle: rgba(37, 99, 235, 0.01);
+  --ui-color-on-primary: #ffffff;
 
   --ui-color-bg-page: #f8fafc;
   --ui-color-bg-surface: #ffffff;
   --ui-color-bg-subtle: #f1f5f9;
   --ui-color-bg-hover: #f8fafc;
+  /* Compatibility aliases for existing feature modules. */
+  --ui-color-bg-base: var(--ui-color-bg-page);
+  --ui-color-surface: var(--ui-color-bg-surface);
+  --ui-color-surface-muted: var(--ui-color-bg-subtle);
+  --ui-color-surface-subtle: var(--ui-color-bg-page);
 
   --ui-color-text-primary: #0f172a;
   --ui-color-text-secondary: #475569;
   --ui-color-text-muted: #64748b;
   --ui-color-text-faint: #94a3b8;
+  --ui-color-text: var(--ui-color-text-primary);
 
   --ui-color-border: #e2e8f0;
   --ui-color-border-soft: #f1f5f9;
+  --ui-color-border-light: var(--ui-color-border-soft);
 
   --ui-color-success: #16a34a;
   --ui-color-success-bg: #dcfce7;
+  --ui-color-success-strong: #15803d;
+  --ui-color-info: #0284c7;
+  --ui-color-info-soft: #e0f2fe;
   --ui-color-warning: #b45309;
   --ui-color-warning-bg: #fef3c7;
+  --ui-color-warning-strong: #c2410c;
+  --ui-color-warning-accent: #f97316;
+  --ui-color-warning-text: #92400e;
+  --ui-color-warning-alpha-8: rgba(249, 115, 22, 0.08);
+  --ui-color-warning-alpha-10: rgba(251, 191, 36, 0.1);
+  --ui-color-warning-alpha-14: rgba(249, 115, 22, 0.14);
+  --ui-color-warning-alpha-18: rgba(249, 115, 22, 0.18);
+  --ui-color-warning-alpha-22: rgba(249, 115, 22, 0.22);
+  --ui-color-warning-alpha-60: rgba(249, 115, 22, 0.6);
+  --ui-color-danger-alpha-55: rgba(239, 68, 68, 0.55);
   --ui-color-danger: #dc2626;
   --ui-color-danger-bg: #fee2e2;
+  --ui-color-danger-strong: #b91c1c;
+  --ui-color-danger-soft: #fef2f2;
 
   /* =========================
      Extended Semantic and Brand Colors
      ========================= */
-  --ui-color-success-strong: #065f46;
   --ui-color-success-bright: #4ade80;
-  --ui-color-warning-strong: #c2410c;
   --ui-color-warning-soft: #fcd34d;
   --ui-color-warning-bg-soft: #fff8f4;
   --ui-color-warning-bg-soft-2: #fff4ee;
@@ -171,7 +248,8 @@
 /* =========================
    Theme Variants
    ========================= */
-body.theme-dark {
+body.theme-dark,
+[data-theme="dark"] {
   --ui-color-primary: #64b5f6;
   --ui-color-primary-rgb: 100, 181, 246;
   --ui-color-primary-hover: #42a5f5;
