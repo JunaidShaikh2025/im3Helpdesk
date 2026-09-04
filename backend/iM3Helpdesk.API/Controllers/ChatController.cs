@@ -233,7 +233,10 @@ public class ChatController : ControllerBase
                 m.ReceiverId == userId) ||
              (m.SenderId == userId &&
                 m.ReceiverId == myId)))
-        .OrderBy(m => m.CreatedAt)
+        // Page 1 must contain the most recent messages. The previous
+        // ascending query returned the first 50 messages in a conversation,
+        // so current history appeared missing in long-running chats.
+        .OrderByDescending(m => m.CreatedAt)
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .Select(m => new
@@ -257,6 +260,10 @@ public class ChatController : ControllerBase
                 ? m.Sender.PhotoUrl : null
         })
         .ToListAsync();
+
+    // The client renders a conversation chronologically, while paging above
+    // starts with the newest records for a responsive first load.
+    msgs.Reverse();
 
     // Mark as read
     var unread = await _context.ChatMessages
@@ -575,7 +582,8 @@ public class ChatController : ControllerBase
         .AsNoTracking()
         .Include(m => m.Sender)
         .Where(m => m.GroupId == groupId)
-        .OrderBy(m => m.CreatedAt)
+        // Match direct-message behavior: fetch the latest page first.
+        .OrderByDescending(m => m.CreatedAt)
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .Select(m => new
@@ -596,6 +604,8 @@ public class ChatController : ControllerBase
                 ? m.Sender.PhotoUrl : null
         })
         .ToListAsync();
+
+    msgs.Reverse();
 
     return Ok(msgs);
   }

@@ -18,6 +18,8 @@ $red:         var(--ui-color-danger);
 $red-bg:      var(--ui-color-danger-bg);
 
 .settings-wrapper {
+  font-family: var(--ui-font-family-sans);
+  color: var(--ui-color-text-primary);
   display: flex;
   height: 100%;
   background: $white;

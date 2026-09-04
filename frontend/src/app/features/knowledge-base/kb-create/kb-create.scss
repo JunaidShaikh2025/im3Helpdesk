@@ -5,20 +5,21 @@
 .create-page {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 16px 20px;
+  padding: var(--ui-space-4) var(--ui-space-5);
 }
 
 /* ── Header ── */
 .create-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--ui-space-4);
+  margin-bottom: var(--ui-space-5);
 
   h1 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary, var(--ui-color-text-primary));
+    font-size: var(--ui-type-h4-size);
+    font-weight: var(--ui-type-h4-weight);
+    line-height: var(--ui-type-h4-line-height);
+    color: var(--ui-color-text-primary);
     margin: 0;
   }
 }
@@ -27,8 +28,9 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 13px;
-  color: var(--accent, var(--ui-color-primary));
+  font-size: var(--ui-type-small-size);
+  line-height: var(--ui-type-small-line-height);
+  color: var(--ui-color-primary);
   padding: 0;
   white-space: nowrap;
 
@@ -38,9 +40,9 @@
 /* ── Card ── */
 .create-card {
   background: var(--ui-color-bg-surface);
-  border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 10px;
-  padding: 18px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-10);
+  padding: var(--ui-space-5);
 }
 
 @media (min-width: 981px) {
@@ -93,7 +95,7 @@
 .create-form-grid {
   display: grid;
   grid-template-columns: minmax(320px, 420px) 1fr;
-  gap: 22px;
+  gap: var(--ui-space-6);
   align-items: start;
 }
 
@@ -103,30 +105,31 @@
 
 /* ── Media Section ── */
 .media-section {
-  margin-bottom: 20px;
+  margin-bottom: var(--ui-space-5);
 }
 
 .media-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary, var(--ui-color-text-secondary));
-  margin-bottom: 8px;
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-semibold);
+  line-height: var(--ui-type-small-line-height);
+  color: var(--ui-color-text-secondary);
+  margin-bottom: var(--ui-space-2);
 }
 
 /* Upload area */
 .upload-area {
   display: block;
-  border: 1px dashed var(--border-color, var(--ui-color-border));
-  border-radius: 8px;
-  padding: 20px;
+  border: 1px dashed var(--ui-color-border);
+  border-radius: var(--ui-radius-8);
+  padding: var(--ui-space-5);
   text-align: center;
   cursor: pointer;
   background: var(--ui-color-bg-page);
   transition: border-color 0.15s, background 0.15s;
 
   &:hover {
-    border-color: var(--accent, var(--ui-color-primary));
+    border-color: var(--ui-color-primary);
     background: var(--ui-color-primary-soft);
   }
 }
@@ -135,26 +138,28 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--ui-space-1);
 }
 
-.upload-icon { font-size: 36px; }
+.upload-icon { font-size: var(--ui-line-height-36); }
 
 .upload-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary, var(--ui-color-text-primary));
+  font-size: var(--ui-type-body-size);
+  font-weight: var(--ui-font-weight-medium);
+  line-height: var(--ui-type-body-line-height);
+  color: var(--ui-color-text-primary);
 }
 
 .upload-hint {
-  font-size: 12px;
-  color: var(--text-muted, var(--ui-color-text-faint));
+  font-size: var(--ui-type-small-size);
+  line-height: var(--ui-type-small-line-height);
+  color: var(--ui-color-text-faint);
 }
 
 /* Preview */
 .media-preview {
   position: relative;
-  border-radius: 12px;
+  border-radius: var(--ui-radius-12);
   overflow: hidden;
   background: var(--ui-color-text-primary);
 }
@@ -180,29 +185,31 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  color: white;
-  font-size: 13px;
+  gap: var(--ui-space-2);
+  color: var(--ui-color-on-primary);
+  font-size: var(--ui-type-small-size);
+  line-height: var(--ui-type-small-line-height);
 }
 
 .upload-spinner {
   width: 28px; height: 28px;
   border: 3px solid rgba(255,255,255,0.3);
-  border-top-color: white;
+  border-top-color: var(--ui-color-on-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 .remove-media-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: var(--ui-space-2);
+  right: var(--ui-space-2);
   background: rgba(0,0,0,0.6);
-  color: white;
+  color: var(--ui-color-on-primary);
   border: none;
-  border-radius: 8px;
-  padding: 5px 10px;
-  font-size: 12px;
+  border-radius: var(--ui-radius-8);
+  padding: var(--ui-space-1) var(--ui-space-2);
+  font-size: var(--ui-type-small-size);
+  line-height: var(--ui-type-small-line-height);
   cursor: pointer;
   transition: background 0.15s;
 
@@ -213,41 +220,44 @@
 
 /* ── Fields ── */
 .field-wrap {
-  margin-bottom: 16px;
+  margin-bottom: var(--ui-space-4);
 }
 
 .field-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary, var(--ui-color-text-secondary));
-  margin-bottom: 6px;
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-semibold);
+  line-height: var(--ui-type-small-line-height);
+  color: var(--ui-color-text-secondary);
+  margin-bottom: var(--ui-space-1);
 }
 
 .field-hint {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--text-muted, var(--ui-color-text-faint));
+  font-size: var(--ui-type-small-size);
+  font-weight: var(--ui-font-weight-regular);
+  line-height: var(--ui-type-small-line-height);
+  color: var(--ui-color-text-faint);
 }
 
 .field-input,
 .field-select,
 .field-textarea {
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--text-primary, var(--ui-color-text-primary));
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-8);
+  font-size: var(--ui-type-body-size);
+  line-height: var(--ui-type-body-line-height);
+  color: var(--ui-color-text-primary);
   background: var(--ui-color-bg-page);
   outline: none;
   transition: border-color 0.15s, background 0.15s;
   box-sizing: border-box;
 
   &:focus {
-    border-color: var(--accent, var(--ui-color-primary));
+    border-color: var(--ui-color-primary);
     background: var(--ui-color-bg-surface);
-    box-shadow: 0 0 0 3px var(--ui-color-primary-soft);
+    box-shadow: var(--ui-focus-ring);
   }
 }
 
@@ -269,27 +279,29 @@
 
 .field-error {
   display: block;
-  font-size: 12px;
+  font-size: var(--ui-type-small-size);
+  line-height: var(--ui-type-small-line-height);
   color: var(--ui-color-danger);
-  margin-top: 4px;
+  margin-top: var(--ui-space-1);
 }
 
 /* ── Published Toggle ── */
 .toggle-row {
-  margin: 20px 0;
-  padding: 14px 16px;
-  background: var(--bg-secondary, var(--ui-color-bg-subtle));
-  border-radius: 10px;
-  border: 1px solid var(--border-color, var(--ui-color-border));
+  margin: var(--ui-space-5) 0;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  background: var(--ui-color-bg-subtle);
+  border-radius: var(--ui-radius-10);
+  border: 1px solid var(--ui-color-border);
 }
 
 .toggle-label {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--ui-space-3);
   cursor: pointer;
-  font-size: 13px;
-  color: var(--text-primary, var(--ui-color-text-primary));
+  font-size: var(--ui-type-small-size);
+  line-height: var(--ui-type-small-line-height);
+  color: var(--ui-color-text-primary);
   user-select: none;
 }
 
@@ -297,21 +309,21 @@
   width: 40px;
   height: 22px;
   border-radius: 11px;
-  background: var(--border-color, var(--ui-color-border));
+  background: var(--ui-color-border);
   position: relative;
   transition: background 0.2s;
   flex-shrink: 0;
   cursor: pointer;
 
   &.on {
-    background: var(--accent, var(--ui-color-primary));
+    background: var(--ui-color-primary);
   }
 }
 
 .toggle-knob {
   width: 16px;
   height: 16px;
-  background: white;
+  background: var(--ui-color-bg-surface);
   border-radius: 50%;
   position: absolute;
   top: 3px;
@@ -327,44 +339,47 @@
 /* ── Actions ── */
 .form-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--ui-space-2);
   justify-content: flex-end;
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color, var(--ui-color-border));
+  margin-top: var(--ui-space-2);
+  padding-top: var(--ui-space-4);
+  border-top: 1px solid var(--ui-color-border);
 }
 
 .cancel-btn {
-  padding: 10px 20px;
+  padding: var(--ui-space-2) var(--ui-space-5);
   background: none;
-  border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 10px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-10);
   cursor: pointer;
-  font-size: 14px;
-  color: var(--text-secondary, var(--ui-color-text-secondary));
+  font-size: var(--ui-type-button-size);
+  font-weight: var(--ui-type-button-weight);
+  line-height: var(--ui-type-button-line-height);
+  color: var(--ui-color-text-secondary);
   transition: background 0.15s;
 
-  &:hover { background: var(--hover-bg, var(--ui-color-bg-subtle)); }
+  &:hover { background: var(--ui-color-bg-subtle); }
 }
 
 .submit-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
-  background: var(--accent, var(--ui-color-primary));
-  color: white;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-6);
+  background: var(--ui-color-primary);
+  color: var(--ui-color-on-primary);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--ui-radius-10);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--ui-type-button-size);
+  font-weight: var(--ui-type-button-weight);
+  line-height: var(--ui-type-button-line-height);
   transition: background 0.15s;
 
   &:hover { background: var(--ui-color-primary-hover); }
   &:disabled {
-    background: var(--border-color, var(--ui-color-border));
-    color: var(--text-muted, var(--ui-color-text-faint));
+    background: var(--ui-color-border);
+    color: var(--ui-color-text-faint);
     cursor: not-allowed;
   }
 }
@@ -372,7 +387,7 @@
 .btn-spinner {
   width: 16px; height: 16px;
   border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: white;
+  border-top-color: var(--ui-color-on-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

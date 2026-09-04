@@ -4,31 +4,31 @@ app-register-customer {
   .auth-card-workspace .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: var(--ui-space-4);
   }
 
   .auth-card-workspace .form-group {
-    margin-bottom: 16px;
+    margin-bottom: var(--ui-space-4);
 
     label {
       display: block;
-      color: #334155;
-      font-size: 12.5px;
-      font-weight: 600;
-      margin-bottom: 6px;
+      color: var(--ui-color-text-secondary);
+      font-size: var(--ui-type-small-size);
+      font-weight: var(--ui-font-weight-semibold);
+      margin-bottom: var(--ui-space-2);
 
       .lbl-opt {
-        color: #94a3b8;
-        font-weight: 400;
-        font-size: 11px;
+        color: var(--ui-color-text-faint);
+        font-weight: var(--ui-font-weight-regular);
+        font-size: var(--ui-type-caption-size);
       }
     }
 
     .field-hint {
       display: block;
-      color: #64748b;
-      font-size: 11.5px;
-      margin-top: 6px;
+      color: var(--ui-color-text-muted);
+      font-size: var(--ui-type-caption-size);
+      margin-top: var(--ui-space-2);
       line-height: 1.4;
     }
   }
@@ -40,40 +40,40 @@ app-register-customer {
 
     .input-icon {
       position: absolute;
-      left: 14px;
-      font-size: 14px;
-      color: #94a3b8;
+      left: var(--ui-space-3);
+      font-size: var(--ui-icon-sm);
+      color: var(--ui-color-text-faint);
       pointer-events: none;
     }
 
     input {
       width: 100%;
-      padding: 11px 14px 11px 38px;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      color: #0f172a;
-      font-size: 13.5px;
+      padding: var(--ui-space-3) var(--ui-space-3) var(--ui-space-3) 2.5rem;
+      background: var(--ui-color-bg-surface);
+      border: 1px solid var(--ui-color-border);
+      border-radius: var(--ui-radius-8);
+      color: var(--ui-color-text-primary);
+      font-size: var(--ui-type-body-size);
       outline: none;
       box-sizing: border-box;
       transition: all 0.15s ease;
 
       &::placeholder {
-        color: #94a3b8;
+        color: var(--ui-color-text-faint);
         opacity: 0.7;
       }
 
       &:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+        border-color: var(--ui-color-primary);
+        box-shadow: var(--ui-focus-ring-strong);
       }
     }
   }
 
   .auth-card-workspace .field-error {
-    color: #dc2626;
-    font-size: 12px;
-    margin-top: 5px;
+    color: var(--ui-color-danger);
+    font-size: var(--ui-type-small-size);
+    margin-top: var(--ui-space-1);
     display: block;
   }
 

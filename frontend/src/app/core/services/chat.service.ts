@@ -350,7 +350,10 @@ export class ChatService {
     attachmentName?: string,
     attachmentType?: string
   ): Promise<void> {
-    return this.safeInvoke(
+    if (!this.isConnected) {
+      return Promise.reject(new Error('Chat connection is unavailable'));
+    }
+    return this.hub.invoke(
       'SendMessage', receiverId, content,
       messageType,
       attachmentUrl  ?? null,
@@ -366,7 +369,10 @@ export class ChatService {
     attachmentName?: string,
     attachmentType?: string
   ): Promise<void> {
-    return this.safeInvoke(
+    if (!this.isConnected) {
+      return Promise.reject(new Error('Chat connection is unavailable'));
+    }
+    return this.hub.invoke(
       'SendGroupMessage', groupId, content,
       messageType,
       attachmentUrl  ?? null,

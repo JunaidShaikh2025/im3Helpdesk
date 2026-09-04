@@ -1,5 +1,5 @@
 @use '@angular/material' as mat;
-@use 'styles/variables';
+@use 'ui-tokens';
 @use 'styles/reset';
 @use 'styles/typography';
 @use 'styles/mixins';
@@ -14,7 +14,10 @@ html {
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: 'Inter, "Segoe UI", Roboto, Arial, sans-serif',
+        brand-family: 'Inter, "Segoe UI", Roboto, Arial, sans-serif',
+      ),
       density: 0,
     )
   );

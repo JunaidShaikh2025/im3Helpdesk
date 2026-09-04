@@ -11,8 +11,6 @@ import { SubscriptionService } from '../../core/services/subscription';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { DashboardChartsComponent } from './dashboard-charts/dashboard-charts';
-import { DashboardTrendComponent } from './dashboard-trend/dashboard-trend';
 import { LayoutComponent } from '../../layouts/main-layout/layout';
 import { environment } from '../../../environments/environment';
 
@@ -26,8 +24,6 @@ const REFRESH_INTERVAL_MS = 60_000;
     CommonModule, RouterModule,
     MatButtonModule, MatCardModule,
     MatToolbarModule, MatProgressSpinnerModule,
-    DashboardChartsComponent,
-    DashboardTrendComponent,
     LayoutComponent
   ],
   templateUrl: './dashboard.component.html',
@@ -51,6 +47,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   error       = false;
 
   widgetData: any = null;
+  rangeDays = 7;
+  readonly ranges = [{ label: 'Today', days: 1 }, { label: '7 days', days: 7 }, { label: '30 days', days: 30 }];
+  overview: any = { trend: [], priority: [], status: [], teams: [], recentTickets: [] };
 
   stats: any = {
     totalTickets: 0, openTickets: 0,
@@ -151,7 +150,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadAll(): void {
     forkJoin({
-      stats: this.http.get<any>(`${API_BASE}/Dashboard/stats`).pipe(
+      stats: this.http.get<any>(`${API_BASE}/Dashboard/overview?rangeDays=${this.rangeDays}`).pipe(
         catchError(err => {
           console.error('Stats error:', err.status, err.error);
           this.toastr.error('Could not load dashboard stats', 'Error');
@@ -168,7 +167,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     .pipe(takeUntil(this.destroy$))
     .subscribe({
       next: ({ stats, widgets }) => {
-        if (stats)   this.stats      = stats;
+        if (stats) { this.overview = stats; this.stats = stats; }
         if (widgets) this.widgetData = widgets;
         this.loading = false;
         this.error   = !stats;
@@ -180,6 +179,60 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  setRange(days: number): void {
+    if (this.rangeDays === days) return;
+    this.rangeDays = days;
+    this.loading = true;
+    this.loadAll();
+  }
+
+  get totalChange(): number {
+    const previous = Number(this.overview.previousTotal || 0);
+    const current = Number(this.overview.totalTickets || 0);
+    return previous ? Math.round(((current - previous) / previous) * 100) : 0;
+  }
+
+  abs(value: number): number { return Math.abs(value); }
+
+  formatMinutes(value: number): string {
+    const minutes = Number(value || 0);
+    if (!minutes) return '—';
+    return minutes < 60 ? `${Math.round(minutes)}m` : `${(minutes / 60).toFixed(1)}h`;
+  }
+
+  barHeight(value: number): number {
+    const rows = this.overview.trend || [];
+    const max = Math.max(1, ...rows.flatMap((x: any) => [Number(x.created || 0), Number(x.resolved || 0)]));
+    return Math.max(value ? 8 : 0, Math.round((value / max) * 100));
+  }
+
+  share(value: number): number {
+    return this.overview.totalTickets ? Math.round((value / this.overview.totalTickets) * 100) : 0;
+  }
+
+  get priorityItems(): Array<{ label: string; count: number; color: string }> {
+    const colors: Record<string, string> = { Low: '#91a9d6', Medium: 'var(--ui-color-primary)', High: '#5d7fd1', Critical: '#dc3d3d' };
+    return ['Low', 'Medium', 'High', 'Critical'].map(label => ({ label, count: this.countFor(this.overview.priority, 'priority', label), color: colors[label] }));
+  }
+
+  get statusItems(): Array<{ label: string; count: number; color: string }> {
+    const colors: Record<string, string> = { Open: '#4166c9', InProgress: '#6c8bd1', Pending: '#b4c4e5', Resolved: '#91a9d6' };
+    return [{ label: 'Open', key: 'Open' }, { label: 'In progress', key: 'InProgress' }, { label: 'Pending', key: 'Pending' }, { label: 'Resolved', key: 'Resolved' }]
+      .map(x => ({ label: x.label, count: x.key === 'Resolved'
+        ? this.countFor(this.overview.status, 'status', 'Resolved') + this.countFor(this.overview.status, 'status', 'Closed') + this.countFor(this.overview.status, 'status', 'ResolvedOnBeta')
+        : this.countFor(this.overview.status, 'status', x.key), color: colors[x.key] }));
+  }
+
+  get statusDonut(): string {
+    const items = this.statusItems; const total = Math.max(1, items.reduce((sum, x) => sum + x.count, 0)); let cursor = 0;
+    const stops = items.map(item => { const start = cursor; cursor += item.count / total * 100; return `${item.color} ${start}% ${cursor}%`; });
+    return `conic-gradient(${stops.join(', ')})`;
+  }
+
+  private countFor(rows: any[], key: string, value: string): number {
+    return Number((rows || []).find(x => x[key] === value)?.count || 0);
   }
 
   getTimeAgo(date: string): string {

@@ -1,0 +1,30 @@
+<app-layout>
+  <main class="profit-page">
+    <header class="profit-header">
+      <div><h1>Subscription Profit</h1><p>Approved subscription payments across every company.</p></div>
+      <button type="button" (click)="load()">Refresh</button>
+    </header>
+
+    <div *ngIf="loading()" class="profit-state">Loading subscription data…</div>
+    <div *ngIf="error()" class="profit-state error">Could not load subscription profit. <button type="button" (click)="load()">Try again</button></div>
+
+    <ng-container *ngIf="!loading() && !error() && overview() as data">
+      <section class="profit-stats">
+        <article><span>Approved revenue</span><strong *ngFor="let total of data.approvedRevenue">{{ total.amount | currency:total.currency:'symbol':'1.0-2' }}</strong><small>Collected payments only</small></article>
+        <article><span>Approved payments</span><strong>{{ data.approvedPaymentCount }}</strong><small>Pending and rejected excluded</small></article>
+        <article><span>Subscribed companies</span><strong>{{ data.subscribedCompanyCount }}</strong><small>Active, trial, or past-due plans</small></article>
+      </section>
+
+      <section class="profit-card">
+        <div class="profit-card-head"><div><h2>Company subscriptions</h2><p>Current plan and lifetime approved payments by company.</p></div></div>
+        <div class="profit-table-wrap"><table><thead><tr><th>Company</th><th>Current subscription</th><th>Cycle amount</th><th>Period</th><th>Approved paid</th></tr></thead>
+          <tbody><tr *ngFor="let company of data.companies"><td><strong>{{ company.name }}</strong><small [class.inactive]="!company.isActive">{{ company.isActive ? 'Active company' : 'Inactive company' }}</small></td>
+            <td *ngIf="company.subscription as sub"><strong>{{ sub.planName }}</strong><small>{{ sub.agentSeats }} seats · {{ sub.status }}</small></td><td *ngIf="!company.subscription" colspan="3"><span class="no-sub">No current subscription</span></td>
+            <td *ngIf="company.subscription as sub">{{ sub.amount | currency:sub.currency:'symbol':'1.0-2' }}<small>{{ sub.billingCycle }}</small></td>
+            <td *ngIf="company.subscription as sub">{{ sub.startedAt | date:'dd MMM yyyy' }}<small>Ends {{ sub.currentPeriodEnd | date:'dd MMM yyyy' }}</small></td>
+            <td><ng-container *ngIf="company.totalPaid.length; else none"><strong *ngFor="let paid of company.totalPaid">{{ paid.amount | currency:paid.currency:'symbol':'1.0-2' }}</strong></ng-container><ng-template #none>—</ng-template></td>
+          </tr></tbody></table></div>
+      </section>
+    </ng-container>
+  </main>
+</app-layout>
