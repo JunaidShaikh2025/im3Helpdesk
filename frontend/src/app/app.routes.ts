@@ -261,6 +261,12 @@ export const routes: Routes = [
     canActivate: [superAdminGuard]
   },
   {
+    path: 'admin/email-queue',
+    loadComponent: () =>
+      import('./features/super-admin/email-queue-dashboard/email-queue-dashboard').then(m => m.EmailQueueDashboardComponent),
+    canActivate: [superAdminGuard]
+  },
+  {
     path: 'customer/ticket/:id',
     loadComponent: () =>
       import('./features/customer/customer-ticket-detail/customer-ticket-detail').then(m => m.CustomerTicketDetailComponent),

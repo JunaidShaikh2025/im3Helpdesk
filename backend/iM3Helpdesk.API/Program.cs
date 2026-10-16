@@ -1,5 +1,7 @@
 using iM3Helpdesk.API.Hubs;
 using iM3Helpdesk.API.Services;
+using Hangfire;
+using Hangfire.SqlServer;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -53,10 +55,10 @@ builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 builder.Services.AddScoped<ISlaService, SlaService>();
 builder.Services.AddScoped<iM3Helpdesk.API.Services.ISubscriptionService, iM3Helpdesk.API.Services.SubscriptionService>();
 builder.Services.AddScoped<iM3Helpdesk.API.Services.IPermissionService, iM3Helpdesk.API.Services.PermissionService>();
-builder.Services.AddSingleton<IEmailQueueService, EmailQueueService>();
+builder.Services.AddScoped<IEmailQueueService, EmailQueueService>();
+builder.Services.AddScoped<IEmailDispatchService, QueuedEmailDispatchService>();
 builder.Services.AddSingleton<IBackgroundTaskService, BackgroundTaskService>();
 builder.Services.AddSingleton<IEscalationService, EscalationService>();
-builder.Services.AddHostedService<EmailWorker>();
 builder.Services.AddHostedService<EscalationWorker>();
 builder.Services.AddHostedService<EmailPollingService>();
 builder.Services.AddHostedService<RecycleBinPurgeWorker>();
@@ -75,6 +77,23 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     .UseSqlServer(
       builder.Configuration.GetConnectionString("DefaultConnection"),
       b => b.MigrationsAssembly("iM3Helpdesk.Infrastructure")));
+
+builder.Services.AddHangfire(config =>
+    config
+      .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+      .UseSimpleAssemblyNameTypeSerializer()
+      .UseRecommendedSerializerSettings()
+      .UseSqlServerStorage(
+          builder.Configuration.GetConnectionString("DefaultConnection"),
+          new SqlServerStorageOptions
+          {
+            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+            QueuePollInterval = TimeSpan.FromSeconds(15),
+            UseRecommendedIsolationLevel = true,
+            DisableGlobalLocks = true
+          }));
+builder.Services.AddHangfireServer();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;

@@ -51,6 +51,8 @@ public class ApplicationDbContext : DbContext
       => Set<TicketTemplate>();
   public DbSet<EmailQueue> EmailQueues
       => Set<EmailQueue>();
+  public DbSet<EmailWebhookLog> EmailWebhookLogs
+      => Set<EmailWebhookLog>();
   public DbSet<AgentGroup> AgentGroups
       => Set<AgentGroup>();
   public DbSet<AgentGroupMember>
@@ -192,9 +194,9 @@ public class ApplicationDbContext : DbContext
       {
           Id = new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
           FullName = "Super Admin",
-          Email = "aadil080933@gmail.com",
-          PasswordHash = "$2a$11$5mzOVht3guIDVrfa/Ju01eBo7TgkNkPz.HPoNgPHsgyRGxiU6DG6e",
-          PhoneNumber = "9999999999",
+          Email = "aadil080399@gmail.com",
+          PasswordHash = "$2a$11$pzZz3SNnU1NbLPnjJMrVKeeY4IH7CEESwbsvvmdXOChHAu6LptEkG",
+          PhoneNumber = "9579818081",
           IsEmailVerified = true,
           Role = UserRole.SuperAdmin,
           OrganizationId = null,
@@ -490,6 +492,43 @@ public class ApplicationDbContext : DbContext
       e.Property(x => x.Subject)
           .HasMaxLength(500)
           .IsRequired();
+      e.Property(x => x.Status)
+          .HasMaxLength(40)
+          .IsRequired();
+      e.Property(x => x.MessageId)
+          .HasMaxLength(320);
+      e.Property(x => x.ProviderMessageId)
+          .HasMaxLength(500);
+      e.Property(x => x.HangfireJobId)
+          .HasMaxLength(128);
+      e.Property(x => x.LastWebhookEvent)
+          .HasMaxLength(80);
+      e.HasIndex(x => x.Status);
+      e.HasIndex(x => x.NextRetryAt);
+      e.HasIndex(x => x.MessageId);
+      e.HasIndex(x => x.ProviderMessageId);
+      e.HasIndex(x => x.CreatedAt);
+    });
+
+    modelBuilder.Entity<EmailWebhookLog>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Provider)
+          .HasMaxLength(60)
+          .IsRequired();
+      e.Property(x => x.EventType)
+          .HasMaxLength(80)
+          .IsRequired();
+      e.Property(x => x.Recipient)
+          .HasMaxLength(256);
+      e.Property(x => x.ProviderMessageId)
+          .HasMaxLength(500);
+      e.Property(x => x.PayloadJson)
+          .HasColumnType("nvarchar(max)")
+          .IsRequired();
+      e.HasIndex(x => x.ReceivedAt);
+      e.HasIndex(x => x.ProviderMessageId);
+      e.HasIndex(x => x.EmailQueueId);
     });
 
     // ── AgentGroup ────────────────

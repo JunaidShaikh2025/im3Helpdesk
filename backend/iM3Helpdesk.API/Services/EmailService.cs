@@ -1,12 +1,5 @@
-using MailKit.Net.Smtp;
-using MimeKit;
-using MimeKit.Utils;
-using iM3Helpdesk.Domain.Entities;
-using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MailKit.Security;
 using System.Net;
 using System.Text.RegularExpressions;
 using iM3Helpdesk.Application.Contracts.Services;
@@ -15,146 +8,24 @@ namespace iM3Helpdesk.Infrastructure.Services;
 
 public class EmailService : IEmailService
 {
-  private sealed record SmtpProfile(
-      string Host,
-      int Port,
-      string Username,
-      string Password,
-      string FromEmail,
-      string FromName);
- 
   private readonly IConfiguration _config;
-  private readonly IServiceScopeFactory _scopeFactory;
+  private readonly IEmailQueueService _emailQueueService;
   private readonly ICurrentTenantService _tenantService;
   private readonly ILogger<EmailService> _logger;
   private readonly IEmailTemplateRenderer _templates;
  
   public EmailService(
       IConfiguration config,
-      IServiceScopeFactory scopeFactory,
+      IEmailQueueService emailQueueService,
       ICurrentTenantService tenantService,
       ILogger<EmailService> logger,
       IEmailTemplateRenderer templates)
   {
     _config = config;
-    _scopeFactory = scopeFactory;
+    _emailQueueService = emailQueueService;
     _tenantService = tenantService;
     _logger = logger;
     _templates = templates;
-  }
- 
-  private static SmtpProfile? BuildOrgSmtpProfile(
-      Organization? organization)
-  {
-    if (organization == null)
-      return null;
- 
-    var fromEmail = FirstNonEmpty(
-        organization.SmtpFromEmail,
-        organization.SupportEmail,
-        organization.SmtpUsername);
-    var username = FirstNonEmpty(
-        organization.SmtpUsername,
-        fromEmail);
-    var host = organization.SmtpHost?.Trim();
-    var password = organization.SmtpPassword?.Trim();
- 
-    if (string.IsNullOrWhiteSpace(host) ||
-        string.IsNullOrWhiteSpace(fromEmail) ||
-        string.IsNullOrWhiteSpace(username) ||
-        string.IsNullOrWhiteSpace(password))
-    {
-      return null;
-    }
- 
-    return new SmtpProfile(
-        host,
-        organization.SmtpPort ?? 587,
-        username,
-        password,
-        fromEmail,
-        FirstNonEmpty(
-            organization.SmtpFromName,
-            organization.Name,
-            "DeskMate")!);
-  }
- 
-  private SmtpProfile? BuildFallbackSmtpProfile()
-  {
-    var smtp = _config.GetSection("SmtpSettings");
-    var fromEmail = FirstNonEmpty(
-        smtp["FromEmail"],
-        smtp["Username"]);
-    var username = FirstNonEmpty(
-        smtp["Username"],
-        fromEmail);
-    var host = smtp["Host"]?.Trim();
-    var password = smtp["Password"]?.Trim();
- 
-    if (string.IsNullOrWhiteSpace(host) ||
-        string.IsNullOrWhiteSpace(fromEmail) ||
-        string.IsNullOrWhiteSpace(username) ||
-        string.IsNullOrWhiteSpace(password))
-    {
-      return null;
-    }
- 
-    return new SmtpProfile(
-        host,
-        smtp.GetValue<int>("Port", 587),
-        username,
-        password,
-        fromEmail,
-        FirstNonEmpty(
-            smtp["FromName"],
-            "DeskMate")!);
-  }
- 
-  private async Task<SmtpProfile?> ResolveSmtpProfileAsync(
-      Guid? organizationId)
-  {
-    var effectiveOrganizationId =
-        organizationId ?? _tenantService.OrganizationId;
- 
-    if (effectiveOrganizationId.HasValue)
-    {
-      using var scope = _scopeFactory.CreateScope();
-      var context = scope.ServiceProvider
-          .GetRequiredService<ApplicationDbContext>();
- 
-      var organization = await context.Organizations
-          .IgnoreQueryFilters()
-          .AsNoTracking()
-          .FirstOrDefaultAsync(o =>
-              o.Id == effectiveOrganizationId.Value);
- 
-      var organizationProfile = BuildOrgSmtpProfile(organization);
-      if (organizationProfile != null)
-        return organizationProfile;
- 
-      if (organization != null)
-      {
-        _logger.LogWarning(
-            "Organization {OrganizationId} SMTP settings are incomplete; falling back to appsettings SMTP.",
-            effectiveOrganizationId.Value);
-      }
-    }
- 
-    var fallbackProfile = BuildFallbackSmtpProfile();
-    if (fallbackProfile == null)
-    {
-      _logger.LogWarning(
-          "No usable SMTP profile found for organization {OrganizationId}.",
-          effectiveOrganizationId);
-    }
- 
-    return fallbackProfile;
-  }
- 
-  private static string? FirstNonEmpty(params string?[] values)
-  {
-    return values.FirstOrDefault(value =>
-        !string.IsNullOrWhiteSpace(value))?.Trim();
   }
  
   // ════════════════════════════════════
@@ -194,91 +65,28 @@ public class EmailService : IEmailService
       string? ticketNumberTag = null,
       string? fromDisplayName = null)
   {
-    var smtpProfile = await ResolveSmtpProfileAsync(organizationId);
-    if (smtpProfile == null)
-      return null;
-
-    var msg = new MimeMessage();
-    msg.From.Add(new MailboxAddress(
-        string.IsNullOrWhiteSpace(fromDisplayName)
-            ? smtpProfile.FromName
-            : fromDisplayName,
-        smtpProfile.FromEmail));
-    msg.To.Add(MailboxAddress.Parse(to));
-    AddRecipients(msg.Cc, cc);
-    AddRecipients(msg.Bcc, bcc);
-    msg.Subject = subject;
-
-    if (replyTo != null)
-      msg.ReplyTo.Add(MailboxAddress.Parse(replyTo));
-
-    // ── Generate our own Message-Id BEFORE send so we can persist the
-    // exact value the recipient will see. (Gmail SMTP can rewrite an
-    // auto-generated id, but it preserves an explicitly-set one.)
-    msg.MessageId = MimeUtils.GenerateMessageId("im3helpdesk.local");
-
-    // ── Custom anchor header (survives all reply paths) ──
-    if (!string.IsNullOrWhiteSpace(ticketNumberTag))
-      msg.Headers.Add("X-iM3-Ticket", ticketNumberTag);
-
-    // ── RFC 5322 threading headers ───────────────
-    if (!string.IsNullOrWhiteSpace(inReplyTo))
-      msg.InReplyTo = NormalizeMessageId(inReplyTo);
-
-    if (references != null)
+    var result = await _emailQueueService.QueueEmailAsync(new QueuedEmailDispatch
     {
-      foreach (var r in references)
-      {
-        if (string.IsNullOrWhiteSpace(r)) continue;
-        msg.References.Add(NormalizeMessageId(r));
-      }
-    }
+      To = to,
+      Subject = subject,
+      HtmlBody = htmlBody,
+      ReplyTo = replyTo,
+      OrganizationId = organizationId ?? _tenantService.OrganizationId,
+      WrapInMasterTemplate = wrapInMasterTemplate,
+      Cc = cc?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? new List<string>(),
+      Bcc = bcc?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? new List<string>(),
+      InReplyTo = inReplyTo,
+      References = references?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? new List<string>(),
+      TicketNumberTag = ticketNumberTag,
+      FromDisplayName = fromDisplayName
+    });
 
     _logger.LogInformation(
-        "[Email-Out] To={To} Subj=\"{Subj}\" MsgId={MsgId} InReplyTo={IRT} RefCount={RC}",
-        to, subject, msg.MessageId, inReplyTo ?? "(none)",
-        msg.References?.Count ?? 0);
+        "Email queued for {To} with queue id {QueueId}",
+        to,
+        result.EmailQueueId);
 
-    var finalHtml = wrapInMasterTemplate
-      ? WrapInMasterTemplate(htmlBody, smtpProfile.FromName)
-      : htmlBody;
-
-    var body = new BodyBuilder { HtmlBody = finalHtml };
-    msg.Body = body.ToMessageBody();
-
-    using var client = new SmtpClient();
-    await client.ConnectAsync(
-        smtpProfile.Host,
-        smtpProfile.Port,
-        SecureSocketOptions.StartTls);
-    await client.AuthenticateAsync(
-        smtpProfile.Username,
-        smtpProfile.Password);
-    await client.SendAsync(msg);
-    await client.DisconnectAsync(true);
-
-    return msg.MessageId; // outbound Message-Id for thread chain
-  }
-
-  private static void AddRecipients(
-      InternetAddressList list,
-      IEnumerable<string>? addresses)
-  {
-    if (addresses == null) return;
-    foreach (var a in addresses)
-    {
-      if (string.IsNullOrWhiteSpace(a)) continue;
-      if (MailboxAddress.TryParse(a.Trim(), out var mb))
-        list.Add(mb);
-    }
-  }
-
-  private static string NormalizeMessageId(string id)
-  {
-    id = id.Trim();
-    if (id.StartsWith("<") && id.EndsWith(">"))
-      return id.Substring(1, id.Length - 2);
-    return id;
+    return result.MessageId;
   }
 
   // ════════════════════════════════════

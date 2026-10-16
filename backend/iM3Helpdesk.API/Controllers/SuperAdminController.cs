@@ -1,8 +1,11 @@
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Domain.Enums;
+using iM3Helpdesk.Application.Contracts.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -13,10 +16,14 @@ namespace iM3Helpdesk.API.Controllers;
 public class SuperAdminController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
+  private readonly IEmailQueueService _emailQueueService;
 
-  public SuperAdminController(ApplicationDbContext context)
+  public SuperAdminController(
+      ApplicationDbContext context,
+      IEmailQueueService emailQueueService)
   {
     _context = context;
+    _emailQueueService = emailQueueService;
   }
 
   [HttpGet("organizations")]
@@ -302,5 +309,270 @@ public class SuperAdminController : ControllerBase
       subscribedCompanyCount = activeSubscriptions.Select(s => s.OrganizationId).Distinct().Count(),
       companies
     });
+  }
+
+  [HttpGet("email-queue")]
+  public async Task<IActionResult> GetEmailQueueOverview(
+      [FromQuery] int page = 1,
+      [FromQuery] int pageSize = 20,
+      [FromQuery] string? status = null,
+      [FromQuery] int webhookPage = 1,
+      [FromQuery] int webhookPageSize = 10)
+  {
+    page = Math.Max(1, page);
+    pageSize = Math.Clamp(pageSize, 5, 100);
+    webhookPage = Math.Max(1, webhookPage);
+    webhookPageSize = Math.Clamp(webhookPageSize, 5, 100);
+
+    try
+    {
+      return await GetEmailQueueOverviewModernAsync(
+        page, pageSize, status, webhookPage, webhookPageSize,
+        includeWebhookLogs: true);
+    }
+    catch (SqlException ex) when (ex.Number == 207 || ex.Number == 208)
+    {
+      return await GetEmailQueueOverviewLegacyAsync(
+        page, pageSize, status, webhookPage, webhookPageSize,
+        includeWebhookLogs: false);
+    }
+    }
+
+    private async Task<IActionResult> GetEmailQueueOverviewModernAsync(
+      int page,
+      int pageSize,
+      string? status,
+      int webhookPage,
+      int webhookPageSize,
+      bool includeWebhookLogs)
+    {
+
+    var queueQuery = _context.EmailQueues
+      .IgnoreQueryFilters()
+      .AsNoTracking();
+
+    if (!string.IsNullOrWhiteSpace(status))
+      queueQuery = queueQuery.Where(e => e.Status == status.Trim());
+
+    var totalItems = await queueQuery.CountAsync();
+
+    var logs = await queueQuery
+      .OrderByDescending(e => e.CreatedAt)
+      .Skip((page - 1) * pageSize)
+      .Take(pageSize)
+      .Select(e => new
+      {
+        e.Id,
+        e.ToEmail,
+        e.Subject,
+        e.Status,
+        e.CreatedAt,
+        e.SentAt,
+        e.DeliveredAt,
+        e.RetryCount,
+        e.NextRetryAt,
+        e.ErrorMessage,
+        e.MessageId,
+        e.ProviderMessageId
+      })
+      .ToListAsync();
+
+    var totalWebhookItems = 0;
+    var webhookLogs = new List<object>();
+
+    if (includeWebhookLogs)
+    {
+      var webhookQuery = _context.EmailWebhookLogs
+        .IgnoreQueryFilters()
+        .AsNoTracking();
+
+      totalWebhookItems = await webhookQuery.CountAsync();
+      webhookLogs = await webhookQuery
+        .OrderByDescending(w => w.ReceivedAt)
+        .Skip((webhookPage - 1) * webhookPageSize)
+        .Take(webhookPageSize)
+        .Select(w => (object)new
+        {
+          w.Id,
+          w.EmailQueueId,
+          w.Provider,
+          w.EventType,
+          w.Recipient,
+          w.ProviderMessageId,
+          w.Processed,
+          w.ProcessingError,
+          w.ReceivedAt,
+          w.ProcessedAt,
+          w.PayloadJson
+        })
+        .ToListAsync();
+    }
+
+    var kpis = new
+    {
+      totalQueued = await _context.EmailQueues.IgnoreQueryFilters().CountAsync(e => e.Status == "Queued" || e.Status == "Processing"),
+      totalSent = await _context.EmailQueues.IgnoreQueryFilters().CountAsync(e => e.Status == "Sent" || e.Status == "Delivered" || e.Status == "Opened"),
+      totalFailed = await _context.EmailQueues.IgnoreQueryFilters().CountAsync(e => e.Status == "Failed"),
+      totalBounced = await _context.EmailQueues.IgnoreQueryFilters().CountAsync(e => e.Status == "Bounced")
+    };
+
+    return Ok(new
+    {
+      kpis,
+      schemaVersion = "modern",
+      emailLogs = new
+      {
+        page,
+        pageSize,
+        totalItems,
+        totalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+        items = logs
+      },
+      webhookLogs = new
+      {
+        page = webhookPage,
+        pageSize = webhookPageSize,
+        totalItems = totalWebhookItems,
+        totalPages = (int)Math.Ceiling(totalWebhookItems / (double)webhookPageSize),
+        items = webhookLogs
+      }
+    });
+  }
+
+  private async Task<IActionResult> GetEmailQueueOverviewLegacyAsync(
+      int page,
+      int pageSize,
+      string? status,
+      int webhookPage,
+      int webhookPageSize,
+      bool includeWebhookLogs)
+  {
+    var queueQuery = _context.EmailQueues
+      .IgnoreQueryFilters()
+      .AsNoTracking();
+
+    var normalizedStatus = status?.Trim();
+    if (!string.IsNullOrWhiteSpace(normalizedStatus))
+    {
+      if (normalizedStatus.Equals("Sent", StringComparison.OrdinalIgnoreCase) ||
+          normalizedStatus.Equals("Delivered", StringComparison.OrdinalIgnoreCase) ||
+          normalizedStatus.Equals("Opened", StringComparison.OrdinalIgnoreCase))
+      {
+        queueQuery = queueQuery.Where(e => e.IsSent);
+      }
+      else if (normalizedStatus.Equals("Failed", StringComparison.OrdinalIgnoreCase) ||
+               normalizedStatus.Equals("Bounced", StringComparison.OrdinalIgnoreCase))
+      {
+        queueQuery = queueQuery.Where(e => !e.IsSent && e.RetryCount >= 3);
+      }
+      else if (normalizedStatus.Equals("Queued", StringComparison.OrdinalIgnoreCase) ||
+               normalizedStatus.Equals("Processing", StringComparison.OrdinalIgnoreCase))
+      {
+        queueQuery = queueQuery.Where(e => !e.IsSent && e.RetryCount < 3);
+      }
+      else
+      {
+        queueQuery = queueQuery.Where(e => false);
+      }
+    }
+
+    var totalItems = await queueQuery.CountAsync();
+
+    var logs = await queueQuery
+      .OrderByDescending(e => e.CreatedAt)
+      .Skip((page - 1) * pageSize)
+      .Take(pageSize)
+      .Select(e => new
+      {
+        e.Id,
+        e.ToEmail,
+        e.Subject,
+        Status = e.IsSent ? "Sent" : (e.RetryCount >= 3 ? "Failed" : "Queued"),
+        e.CreatedAt,
+        e.SentAt,
+        DeliveredAt = (DateTime?)null,
+        e.RetryCount,
+        e.NextRetryAt,
+        e.ErrorMessage,
+        MessageId = (string?)null,
+        ProviderMessageId = (string?)null
+      })
+      .ToListAsync();
+
+    var totalWebhookItems = 0;
+    var webhookLogs = new List<object>();
+
+    if (includeWebhookLogs)
+    {
+      var webhookQuery = _context.EmailWebhookLogs
+        .IgnoreQueryFilters()
+        .AsNoTracking();
+
+      totalWebhookItems = await webhookQuery.CountAsync();
+      webhookLogs = await webhookQuery
+        .OrderByDescending(w => w.ReceivedAt)
+        .Skip((webhookPage - 1) * webhookPageSize)
+        .Take(webhookPageSize)
+        .Select(w => (object)new
+        {
+          w.Id,
+          w.EmailQueueId,
+          w.Provider,
+          w.EventType,
+          w.Recipient,
+          w.ProviderMessageId,
+          w.Processed,
+          w.ProcessingError,
+          w.ReceivedAt,
+          w.ProcessedAt,
+          w.PayloadJson
+        })
+        .ToListAsync();
+    }
+
+    var kpis = new
+    {
+      totalQueued = await _context.EmailQueues.IgnoreQueryFilters().CountAsync(e => !e.IsSent && e.RetryCount < 3),
+      totalSent = await _context.EmailQueues.IgnoreQueryFilters().CountAsync(e => e.IsSent),
+      totalFailed = await _context.EmailQueues.IgnoreQueryFilters().CountAsync(e => !e.IsSent && e.RetryCount >= 3),
+      totalBounced = 0
+    };
+
+    return Ok(new
+    {
+      kpis,
+      schemaVersion = "legacy",
+      emailLogs = new
+      {
+        page,
+        pageSize,
+        totalItems,
+        totalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+        items = logs
+      },
+      webhookLogs = new
+      {
+        page = webhookPage,
+        pageSize = webhookPageSize,
+        totalItems = totalWebhookItems,
+        totalPages = (int)Math.Ceiling(totalWebhookItems / (double)webhookPageSize),
+        items = webhookLogs
+      }
+    });
+  }
+
+
+  [HttpPost("email-queue/{id:guid}/retry")]
+  public async Task<IActionResult> RetryQueuedEmail(Guid id)
+  {
+    await _emailQueueService.RetryEmailAsync(id);
+    return Ok(new { message = "Email queued for retry" });
+  }
+
+  [HttpPost("email-queue/{id:guid}/cancel")]
+  public async Task<IActionResult> CancelQueuedEmail(Guid id)
+  {
+    await _emailQueueService.CancelQueuedEmailAsync(id);
+    return Ok(new { message = "Queued email cancelled" });
   }
 }
