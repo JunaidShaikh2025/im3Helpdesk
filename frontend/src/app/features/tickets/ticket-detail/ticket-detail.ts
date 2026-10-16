@@ -651,6 +651,8 @@ export class TicketDetailComponent
   }
 
   private currentUserId(): string {
+    const fromAuth = this.authService.getUserId?.();
+    if (fromAuth) return fromAuth;
     const p = this.decodeTokenPayload() || {};
     return String(
       p.nameid ||
@@ -661,6 +663,8 @@ export class TicketDetailComponent
   }
 
   private currentUserEmail(): string {
+    const fromAuth = this.authService.getUserEmail?.();
+    if (fromAuth) return fromAuth;
     const p = this.decodeTokenPayload() || {};
     return String(
       p.email ||

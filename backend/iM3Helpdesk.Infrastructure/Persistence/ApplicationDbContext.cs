@@ -128,6 +128,9 @@ public class ApplicationDbContext : DbContext
   public DbSet<AIAgentSkillStat> AIAgentSkillStats => Set<AIAgentSkillStat>();
   public DbSet<AISmartAssignConfig> AISmartAssignConfigs => Set<AISmartAssignConfig>();
 
+  // ✅ Secure Long-Lived User Sessions
+  public DbSet<UserSession> UserSessions => Set<UserSession>();
+
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
@@ -1213,6 +1216,27 @@ public class ApplicationDbContext : DbContext
       e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
 
       e.HasIndex(x => x.OrganizationId).IsUnique();
+    });
+
+    // ── UserSession (Refresh Token Rotation & Invalidation) ──
+    modelBuilder.Entity<UserSession>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+      e.Property(x => x.UserAgent).HasMaxLength(500);
+      e.Property(x => x.DeviceInfo).HasMaxLength(250);
+      e.Property(x => x.IpAddress).HasMaxLength(45);
+      e.Property(x => x.ReplacedByTokenHash).HasMaxLength(64);
+
+      e.HasIndex(x => x.TokenHash).IsUnique();
+      e.HasIndex(x => x.FamilyId);
+      e.HasIndex(x => new { x.UserId, x.IsRevoked });
+
+      e.HasOne(x => x.User)
+          .WithMany()
+          .HasForeignKey(x => x.UserId)
+          .OnDelete(DeleteBehavior.Cascade)
+          .IsRequired(false);
     });
   }
 }
