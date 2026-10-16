@@ -13,6 +13,12 @@ import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
 import Chart from 'chart.js/auto';
 import { environment } from '../../../../environments/environment';
+import {
+  SmartAssignService,
+  SmartAssignStats,
+  TicketSmartAssignResult,
+  AgentRecommendation
+} from '../../../core/services/smart-assign.service';
 
 @Component({
   selector: 'app-ai-dashboard',
@@ -31,6 +37,7 @@ export class AIDashboardComponent
   private http = inject(HttpClient);
   public router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private smartAssign = inject(SmartAssignService);
 
   @ViewChildren('tideChart')
     tideChartRefs!: QueryList<ElementRef>;
@@ -38,7 +45,19 @@ export class AIDashboardComponent
   activeTab:
     'tide' | 'insights' |
     'duplicates' | 'summary' |
-    'hotTopics' = 'tide';
+    'hotTopics' | 'smartAssign' = 'tide';
+
+  // ── Smart Assign Agent ──────────────
+  smartAssignStats: SmartAssignStats | null = null;
+  smartAssignQueue: TicketSmartAssignResult[] = [];
+  smartAssignLoading = false;
+  retraining = false;
+  retrainSuccessMsg = '';
+  retrainErrorMsg = '';
+  assignSuccessMsg = '';
+  assigningTicketId = '';
+  workloadChart: Chart | null = null;
+  selectedAgentForTicket: { [ticketId: string]: string } = {};
 
   // ── Tide ────────────────────────────
   tideData: any = null;
@@ -76,6 +95,8 @@ export class AIDashboardComponent
     this.loadDuplicates();
     this.loadRecentTickets();
     this.loadHotTopics();
+    this.loadSmartAssign();
+    this.initSmartAssignRealtime();
   }
 
   ngAfterViewInit() {}
@@ -90,6 +111,11 @@ export class AIDashboardComponent
     if (t === 'hotTopics')
       setTimeout(() =>
         this.renderHotTopicsChart(), 300);
+    if (t === 'smartAssign') {
+      this.loadSmartAssign();
+      setTimeout(() =>
+        this.renderWorkloadChart(), 300);
+    }
   }
 
   // ── TIDE ────────────────────────────
@@ -391,14 +417,15 @@ export class AIDashboardComponent
     return m[s] || '';
   }
 
-  getPriorityClass(p: string): string {
+  getPriorityClass(p: any): string {
+    const label = this.getPriorityLabel(p);
     const m: any = {
       'Critical': 'pr-crit',
       'High': 'pr-high',
       'Medium': 'pr-med',
       'Low': 'pr-low'
     };
-    return m[p] || '';
+    return m[label] || m[p] || '';
   }
 
   navigateToTicket(id: string) {
@@ -509,5 +536,284 @@ export class AIDashboardComponent
     if (!kws.length) return 1;
     return Math.max(
       ...kws.map((k: any) => k.count));
+  }
+
+  // ════════════════════════════════════════════════════════
+  // ── SMART ASSIGN AGENT HANDLERS ─────────────────────────
+  // ════════════════════════════════════════════════════════
+
+  initSmartAssignRealtime(): void {
+    try {
+      this.smartAssign.connectHub();
+
+      this.smartAssign.smartAssigned$.subscribe((ev) => {
+        if (ev) {
+          this.smartAssignQueue = this.smartAssignQueue.filter(
+            (t) => t.ticketId.toLowerCase() !== ev.ticketId.toLowerCase()
+          );
+          if (this.smartAssignStats) {
+            this.smartAssignStats.unassignedTicketsCount = Math.max(
+              0,
+              this.smartAssignStats.unassignedTicketsCount - 1
+            );
+            this.smartAssignStats.autoAssignedToday += 1;
+          }
+          this.cdr.detectChanges();
+        }
+      });
+
+      this.smartAssign.suggestionGenerated$.subscribe((ev) => {
+        if (ev) {
+          this.loadSmartAssign();
+        }
+      });
+
+      this.smartAssign.modelRetrained$.subscribe((ev) => {
+        if (ev && this.smartAssignStats) {
+          this.smartAssignStats.activeModelVersion = ev.version;
+          this.smartAssignStats.modelAccuracy = ev.accuracy;
+          this.smartAssignStats.modelTop3Accuracy = ev.top3Accuracy;
+          this.smartAssignStats.trainingSamplesCount = ev.sampleCount;
+          this.cdr.detectChanges();
+        }
+      });
+
+      this.smartAssign.workloadUpdated$.subscribe((ev) => {
+        if (ev && this.smartAssignStats?.agentWorkloads) {
+          const item = this.smartAssignStats.agentWorkloads.find(
+            (w) => w.agentId.toLowerCase() === ev.agentId.toLowerCase()
+          );
+          if (item) {
+            item.activeTicketCount = ev.activeCount;
+            item.highPriorityTicketCount = ev.highPriorityCount;
+            this.renderWorkloadChart();
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('[SmartAssign] Hub init error:', err);
+    }
+  }
+
+  loadSmartAssign(): void {
+    this.smartAssignLoading = true;
+    this.smartAssign.getStats().subscribe({
+      next: (stats) => {
+        this.smartAssignStats = stats;
+        this.smartAssignLoading = false;
+        this.cdr.detectChanges();
+        if (this.activeTab === 'smartAssign') {
+          setTimeout(() => this.renderWorkloadChart(), 200);
+        }
+      },
+      error: () => {
+        this.smartAssignLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.smartAssign.getUnassignedQueue(30).subscribe({
+      next: (queue) => {
+        this.smartAssignQueue = queue || [];
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  toggleSmartAssignMode(): void {
+    if (!this.smartAssignStats) return;
+    const nextMode = this.smartAssignStats.mode === 'Auto' ? 'Suggest' : 'Auto';
+    this.smartAssign.updateConfig({ mode: nextMode }).subscribe({
+      next: (cfg) => {
+        if (this.smartAssignStats) {
+          this.smartAssignStats.mode = cfg.mode;
+        }
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  triggerRetrain(): void {
+    this.retraining = true;
+    this.retrainSuccessMsg = '';
+    this.retrainErrorMsg = '';
+
+    this.smartAssign.retrainModel().subscribe({
+      next: (res) => {
+        this.retraining = false;
+        if (res.success) {
+          this.retrainSuccessMsg = `ML Model ${res.version} retrained successfully! Accuracy: ${(
+            res.accuracy * 100
+          ).toFixed(1)}%, Top-3 Accuracy: ${(res.top3Accuracy * 100).toFixed(
+            1
+          )}% (${res.samplesCount} historical tickets)`;
+          this.loadSmartAssign();
+        } else {
+          this.retrainErrorMsg =
+            res.message || 'Model retraining finished using fallback baseline.';
+        }
+        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.retrainSuccessMsg = '';
+          this.retrainErrorMsg = '';
+          this.cdr.detectChanges();
+        }, 7000);
+      },
+      error: (err) => {
+        this.retraining = false;
+        this.retrainErrorMsg =
+          err?.error?.message || 'Retraining failed. Check connection & server logs.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  applyAgentAssignment(
+    ticket: TicketSmartAssignResult,
+    agentId: string,
+    agentName: string
+  ): void {
+    this.assigningTicketId = ticket.ticketId;
+    this.assignSuccessMsg = '';
+
+    this.smartAssign
+      .applyAssignment(
+        ticket.ticketId,
+        agentId,
+        `Assigned via Smart Assign Agent to ${agentName}`
+      )
+      .subscribe({
+        next: () => {
+          this.assigningTicketId = '';
+          this.assignSuccessMsg = `Ticket #TN${ticket.ticketNumber} assigned to ${agentName}!`;
+          this.smartAssignQueue = this.smartAssignQueue.filter(
+            (t) => t.ticketId !== ticket.ticketId
+          );
+          if (this.smartAssignStats) {
+            this.smartAssignStats.unassignedTicketsCount = Math.max(
+              0,
+              this.smartAssignStats.unassignedTicketsCount - 1
+            );
+            this.smartAssignStats.autoAssignedToday += 1;
+          }
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            this.assignSuccessMsg = '';
+            this.cdr.detectChanges();
+          }, 5000);
+          this.loadSmartAssign();
+        },
+        error: () => {
+          this.assigningTicketId = '';
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  applySelectedAgent(ticket: TicketSmartAssignResult): void {
+    const agentId = this.selectedAgentForTicket[ticket.ticketId];
+    if (!agentId || !this.smartAssignStats?.agentWorkloads) return;
+
+    const agent = this.smartAssignStats.agentWorkloads.find(
+      (a) => a.agentId.toLowerCase() === agentId.toLowerCase()
+    );
+    const agentName = agent ? agent.agentName : 'Selected Agent';
+
+    this.applyAgentAssignment(ticket, agentId, agentName);
+  }
+
+  renderWorkloadChart(): void {
+    if (!this.smartAssignStats?.agentWorkloads?.length) return;
+
+    const canvas = document.getElementById(
+      'smartAssignWorkloadCanvas'
+    ) as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.workloadChart) {
+      this.workloadChart.destroy();
+      this.workloadChart = null;
+    }
+
+    const labels = this.smartAssignStats.agentWorkloads.map((a) => a.agentName);
+    const activeData = this.smartAssignStats.agentWorkloads.map(
+      (a) => a.activeTicketCount
+    );
+    const highData = this.smartAssignStats.agentWorkloads.map(
+      (a) => a.highPriorityTicketCount
+    );
+
+    this.workloadChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Active Tickets',
+            data: activeData,
+            backgroundColor: 'rgba(59, 130, 246, 0.75)',
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'High / Critical Priority',
+            data: highData,
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            borderColor: '#ef4444',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              font: { size: 11 },
+              maxRotation: 45,
+              minRotation: 0
+            }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { stepSize: 1, font: { size: 11 } }
+          }
+        }
+      }
+    });
+  }
+
+  getConfidenceBadgeClass(score: number): string {
+    const pct = score <= 1 ? score * 100 : score;
+    if (pct >= 80) return 'conf-high';
+    if (pct >= 60) return 'conf-med';
+    return 'conf-low';
+  }
+
+  getPriorityLabel(priority: any): string {
+    if (priority === 0 || priority === 'Low') return 'Low';
+    if (priority === 1 || priority === 'Medium') return 'Medium';
+    if (priority === 2 || priority === 'High') return 'High';
+    if (priority === 3 || priority === 'Critical' || priority === 'Urgent') return 'Critical';
+    return String(priority || 'Medium');
   }
 }

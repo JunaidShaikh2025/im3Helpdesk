@@ -19,16 +19,15 @@ import {
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../features/auth/auth.service';
 import {
-  AUTH_EXCLUDED_URLS,
-  TOKEN_KEY
+  AUTH_EXCLUDED_URLS
 } from '../constants/auth.constants';
 
 const RETRY_HEADER = 'x-auth-retry';
 let isRefreshing = false;
-const refreshTokenSubject = new BehaviorSubject<string | null>(null);
+const refreshStatus$ = new BehaviorSubject<boolean | null>(null);
 
 function isApiRequest(url: string): boolean {
-  return url.startsWith(environment.apiUrl);
+  return url.startsWith(environment.apiUrl) || url.startsWith(environment.baseUrl);
 }
 
 function isExcludedAuthRequest(url: string): boolean {
@@ -38,81 +37,69 @@ function isExcludedAuthRequest(url: string): boolean {
   );
 }
 
-function buildRequestWithToken(
+function buildRequestWithCredentials(
   req: HttpRequest<unknown>
 ): HttpRequest<unknown> {
-  if (!isApiRequest(req.url) || isExcludedAuthRequest(req.url)) {
+  if (!isApiRequest(req.url)) {
     return req;
   }
 
-  const token = localStorage.getItem(TOKEN_KEY);
-  const headers = token
-    ? { Authorization: `Bearer ${token}` }
-    : undefined;
-
   return req.clone({
-    setHeaders: headers,
     withCredentials: true
   });
 }
 
 function withRetryMarker(req: HttpRequest<unknown>): HttpRequest<unknown> {
   return req.clone({
+    withCredentials: true,
     setHeaders: {
       [RETRY_HEADER]: '1'
     }
   });
 }
 
-function retryWithLatestToken(
-  req: HttpRequest<unknown>,
-  next: HttpHandlerFn
-): Observable<HttpEvent<unknown>> {
-  const retryReq = withRetryMarker(buildRequestWithToken(req));
-  return next(retryReq);
-}
-
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn
-) => {
+): Observable<HttpEvent<unknown>> => {
   const authService = inject(AuthService);
-  const authReq = buildRequestWithToken(req);
+  const authReq = buildRequestWithCredentials(req);
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       const isUnauthorized = error.status === 401;
-      const isForbidden = error.status === 403;
       const excluded = isExcludedAuthRequest(req.url);
       const alreadyRetried = req.headers.has(RETRY_HEADER);
 
-      if (!isUnauthorized || isForbidden || excluded || alreadyRetried) {
+      if (!isUnauthorized || excluded || alreadyRetried) {
         return throwError(() => error);
       }
 
+      // If another request already triggered a refresh, queue this request
       if (isRefreshing) {
-        return refreshTokenSubject.pipe(
-          filter((token): token is string => !!token),
+        return refreshStatus$.pipe(
+          filter((success): success is boolean => success !== null),
           take(1),
-          switchMap(() => retryWithLatestToken(req, next))
+          switchMap(success => {
+            if (!success) {
+              return throwError(() => error);
+            }
+            return next(withRetryMarker(req));
+          })
         );
       }
 
+      // Acquire refresh lock
       isRefreshing = true;
-      refreshTokenSubject.next(null);
+      refreshStatus$.next(null);
 
       return authService.refreshToken().pipe(
         switchMap(() => {
-          const token = authService.getToken();
-          if (!token) {
-            authService.logout();
-            return throwError(() => error);
-          }
-
-          refreshTokenSubject.next(token);
-          return retryWithLatestToken(req, next);
+          refreshStatus$.next(true);
+          return next(withRetryMarker(req));
         }),
         catchError(refreshError => {
+          refreshStatus$.next(false);
           authService.logout();
           return throwError(() => refreshError);
         }),

@@ -3,6 +3,7 @@ using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -138,17 +139,9 @@ public class AuthController : ControllerBase
     }
     else
     {
-      // Normal password mode — seedha JWT return karo
-      var token = GenerateJwtToken(user);
-      var refreshToken = GenerateRefreshToken();
+      // Normal password mode — create session & set secure cookies
       var isFirstLogin = user.LastLoginAt == null;
-
-      SetAuthCookies(token, refreshToken);
-
-      user.RefreshToken = HashRefreshToken(refreshToken);
-      user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
-      user.LastLoginAt = DateTime.UtcNow;
-      await _context.SaveChangesAsync();
+      var (token, refreshToken) = await CreateUserSessionAsync(user);
 
       return Ok(new
       {
@@ -158,6 +151,7 @@ public class AuthController : ControllerBase
         isFirstLogin,
         user = new
         {
+          user.Id,
           user.FullName,
           user.Email,
           role = user.Role.ToString(),
@@ -169,6 +163,35 @@ public class AuthController : ControllerBase
     }
   }
 
+  private async Task<(string accessToken, string refreshToken)> CreateUserSessionAsync(User user)
+  {
+    var token = GenerateJwtToken(user);
+    var refreshToken = GenerateRefreshToken();
+    var familyId = Guid.NewGuid();
+
+    var session = new UserSession
+    {
+      UserId = user.Id,
+      TokenHash = HashRefreshToken(refreshToken),
+      FamilyId = familyId,
+      IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+      UserAgent = Request.Headers.UserAgent.ToString(),
+      DeviceInfo = ResolveDeviceInfo(Request.Headers.UserAgent.ToString()),
+      CreatedAt = DateTime.UtcNow,
+      ExpiresAt = DateTime.UtcNow.AddDays(30),
+      IsRevoked = false
+    };
+
+    _context.UserSessions.Add(session);
+    user.RefreshToken = HashRefreshToken(refreshToken);
+    user.RefreshTokenExpiresAt = session.ExpiresAt;
+    user.LastLoginAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+
+    SetAuthCookies(token, refreshToken);
+    return (token, refreshToken);
+  }
+
   private void SetAuthCookies(string accessToken, string refreshToken)
   {
     var secureCookie = Request.IsHttps;
@@ -176,8 +199,8 @@ public class AuthController : ControllerBase
     {
       HttpOnly = true,
       Secure = secureCookie,
-      SameSite = SameSiteMode.None,
-      Expires = DateTimeOffset.UtcNow.AddMinutes(60),
+      SameSite = SameSiteMode.Lax,
+      Expires = DateTimeOffset.UtcNow.AddMinutes(15),
       Path = "/"
     };
 
@@ -185,13 +208,63 @@ public class AuthController : ControllerBase
     {
       HttpOnly = true,
       Secure = secureCookie,
-      SameSite = SameSiteMode.None,
-      Expires = DateTimeOffset.UtcNow.AddDays(7),
-      Path = "/api/Auth/refresh"
+      SameSite = SameSiteMode.Lax,
+      Expires = DateTimeOffset.UtcNow.AddDays(30),
+      Path = "/"
     };
 
     Response.Cookies.Append("im3_access", accessToken, accessCookieOptions);
     Response.Cookies.Append("im3_refresh", refreshToken, refreshCookieOptions);
+  }
+
+  private void ClearAuthCookies()
+  {
+    var secureCookie = Request.IsHttps;
+    var accessCookieOptions = new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = secureCookie,
+      SameSite = SameSiteMode.Lax,
+      Path = "/"
+    };
+
+    var refreshCookieOptions = new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = secureCookie,
+      SameSite = SameSiteMode.Lax,
+      Path = "/"
+    };
+
+    Response.Cookies.Delete("im3_access", accessCookieOptions);
+    Response.Cookies.Delete("im3_refresh", refreshCookieOptions);
+
+    // Delete any legacy path cookies if present
+    Response.Cookies.Delete("im3_refresh", new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = secureCookie,
+      SameSite = SameSiteMode.Lax,
+      Path = "/api/Auth/refresh"
+    });
+    Response.Cookies.Delete("im3_refresh", new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = secureCookie,
+      SameSite = SameSiteMode.Lax,
+      Path = "/api/auth"
+    });
+  }
+
+  private static string ResolveDeviceInfo(string? userAgent)
+  {
+    if (string.IsNullOrWhiteSpace(userAgent)) return "Unknown";
+    if (userAgent.Contains("Windows", StringComparison.OrdinalIgnoreCase)) return "Windows Desktop";
+    if (userAgent.Contains("Macintosh", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("Mac OS", StringComparison.OrdinalIgnoreCase)) return "macOS Desktop";
+    if (userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase)) return "Android Device";
+    if (userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("iPad", StringComparison.OrdinalIgnoreCase)) return "iOS Device";
+    if (userAgent.Contains("Linux", StringComparison.OrdinalIgnoreCase)) return "Linux Desktop";
+    return "Web Browser";
   }
 
 
@@ -244,18 +317,9 @@ public class AuthController : ControllerBase
       });
     }
 
-    // Issue JWT + refresh token
-    var token = GenerateJwtToken(user);
-    var refreshToken = GenerateRefreshToken();
+    // Issue JWT + refresh token session with family tracking
     var isFirstLogin = user.LastLoginAt == null;
-
-    SetAuthCookies(token, refreshToken);
-
-    user.RefreshToken = HashRefreshToken(refreshToken);
-    user.RefreshTokenExpiresAt =
-        DateTime.UtcNow.AddDays(7);
-    user.LastLoginAt = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
+    var (token, refreshToken) = await CreateUserSessionAsync(user);
 
     return Ok(new
     {
@@ -264,6 +328,7 @@ public class AuthController : ControllerBase
       isFirstLogin,
       user = new
       {
+        user.Id,
         user.FullName,
         user.Email,
         role = user.Role.ToString(),
@@ -418,43 +483,202 @@ public class AuthController : ControllerBase
 
 
   [HttpPost("refresh")]
-  public async Task<IActionResult> Refresh(
-      [FromBody] RefreshTokenDto dto)
+  public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto? dto = null)
   {
-    var presentedRefreshToken = !string.IsNullOrWhiteSpace(dto.RefreshToken)
-      ? dto.RefreshToken
-      : Request.Cookies["im3_refresh"];
+    var presentedRefreshToken = !string.IsNullOrWhiteSpace(dto?.RefreshToken)
+        ? dto.RefreshToken
+        : Request.Cookies["im3_refresh"];
 
     if (string.IsNullOrWhiteSpace(presentedRefreshToken))
-      return Unauthorized(
-        new { message = "Invalid or expired refresh token" });
+    {
+      ClearAuthCookies();
+      return Unauthorized(new { message = "Invalid or expired refresh token" });
+    }
 
     var presentedRefreshTokenHash = HashRefreshToken(presentedRefreshToken);
 
-    var user = await _context.Users
-        .IgnoreQueryFilters()
-        .Include(u => u.Organization)
-        .FirstOrDefaultAsync(u =>
-      u.RefreshToken == presentedRefreshTokenHash &&
-            u.RefreshTokenExpiresAt > DateTime.UtcNow);
+    var existingSession = await _context.UserSessions
+        .Include(s => s.User)
+        .ThenInclude(u => u!.Organization)
+        .FirstOrDefaultAsync(s => s.TokenHash == presentedRefreshTokenHash);
 
+    // 1. Session record not found in UserSessions (fallback check User table for backward compatibility)
+    if (existingSession == null)
+    {
+      var legacyUser = await _context.Users
+          .IgnoreQueryFilters()
+          .Include(u => u.Organization)
+          .FirstOrDefaultAsync(u =>
+              u.RefreshToken == presentedRefreshTokenHash &&
+              u.RefreshTokenExpiresAt > DateTime.UtcNow);
+
+      if (legacyUser == null)
+      {
+        ClearAuthCookies();
+        return Unauthorized(new { message = "Invalid or expired refresh token" });
+      }
+
+      // Upgrade legacy user session to family tracking
+      var (legacyToken, legacyRefreshToken) = await CreateUserSessionAsync(legacyUser);
+      return Ok(new
+      {
+        token = legacyToken,
+        refreshToken = legacyRefreshToken,
+        user = new
+        {
+          legacyUser.Id,
+          legacyUser.FullName,
+          legacyUser.Email,
+          role = legacyUser.Role.ToString(),
+          isTwoFactorEnabled = legacyUser.IsTwoFactorEnabled,
+          organizationId = legacyUser.OrganizationId,
+          organizationName = legacyUser.Organization?.Name
+        }
+      });
+    }
+
+    // 2. REUSE DETECTION (Token Theft Breach)
+    // If a revoked token is ever reused, treat it as a breach and invalidate all tokens in that family!
+    if (existingSession.IsRevoked)
+    {
+      var familySessions = await _context.UserSessions
+          .Where(s => s.FamilyId == existingSession.FamilyId && !s.IsRevoked)
+          .ToListAsync();
+
+      foreach (var s in familySessions)
+      {
+        s.IsRevoked = true;
+        s.RevokedAt = DateTime.UtcNow;
+      }
+
+      await _context.SaveChangesAsync();
+      ClearAuthCookies();
+
+      return StatusCode(StatusCodes.Status401Unauthorized, new
+      {
+        message = "Security breach detected: Replay of revoked refresh token. All active sessions in this family have been terminated."
+      });
+    }
+
+    // 3. Token expired
+    if (existingSession.ExpiresAt <= DateTime.UtcNow)
+    {
+      existingSession.IsRevoked = true;
+      existingSession.RevokedAt = DateTime.UtcNow;
+      await _context.SaveChangesAsync();
+      ClearAuthCookies();
+      return Unauthorized(new { message = "Refresh token has expired. Please log in again." });
+    }
+
+    var user = existingSession.User;
     if (user == null)
-      return Unauthorized(
-          new { message = "Invalid or expired refresh token" });
+    {
+      ClearAuthCookies();
+      return Unauthorized(new { message = "User not found" });
+    }
 
-    var newToken = GenerateJwtToken(user);
+    if (user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
+    {
+      ClearAuthCookies();
+      return Unauthorized(new { message = "Account is locked." });
+    }
+
+    // 4. Token Rotation: Invalidate current token and issue new token in SAME family
     var newRefreshToken = GenerateRefreshToken();
-    user.RefreshToken = HashRefreshToken(newRefreshToken);
-    user.RefreshTokenExpiresAt =
-        DateTime.UtcNow.AddDays(7);
+    var newRefreshTokenHash = HashRefreshToken(newRefreshToken);
+
+    existingSession.IsRevoked = true;
+    existingSession.RevokedAt = DateTime.UtcNow;
+    existingSession.ReplacedByTokenHash = newRefreshTokenHash;
+
+    var newSession = new UserSession
+    {
+      UserId = user.Id,
+      TokenHash = newRefreshTokenHash,
+      FamilyId = existingSession.FamilyId,
+      IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+      UserAgent = Request.Headers.UserAgent.ToString(),
+      DeviceInfo = existingSession.DeviceInfo,
+      CreatedAt = DateTime.UtcNow,
+      ExpiresAt = DateTime.UtcNow.AddDays(30),
+      IsRevoked = false
+    };
+
+    _context.UserSessions.Add(newSession);
+    user.RefreshToken = newRefreshTokenHash;
+    user.RefreshTokenExpiresAt = newSession.ExpiresAt;
     await _context.SaveChangesAsync();
 
+    var newToken = GenerateJwtToken(user);
     SetAuthCookies(newToken, newRefreshToken);
 
     return Ok(new
     {
       token = newToken,
-      refreshToken = newRefreshToken
+      refreshToken = newRefreshToken,
+      user = new
+      {
+        user.Id,
+        user.FullName,
+        user.Email,
+        role = user.Role.ToString(),
+        isTwoFactorEnabled = user.IsTwoFactorEnabled,
+        organizationId = user.OrganizationId,
+        organizationName = user.Organization?.Name
+      }
+    });
+  }
+
+  [HttpPost("logout")]
+  public async Task<IActionResult> Logout()
+  {
+    var presentedRefreshToken = Request.Cookies["im3_refresh"];
+    if (!string.IsNullOrWhiteSpace(presentedRefreshToken))
+    {
+      var tokenHash = HashRefreshToken(presentedRefreshToken);
+      var session = await _context.UserSessions
+          .FirstOrDefaultAsync(s => s.TokenHash == tokenHash);
+
+      if (session != null)
+      {
+        session.IsRevoked = true;
+        session.RevokedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+      }
+    }
+
+    ClearAuthCookies();
+    return Ok(new { message = "Logged out successfully" });
+  }
+
+  [Authorize]
+  [HttpGet("me")]
+  public async Task<IActionResult> GetCurrentUser()
+  {
+    var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                      User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+    if (!Guid.TryParse(userIdClaim, out var userId))
+      return Unauthorized();
+
+    var user = await _context.Users
+        .IgnoreQueryFilters()
+        .Include(u => u.Organization)
+        .FirstOrDefaultAsync(u => u.Id == userId);
+
+    if (user == null)
+      return Unauthorized();
+
+    return Ok(new
+    {
+      user.Id,
+      user.FullName,
+      user.Email,
+      role = user.Role.ToString(),
+      isTwoFactorEnabled = user.IsTwoFactorEnabled,
+      organizationId = user.OrganizationId,
+      organizationName = user.Organization?.Name,
+      user.PhotoUrl
     });
   }
 
@@ -540,6 +764,15 @@ public class AuthController : ControllerBase
     user.RefreshToken = null;
     user.RefreshTokenExpiresAt = null;
 
+    var activeSessions = await _context.UserSessions
+        .Where(s => s.UserId == user.Id && !s.IsRevoked)
+        .ToListAsync();
+    foreach (var s in activeSessions)
+    {
+      s.IsRevoked = true;
+      s.RevokedAt = DateTime.UtcNow;
+    }
+
     await _context.SaveChangesAsync();
 
     return Ok(new { message = "Password reset successfully." });
@@ -571,7 +804,7 @@ public class AuthController : ControllerBase
         issuer: jwtSettings["Issuer"],
         audience: jwtSettings["Audience"],
         claims: claims,
-        expires: DateTime.UtcNow.AddMinutes(60),
+        expires: DateTime.UtcNow.AddMinutes(15),
         signingCredentials: new SigningCredentials(
             key, SecurityAlgorithms.HmacSha256));
 

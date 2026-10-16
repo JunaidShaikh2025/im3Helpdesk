@@ -1,108 +1,206 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import {
+  AUTH_IS_LOGGED_IN,
+  AUTH_USER_KEY,
   REFRESH_TOKEN_KEY,
   TOKEN_KEY,
   TWO_FACTOR_ENABLED_KEY
 } from '../../core/constants/auth.constants';
 
+export interface CurrentUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isTwoFactorEnabled?: boolean;
+  organizationId?: string;
+  organizationName?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private apiUrl = `${environment.apiUrl}/Auth`;
+  public currentUser = signal<CurrentUser | null>(null);
+  private inMemoryAccessToken: string | null = null;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) {
+    this.hydrateUserFromStorage();
+  }
+
+  private hydrateUserFromStorage(): void {
+    const raw = localStorage.getItem(AUTH_USER_KEY);
+    if (raw) {
+      try {
+        const user = JSON.parse(raw);
+        this.currentUser.set(user);
+      } catch {
+        localStorage.removeItem(AUTH_USER_KEY);
+      }
+    }
+  }
 
   register(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, data,
-      { withCredentials: true });
+    return this.http.post(`${this.apiUrl}/register`, data, {
+      withCredentials: true
+    });
   }
 
   login(data: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/login`, data,
-      { withCredentials: true }).pipe(
-      tap(res => this.persistAuthTokens(res))
+    return this.http.post<any>(`${this.apiUrl}/login`, data, {
+      withCredentials: true
+    }).pipe(
+      tap(res => {
+        if (!res?.requiresOtp) {
+          this.saveUserData(res);
+        }
+      })
     );
   }
 
-verifyOtp(dto: { email: string; otp: string }) {
-  return this.http.post<any>(
-    `${this.apiUrl}/verify-otp`,   // ✅ sirf /verify-otp
-    dto,
-    { withCredentials: true }
-  ).pipe(
-    tap(res => this.persistAuthTokens(res))
-  );
-}
+  verifyOtp(dto: { email: string; otp: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/verify-otp`, dto, {
+      withCredentials: true
+    }).pipe(
+      tap(res => this.saveUserData(res))
+    );
+  }
 
-resendOtp(dto: { email: string }) {
-  return this.http.post<any>(
-    `${this.apiUrl}/resend-otp`,   // ✅ sirf /resend-otp
-    dto,
-    { withCredentials: true }
-  );
-}
+  resendOtp(dto: { email: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/resend-otp`, dto, {
+      withCredentials: true
+    });
+  }
 
   forgotPassword(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/forgot-password`, data,
-      { withCredentials: true });
+    return this.http.post(`${this.apiUrl}/forgot-password`, data, {
+      withCredentials: true
+    });
   }
 
   verifyEmail(token: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/verify-email?token=${token}`, {},
-      { withCredentials: true });
+    return this.http.post(`${this.apiUrl}/verify-email?token=${token}`, {}, {
+      withCredentials: true
+    });
   }
 
   registerCustomer(data: any): Observable<any> {
-  return this.http.post(
-    `${this.apiUrl}/register-customer`, data,
-    { withCredentials: true });
-}
-
-  saveToken(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token);
-  }
-
-  saveRefreshToken(token: string): void {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    return this.http.post(`${this.apiUrl}/register-customer`, data, {
+      withCredentials: true
+    });
   }
 
   saveUserData(data: any): void {
-    this.persistAuthTokens(data);
-    localStorage.setItem('im3_isFirstLogin', data.isFirstLogin?.toString() || 'false');
-    localStorage.setItem('im3_role', data.user?.role || '');
-    localStorage.setItem('im3_name', data.user?.fullName || '');
-    localStorage.setItem('im3_orgName', data.user?.organizationName || '');
+    if (data?.user) {
+      const u: CurrentUser = {
+        id: String(data.user.id || data.user.Id || ''),
+        fullName: data.user.fullName || '',
+        email: data.user.email || '',
+        role: data.user.role || '',
+        isTwoFactorEnabled: data.user.isTwoFactorEnabled,
+        organizationId: data.user.organizationId,
+        organizationName: data.user.organizationName
+      };
+
+      this.currentUser.set(u);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(u));
+      localStorage.setItem(AUTH_IS_LOGGED_IN, 'true');
+      localStorage.setItem('im3_userId', u.id);
+      localStorage.setItem('im3_email', u.email);
+      localStorage.setItem('im3_name', u.fullName);
+      localStorage.setItem('im3_role', u.role);
+      localStorage.setItem('im3_orgName', u.organizationName || '');
+    }
+
+    localStorage.setItem('im3_isFirstLogin', data?.isFirstLogin ? 'true' : 'false');
+    if (data?.user?.isTwoFactorEnabled !== undefined) {
+      this.setTwoFactorEnabled(Boolean(data.user.isTwoFactorEnabled));
+    }
+
+    if (data?.token) {
+      this.inMemoryAccessToken = data.token;
+    }
   }
 
+  getUserId(): string {
+    const user = this.currentUser();
+    if (user?.id) return user.id;
+    return localStorage.getItem('im3_userId') || '';
+  }
+
+  getUserEmail(): string {
+    const user = this.currentUser();
+    if (user?.email) return user.email;
+    return localStorage.getItem('im3_email') || '';
+  }
+
+  getUserRole(): string {
+    const user = this.currentUser();
+    if (user?.role) return user.role;
+    return localStorage.getItem('im3_role') || '';
+  }
+
+  getUserName(): string {
+    const user = this.currentUser();
+    if (user?.fullName) return user.fullName;
+    return localStorage.getItem('im3_name') || '';
+  }
+
+  getCurrentUser(): CurrentUser | null {
+    return this.currentUser();
+  }
+
+  // Tokens are stored in HttpOnly cookies to prevent XSS theft, with in-memory caching for active sockets.
   getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-}
+    return this.inMemoryAccessToken;
+  }
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    return null;
+  }
+
+  saveToken(_token: string): void {
+    // No-op: Tokens stored securely in HttpOnly cookies
+  }
+
+  saveRefreshToken(_token: string): void {
+    // No-op: Tokens stored securely in HttpOnly cookies
+  }
+
+  refreshToken(): Observable<any> {
+    // Sends silent refresh request; browser auto-attaches HttpOnly im3_refresh cookie
+    return this.http.post<any>(`${this.apiUrl}/refresh`, {}, {
+      withCredentials: true
+    }).pipe(
+      tap(res => {
+        if (res?.user) {
+          this.saveUserData(res);
+        }
+      })
+    );
   }
 
   refreshAccessToken(): Observable<any> {
     return this.refreshToken();
   }
 
-  refreshToken(): Observable<any> {
-    const refreshToken = this.getRefreshToken();
-    const payload = refreshToken
-      ? { refreshToken }
-      : {};
-
-    return this.http.post<any>(`${this.apiUrl}/refresh`, payload,
-      { withCredentials: true }).pipe(
-      tap(res => this.persistAuthTokens(res))
-    );
-  }
-
   isLoggedIn(): boolean {
     return this.isAuthenticated();
+  }
+
+  isAuthenticated(): boolean {
+    return localStorage.getItem(AUTH_IS_LOGGED_IN) === 'true';
+  }
+
+  isTokenValid(): boolean {
+    return this.isAuthenticated();
+  }
+
+  isTokenExpired(): boolean {
+    return !this.isAuthenticated();
   }
 
   isFirstLogin(): boolean {
@@ -113,14 +211,6 @@ resendOtp(dto: { email: string }) {
     localStorage.setItem('im3_isFirstLogin', 'false');
   }
 
-  getUserRole(): string {
-    return localStorage.getItem('im3_role') || '';
-  }
-
-  getUserName(): string {
-    return localStorage.getItem('im3_name') || '';
-  }
-
   isTwoFactorEnabled(): boolean {
     return localStorage.getItem(TWO_FACTOR_ENABLED_KEY) === 'true';
   }
@@ -129,47 +219,28 @@ resendOtp(dto: { email: string }) {
     localStorage.setItem(TWO_FACTOR_ENABLED_KEY, String(enabled));
   }
 
-  isTokenValid(): boolean {
-    return this.isAuthenticated();
-}
-
-  isAuthenticated(): boolean {
-    const token = this.getToken();
-    if (!token) return false;
-    return !this.isTokenExpired(token);
+  logout(): void {
+    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).subscribe({
+      next: () => this.cleanLocalStateAndRedirect(),
+      error: () => this.cleanLocalStateAndRedirect()
+    });
   }
 
-  isTokenExpired(token?: string | null): boolean {
-    const activeToken = token ?? this.getToken();
-    if (!activeToken) return true;
-
-    try {
-      const payload = JSON.parse(atob(activeToken.split('.')[1]));
-      const exp = Number(payload?.exp);
-      if (!exp) return true;
-      return Date.now() >= exp * 1000;
-    } catch {
-      return true;
-    }
-}
-
-  logout(): void {
+  private cleanLocalStateAndRedirect(): void {
+    this.inMemoryAccessToken = null;
+    this.currentUser.set(null);
+    localStorage.removeItem(AUTH_IS_LOGGED_IN);
+    localStorage.removeItem(AUTH_USER_KEY);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem('im3_isFirstLogin');
-    localStorage.removeItem('im3_role');
+    localStorage.removeItem('im3_userId');
+    localStorage.removeItem('im3_email');
     localStorage.removeItem('im3_name');
-    localStorage.removeItem('im3_orgName'); // Clear org name on logout
+    localStorage.removeItem('im3_role');
+    localStorage.removeItem('im3_orgName');
+    localStorage.removeItem('im3_isFirstLogin');
     localStorage.removeItem(TWO_FACTOR_ENABLED_KEY);
-    this.router.navigate(['/auth/login']);
-  }
 
-  private persistAuthTokens(response: any): void {
-    if (response?.token) {
-      this.saveToken(response.token);
-    }
-    if (response?.refreshToken) {
-      this.saveRefreshToken(response.refreshToken);
-    }
+    this.router.navigate(['/auth/login']);
   }
 }
