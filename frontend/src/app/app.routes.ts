@@ -255,12 +255,6 @@ export const routes: Routes = [
     canActivate: [superAdminGuard]
   },
   {
-    path: 'admin/subscription-profit',
-    loadComponent: () =>
-      import('./features/super-admin/subscription-profit/subscription-profit').then(m => m.SubscriptionProfitComponent),
-    canActivate: [superAdminGuard]
-  },
-  {
     path: 'customer/ticket/:id',
     loadComponent: () =>
       import('./features/customer/customer-ticket-detail/customer-ticket-detail').then(m => m.CustomerTicketDetailComponent),

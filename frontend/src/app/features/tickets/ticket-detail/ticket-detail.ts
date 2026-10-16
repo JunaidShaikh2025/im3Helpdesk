@@ -25,7 +25,7 @@ import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 import { TopbarContextService } from '../../../core/services/topbar-context.service';
@@ -132,6 +132,13 @@ export class TicketDetailComponent
   forwardText = '';
   pendingFiles: File[] = [];
   attachments: any[] = [];
+
+  // ── Attachment Preview Lightbox (Freshdesk-style) ──
+  previewModalOpen = false;
+  previewAttachment: any = null;
+  previewIndex = 0;
+  previewList: any[] = [];
+  safePdfUrl: SafeResourceUrl | null = null;
 
   // ── Reply Cc / Bcc ──────────────────
   showCc = false;
@@ -384,7 +391,7 @@ export class TicketDetailComponent
   }
 
   /** Click handler bound on every `[innerHTML]` body — opens inline
-   *  email images in a new tab when the user clicks them. */
+   *  email images in Freshdesk-style lightbox preview. */
   onBodyClick(ev: Event) {
     const t = ev.target as HTMLElement | null;
     if (!t || t.tagName !== 'IMG') return;
@@ -392,7 +399,14 @@ export class TicketDetailComponent
       (t as HTMLImageElement).src;
     if (!src) return;
     ev.preventDefault();
-    window.open(src, '_blank', 'noopener,noreferrer');
+    const cleanName = src.split('/').pop()?.split('?')[0] || 'Image Preview';
+    const inlineAtt = {
+      fileName: cleanName,
+      fileUrl: src,
+      isImage: true,
+      contentType: 'image/png'
+    };
+    this.openAttachmentPreview(inlineAtt, [inlineAtt]);
   }
 
   getAvatarColor(name: string): string {
@@ -901,6 +915,18 @@ export class TicketDetailComponent
     });
   }
 
+  @HostListener('document:keydown', ['$event'])
+  onDocKeydown(event: KeyboardEvent) {
+    if (!this.previewModalOpen) return;
+    if (event.key === 'Escape') {
+      this.closeAttachmentPreview();
+    } else if (event.key === 'ArrowLeft') {
+      this.prevPreviewAttachment();
+    } else if (event.key === 'ArrowRight') {
+      this.nextPreviewAttachment();
+    }
+  }
+
   startEditNote(c: any, ev?: Event) {
     ev?.stopPropagation();
     if (!this.canEditNote(c)) return;
@@ -1051,6 +1077,174 @@ export class TicketDetailComponent
     if (bytes < 1048576)
       return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1048576).toFixed(1)} MB`;
+  }
+
+  isImage(a: any): boolean {
+    if (!a) return false;
+    if (a.isImage) return true;
+    const ct = (a.contentType || '').toLowerCase();
+    if (ct.startsWith('image/')) return true;
+    const name = (a.fileName || a.fileUrl || '').toLowerCase();
+    return /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i.test(name);
+  }
+
+  isPdf(a: any): boolean {
+    if (!a) return false;
+    const ct = (a.contentType || '').toLowerCase();
+    if (ct.includes('pdf')) return true;
+    const name = (a.fileName || a.fileUrl || '').toLowerCase();
+    return /\.pdf$/i.test(name);
+  }
+
+  getFileExt(name: string): string {
+    if (!name) return 'FILE';
+    const dot = name.lastIndexOf('.');
+    if (dot !== -1 && dot < name.length - 1) {
+      const ext = name.substring(dot + 1).toUpperCase();
+      return ext.length <= 4 ? ext : ext.substring(0, 4);
+    }
+    return 'FILE';
+  }
+
+  getAttachmentUrl(a: any): string {
+    if (!a?.fileUrl) return '';
+    if (a.fileUrl.startsWith('http://') || a.fileUrl.startsWith('https://')) {
+      return a.fileUrl;
+    }
+    const clean = a.fileUrl.startsWith('/') ? a.fileUrl : `/${a.fileUrl}`;
+    return `${this.baseUrl}${clean}`;
+  }
+
+  openAttachmentPreview(a: any, list?: any[]) {
+    if (!a) return;
+    const sourceList = (list && list.length > 0)
+      ? list
+      : (this.attachments.length > 0 ? this.attachments : [a]);
+    this.previewList = [...sourceList];
+    const foundIdx = this.previewList.findIndex(item =>
+      (item.id && a.id && item.id === a.id) ||
+      (item.fileUrl && a.fileUrl && item.fileUrl === a.fileUrl)
+    );
+    this.previewIndex = foundIdx >= 0 ? foundIdx : 0;
+    this.previewAttachment = this.previewList[this.previewIndex] || a;
+    this.updatePreviewSafeUrl();
+    this.previewModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  closeAttachmentPreview() {
+    this.previewModalOpen = false;
+    this.previewAttachment = null;
+    this.safePdfUrl = null;
+    this.cdr.detectChanges();
+  }
+
+  prevPreviewAttachment() {
+    if (this.previewIndex > 0) {
+      this.previewIndex--;
+      this.previewAttachment = this.previewList[this.previewIndex];
+      this.updatePreviewSafeUrl();
+      this.cdr.detectChanges();
+    }
+  }
+
+  nextPreviewAttachment() {
+    if (this.previewIndex < this.previewList.length - 1) {
+      this.previewIndex++;
+      this.previewAttachment = this.previewList[this.previewIndex];
+      this.updatePreviewSafeUrl();
+      this.cdr.detectChanges();
+    }
+  }
+
+  private updatePreviewSafeUrl() {
+    if (this.previewAttachment && this.isPdf(this.previewAttachment)) {
+      const url = this.getAttachmentUrl(this.previewAttachment);
+      this.safePdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    } else {
+      this.safePdfUrl = null;
+    }
+  }
+
+  downloadAttachment(a: any, ev?: Event) {
+    ev?.stopPropagation();
+    ev?.preventDefault();
+    if (!a) return;
+    const url = this.getAttachmentUrl(a);
+    const fileName = a.fileName || 'attachment';
+
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      },
+      error: () => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    });
+  }
+
+  attachToResponse(a: any, ev?: Event) {
+    ev?.stopPropagation();
+    ev?.preventDefault();
+    if (!a) return;
+    const url = this.getAttachmentUrl(a);
+    const fileName = a.fileName || 'attachment';
+
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const file = new File([blob], fileName, { type: a.contentType || blob.type || 'application/octet-stream' });
+        this.pendingFiles.push(file);
+        this.composerExpanded = true;
+        this.focusComposerTab(this.activeComposerTab || 'reply');
+        this.showToast('success', `Attached "${fileName}" to response`);
+        setTimeout(() => {
+          const comp = document.querySelector('.fd-composer, .fd-reply-box, #reply-editor-box, .fdc-pending');
+          if (comp) {
+            comp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 100);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.showToast('error', `Could not attach "${fileName}" to response`);
+      }
+    });
+  }
+
+  removeAttachment(a: any, ev?: Event) {
+    ev?.stopPropagation();
+    ev?.preventDefault();
+    if (!a?.id) return;
+    if (!confirm(`Are you sure you want to remove "${a.fileName}"?`)) {
+      return;
+    }
+    this.http.delete(`${environment.apiUrl}/Attachments/${a.id}`).subscribe({
+      next: () => {
+        this.showToast('success', 'Attachment deleted');
+        this.loadAttachments();
+        if (this.previewModalOpen && this.previewAttachment?.id === a.id) {
+          this.closeAttachmentPreview();
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Failed to remove attachment';
+        this.showToast('error', msg);
+      }
+    });
   }
 
   // ── Conversation collapse (Freshdesk-style) ──

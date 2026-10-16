@@ -1,0 +1,14 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=AADIL\\MEGASYSINDIA01;Database=iM3HelpdeskDb;User Id=sa;Password=im3db;TrustServerCertificate=True;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "BirthdayPosts": {
+    "Enabled": true
+  }
+}

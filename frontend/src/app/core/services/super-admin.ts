@@ -33,6 +33,33 @@ export class SuperAdminService {
     return this.http.get<any>(`${this.apiUrl}/organizations/${id}`);
   }
 
+  getEmailQueueOverview(params: {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    webhookPage?: number;
+    webhookPageSize?: number;
+  } = {}): Observable<any> {
+    const query: Record<string, string | number> = {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+      webhookPage: params.webhookPage ?? 1,
+      webhookPageSize: params.webhookPageSize ?? 10
+    };
+
+    if (params.status) query['status'] = params.status;
+
+    return this.http.get<any>(`${this.apiUrl}/email-queue`, { params: query as any });
+  }
+
+  retryQueuedEmail(id: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/email-queue/${id}/retry`, {});
+  }
+
+  cancelQueuedEmail(id: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/email-queue/${id}/cancel`, {});
+  }
+
   getLeads(status?: string): Observable<any[]> {
     return this.http.get<any[]>(`${environment.apiUrl}/admin/leads`, {
       params: status ? { status } : {}

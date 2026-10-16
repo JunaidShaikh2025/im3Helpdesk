@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -1192,7 +1192,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "CreatedAt", "DateOfBirth", "DateOfJoining", "Department", "Designation", "Email", "EmailVerificationToken", "FailedLoginAttempts", "FullName", "Gender", "IsEmailVerified", "LastLoginAt", "Location", "LockedUntil", "OrganizationId", "PasswordHash", "PhoneNumber", "PhotoUrl", "RefreshToken", "RefreshTokenExpiresAt", "Role", "Signature" },
-                values: new object[] { new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, null, "aadil080933@gmail.com", null, 0, "Super Admin", null, true, null, null, null, null, "$2a$11$5mzOVht3guIDVrfa/Ju01eBo7TgkNkPz.HPoNgPHsgyRGxiU6DG6e", "9999999999", null, null, null, 0, null });
+                values: new object[] { new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, null, "aadil080399@gmail.com", null, 0, "Super Admin", null, true, null, null, null, null, "$2a$11$pzZz3SNnU1NbLPnjJMrVKeeY4IH7CEESwbsvvmdXOChHAu6LptEkG", "9579818081", null, null, null, 0, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ActivityLogs_OrganizationId",

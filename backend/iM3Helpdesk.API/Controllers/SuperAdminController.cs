@@ -1,8 +1,11 @@
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Domain.Enums;
+using iM3Helpdesk.Application.Contracts.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -13,10 +16,14 @@ namespace iM3Helpdesk.API.Controllers;
 public class SuperAdminController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
+  private readonly IEmailQueueService _emailQueueService;
 
-  public SuperAdminController(ApplicationDbContext context)
+  public SuperAdminController(
+      ApplicationDbContext context,
+      IEmailQueueService emailQueueService)
   {
     _context = context;
+    _emailQueueService = emailQueueService;
   }
 
   [HttpGet("organizations")]
@@ -229,78 +236,5 @@ public class SuperAdminController : ControllerBase
     };
 
     return Ok(stats);
-  }
-
-  /// <summary>
-  /// Platform-wide realised subscription revenue and each company's current
-  /// subscription. This is deliberately SuperAdmin-only: tenants must never
-  /// be able to inspect another company's billing data.
-  /// </summary>
-  [HttpGet("subscription-profit")]
-  public async Task<IActionResult> GetSubscriptionProfit()
-  {
-    var approvedPayments = await _context.PaymentRecords
-      .IgnoreQueryFilters()
-      .Where(p => p.Status == Domain.Entities.PaymentStatus.Approved)
-      .Select(p => new { p.OrganizationId, p.Amount, p.Currency, p.SubmittedAt })
-      .ToListAsync();
-
-    var revenueByCurrency = approvedPayments
-      .GroupBy(p => string.IsNullOrWhiteSpace(p.Currency) ? "INR" : p.Currency.ToUpper())
-      .Select(g => new { currency = g.Key, amount = g.Sum(p => p.Amount) })
-      .OrderBy(x => x.currency)
-      .ToList();
-
-    var organizations = await _context.Organizations
-      .IgnoreQueryFilters()
-      .Select(o => new { o.Id, o.Name, o.IsActive })
-      .ToListAsync();
-
-    var activeSubscriptions = await _context.OrganizationSubscriptions
-      .IgnoreQueryFilters()
-      .Where(s => s.Status == Domain.Entities.SubscriptionStatus.Active ||
-                  s.Status == Domain.Entities.SubscriptionStatus.Trial ||
-                  s.Status == Domain.Entities.SubscriptionStatus.PastDue)
-      .Select(s => new
-      {
-        s.OrganizationId, s.Amount, s.Currency, s.AgentSeats, s.BillingCycle,
-        s.Status, s.StartedAt, s.CurrentPeriodEnd,
-        PlanName = _context.SubscriptionPlans.Where(p => p.Id == s.PlanId)
-          .Select(p => p.Name).FirstOrDefault()
-      })
-      .ToListAsync();
-
-    var companies = organizations
-      .Select(o => new
-      {
-        id = o.Id,
-        name = o.Name,
-        isActive = o.IsActive,
-        subscription = activeSubscriptions.Where(s => s.OrganizationId == o.Id).Select(s => new
-        {
-          planName = s.PlanName ?? "Subscription",
-          amount = s.Amount,
-          currency = s.Currency,
-          agentSeats = s.AgentSeats,
-          billingCycle = s.BillingCycle.ToString(),
-          status = s.Status.ToString(),
-          startedAt = s.StartedAt,
-          currentPeriodEnd = s.CurrentPeriodEnd
-        }).FirstOrDefault(),
-        totalPaid = approvedPayments.Where(p => p.OrganizationId == o.Id)
-          .GroupBy(p => string.IsNullOrWhiteSpace(p.Currency) ? "INR" : p.Currency.ToUpper())
-          .Select(g => new { currency = g.Key, amount = g.Sum(p => p.Amount) })
-          .ToList()
-      })
-      .OrderBy(x => x.name)
-      .ToList();
-
-    return Ok(new
-    {
-      approvedRevenue = revenueByCurrency,
-      approvedPaymentCount = approvedPayments.Count,
-      subscribedCompanyCount = activeSubscriptions.Select(s => s.OrganizationId).Distinct().Count(),
-      companies
-    });
   }
 }

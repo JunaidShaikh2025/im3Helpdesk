@@ -1,0 +1,130 @@
+<app-layout>
+  <div class="eq-page">
+    <div class="eq-hero">
+      <div>
+        <h1>Email Queue Control Center</h1>
+        <p>Asynchronous delivery pipeline monitoring with retries, provider events, and live status controls.</p>
+      </div>
+      <div class="eq-filter">
+        <label>Status Filter</label>
+        <select [(ngModel)]="selectedStatus" (change)="applyStatusFilter()">
+          <option value="">All statuses</option>
+          <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="eq-loading" *ngIf="loading">Loading queue telemetry...</div>
+
+    <ng-container *ngIf="!loading">
+      <div class="eq-kpis">
+        <div class="eq-kpi eq-kpi-queued">
+          <h3>Total Queued</h3>
+          <div>{{ kpis.totalQueued }}</div>
+        </div>
+        <div class="eq-kpi eq-kpi-sent">
+          <h3>Total Sent</h3>
+          <div>{{ kpis.totalSent }}</div>
+        </div>
+        <div class="eq-kpi eq-kpi-failed">
+          <h3>Total Failed</h3>
+          <div>{{ kpis.totalFailed }}</div>
+        </div>
+        <div class="eq-kpi eq-kpi-bounced">
+          <h3>Total Bounced</h3>
+          <div>{{ kpis.totalBounced }}</div>
+        </div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-card-header">
+          <h2>Email Logs</h2>
+          <div class="eq-page-meta">Page {{ page }} / {{ emailTotalPages }} • {{ emailTotalItems }} records</div>
+        </div>
+
+        <div class="eq-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Recipient</th>
+                <th>Subject</th>
+                <th>Created</th>
+                <th>Status</th>
+                <th>Retry</th>
+                <th>Next Retry</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of emailLogs">
+                <td class="eq-email">{{ item.toEmail }}</td>
+                <td>{{ item.subject }}</td>
+                <td>{{ item.createdAt | date:'dd MMM yyyy, HH:mm' }}</td>
+                <td>
+                  <span class="eq-status" [ngClass]="statusClass(item.status)">{{ item.status }}</span>
+                </td>
+                <td>{{ item.retryCount }}</td>
+                <td>{{ item.nextRetryAt ? (item.nextRetryAt | date:'dd MMM, HH:mm') : '-' }}</td>
+                <td class="eq-actions">
+                  <button
+                    type="button"
+                    *ngIf="canRetry(item.status)"
+                    [disabled]="actionBusyId === item.id"
+                    (click)="retryEmail(item)">
+                    Retry
+                  </button>
+                  <button
+                    type="button"
+                    *ngIf="canCancel(item.status)"
+                    [disabled]="actionBusyId === item.id"
+                    class="danger"
+                    (click)="cancelEmail(item)">
+                    Cancel
+                  </button>
+                  <span *ngIf="!canRetry(item.status) && !canCancel(item.status)">-</span>
+                </td>
+              </tr>
+              <tr *ngIf="!emailLogs.length">
+                <td colspan="7" class="eq-empty">No email logs found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="eq-pagination">
+          <button type="button" (click)="prevEmailPage()" [disabled]="page <= 1">Previous</button>
+          <button type="button" (click)="nextEmailPage()" [disabled]="page >= emailTotalPages">Next</button>
+        </div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-card-header">
+          <h2>Webhook Logs</h2>
+          <div class="eq-page-meta">Page {{ webhookPage }} / {{ webhookTotalPages }} • {{ webhookTotalItems }} records</div>
+        </div>
+
+        <div class="eq-webhooks">
+          <div class="eq-webhook-item" *ngFor="let log of webhookLogs">
+            <div class="eq-webhook-head">
+              <span class="eq-webhook-event">{{ log.eventType }}</span>
+              <span class="eq-webhook-time">{{ log.receivedAt | date:'dd MMM yyyy, HH:mm:ss' }}</span>
+            </div>
+            <div class="eq-webhook-meta">
+              <span>Provider: {{ log.provider }}</span>
+              <span>Recipient: {{ log.recipient || '-' }}</span>
+              <span>Message: {{ log.providerMessageId || '-' }}</span>
+              <span>Processed: {{ log.processed ? 'Yes' : 'No' }}</span>
+            </div>
+            <pre>{{ log.payloadJson }}</pre>
+          </div>
+          <div *ngIf="!webhookLogs.length" class="eq-empty">No webhook logs found.</div>
+        </div>
+
+        <div class="eq-pagination">
+          <button type="button" (click)="prevWebhookPage()" [disabled]="webhookPage <= 1">Previous</button>
+          <button type="button" (click)="nextWebhookPage()" [disabled]="webhookPage >= webhookTotalPages">Next</button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</app-layout>
