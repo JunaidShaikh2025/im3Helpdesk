@@ -1,6 +1,7 @@
-﻿using iM3Helpdesk.Domain.Entities;
+using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
+using iM3Helpdesk.Application.Contracts.Services;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
@@ -410,6 +411,21 @@ public class EmailPollingService : BackgroundService
     _ = inlineParts;
     await SaveAttachmentsAsync(message, ticket, null, context, ct);
     await NotifyAgentsAsync(fromName, subject, ticket, org.Id, context, ct);
+
+    // Trigger Smart Assign Agent for inbound email ticket
+    try
+    {
+      using var smartScope = _scopeFactory.CreateScope();
+      var smartAssign = smartScope.ServiceProvider.GetService<ISmartAssignService>();
+      if (smartAssign != null)
+      {
+        await smartAssign.EvaluateTicketAsync(ticket.Id, org.Id, allowAutoAssign: true);
+      }
+    }
+    catch (Exception ex)
+    {
+      _logger.LogWarning(ex, "Smart Assign trigger failed for email ticket #TN{N}", ticket.TicketNumber);
+    }
   }
 
   /// <summary>

@@ -1,4 +1,4 @@
-﻿using iM3Helpdesk.API.Common.Helpers;
+using iM3Helpdesk.API.Common.Helpers;
 using iM3Helpdesk.API.Middleware;
 using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Application.Contracts.Services;
@@ -23,6 +23,7 @@ public class TicketsController : TicketsControllerBase
   private readonly INotificationService _notificationService;
   private readonly IEmailService _emailService;
   private readonly ISlaService _slaService;
+  private readonly ISmartAssignService? _smartAssignService;
   private readonly ILogger<TicketsController> _logger;
 
   public TicketsController(
@@ -31,7 +32,8 @@ public class TicketsController : TicketsControllerBase
       INotificationService notificationService,
       IEmailService emailService,
       ISlaService slaService,
-      ILogger<TicketsController> logger)
+      ILogger<TicketsController> logger,
+      ISmartAssignService? smartAssignService = null)
       : base(context)
   {
     _tenantService = tenantService;
@@ -39,6 +41,7 @@ public class TicketsController : TicketsControllerBase
     _emailService = emailService;
     _slaService = slaService;
     _logger = logger;
+    _smartAssignService = smartAssignService;
   }
   [HttpGet("my-status-counts")]
   public async Task<IActionResult> GetMyStatusCounts()
@@ -452,6 +455,22 @@ public class TicketsController : TicketsControllerBase
         "Created",
         $"New ticket: {ticket.Title}",
         "Ticket", ticket.Id);
+
+    // Trigger real-time Smart Assign Agent if ticket is unassigned
+    if (ticket.AssignedToUserId == null && _smartAssignService != null)
+    {
+      _ = Task.Run(async () =>
+      {
+        try
+        {
+          await _smartAssignService.EvaluateTicketAsync(ticket.Id, orgId, allowAutoAssign: true);
+        }
+        catch (Exception ex)
+        {
+          _logger.LogError(ex, "Smart Assign trigger failed for ticket {TicketId}", ticket.Id);
+        }
+      });
+    }
 
     return Ok(new
     {

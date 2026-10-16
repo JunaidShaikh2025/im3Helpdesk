@@ -4,6 +4,7 @@ using Hangfire;
 using Hangfire.SqlServer;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Infrastructure.ML;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
@@ -182,6 +183,13 @@ builder.Services.AddResponseCaching();
 builder.Services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSignalR();
+
+// ── AI Smart Assign Agent (ML.NET + Real-time Hub + Worker) ──
+builder.Services.AddSingleton<ISmartAssignMlTrainer, SmartAssignMlTrainer>();
+builder.Services.AddScoped<ISmartAssignService, SmartAssignService>();
+builder.Services.AddScoped<ISmartAssignNotifier, SmartAssignNotifier>();
+builder.Services.AddHostedService<SmartAssignBackgroundWorker>();
+
 var app = builder.Build();
 
 //if (app.Environment.IsDevelopment())
@@ -235,6 +243,7 @@ app.UseAuthorization();
 app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<SmartAssignHub>("/hubs/smart-assign");
 
 // ── Seed subscription plans + trial subscriptions for existing orgs ──
 using (var scope = app.Services.CreateScope())

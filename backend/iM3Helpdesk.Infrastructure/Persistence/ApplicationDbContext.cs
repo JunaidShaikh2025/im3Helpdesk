@@ -122,6 +122,12 @@ public class ApplicationDbContext : DbContext
   public DbSet<BusinessHours> BusinessHours   => Set<BusinessHours>();
   public DbSet<BusinessHoursHoliday> BusinessHoursHolidays => Set<BusinessHoursHoliday>();
 
+  // ✅ AI Smart Assign Agent
+  public DbSet<AIAssignmentLog> AIAssignmentLogs => Set<AIAssignmentLog>();
+  public DbSet<AIModelVersion> AIModelVersions => Set<AIModelVersion>();
+  public DbSet<AIAgentSkillStat> AIAgentSkillStats => Set<AIAgentSkillStat>();
+  public DbSet<AISmartAssignConfig> AISmartAssignConfigs => Set<AISmartAssignConfig>();
+
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
@@ -1129,6 +1135,84 @@ public class ApplicationDbContext : DbContext
         x.ReceiverId,
         x.Status
       });
+    });
+
+    // ── AI Smart Assign Entities ──────────
+    modelBuilder.Entity<AIAssignmentLog>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.ConfidenceScore).HasColumnType("float");
+      e.Property(x => x.MlScore).HasColumnType("float");
+      e.Property(x => x.WorkloadScore).HasColumnType("float");
+      e.Property(x => x.AvailabilityScore).HasColumnType("float");
+      e.Property(x => x.ReasonJson).HasColumnType("nvarchar(max)");
+      e.Property(x => x.Mode).HasMaxLength(50).HasDefaultValue("Suggest");
+      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+
+      e.HasOne(x => x.Ticket)
+          .WithMany()
+          .HasForeignKey(x => x.TicketId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      e.HasOne(x => x.SuggestedAgent)
+          .WithMany()
+          .HasForeignKey(x => x.SuggestedAgentId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      e.HasOne(x => x.FinalAgent)
+          .WithMany()
+          .HasForeignKey(x => x.FinalAgentId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      e.HasOne(x => x.OverriddenByUser)
+          .WithMany()
+          .HasForeignKey(x => x.OverriddenByUserId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      e.HasIndex(x => x.TicketId);
+      e.HasIndex(x => x.OrganizationId);
+      e.HasIndex(x => x.CreatedAt);
+      e.HasIndex(x => new { x.OrganizationId, x.CreatedAt });
+    });
+
+    modelBuilder.Entity<AIModelVersion>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Version).HasMaxLength(100).IsRequired();
+      e.Property(x => x.Algorithm).HasMaxLength(100).HasDefaultValue("SdcaMaximumEntropy");
+      e.Property(x => x.ModelFilePath).HasMaxLength(500);
+      e.Property(x => x.MetricsJson).HasColumnType("nvarchar(max)");
+      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+
+      e.HasIndex(x => new { x.OrganizationId, x.IsActive });
+      e.HasIndex(x => x.TrainedAt);
+    });
+
+    modelBuilder.Entity<AIAgentSkillStat>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Category).HasMaxLength(200).IsRequired();
+      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+
+      e.HasOne(x => x.Agent)
+          .WithMany()
+          .HasForeignKey(x => x.AgentId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      e.HasIndex(x => new { x.OrganizationId, x.AgentId, x.Category }).IsUnique();
+    });
+
+    modelBuilder.Entity<AISmartAssignConfig>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Mode).HasMaxLength(50).HasDefaultValue("Suggest");
+      e.Property(x => x.ConfidenceThreshold).HasDefaultValue(0.75);
+      e.Property(x => x.WeightMl).HasDefaultValue(0.60);
+      e.Property(x => x.WeightWorkload).HasDefaultValue(0.20);
+      e.Property(x => x.WeightAvailability).HasDefaultValue(0.20);
+      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+
+      e.HasIndex(x => x.OrganizationId).IsUnique();
     });
   }
 }

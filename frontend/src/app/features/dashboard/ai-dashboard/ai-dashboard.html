@@ -58,6 +58,18 @@
           <span class="tab-ic">🔥</span>
           Hot Topics
         </button>
+        <button
+          type="button"
+          class="ai-tab"
+          [class.active]="activeTab === 'smartAssign'"
+          (click)="setTab('smartAssign')"
+        >
+          <span class="tab-ic">🎯</span>
+          Smart Assign
+          <span class="tab-badge" *ngIf="smartAssignStats && smartAssignStats.unassignedTicketsCount > 0">
+            {{ smartAssignStats.unassignedTicketsCount }}
+          </span>
+        </button>
       </div>
     </div>
 
@@ -686,6 +698,290 @@
             <ng-template #noSlow>
               <div class="ht-empty">Not enough resolved tickets yet.</div>
             </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+       TAB 6: SMART ASSIGN AGENT
+    ══════════════════════════════════ -->
+    <div class="tab-panel" *ngIf="activeTab === 'smartAssign'">
+      <!-- Toast messages -->
+      <div class="merge-success" *ngIf="assignSuccessMsg">✅ {{ assignSuccessMsg }}</div>
+      <div class="merge-success" *ngIf="retrainSuccessMsg">🚀 {{ retrainSuccessMsg }}</div>
+      <div class="sa-alert-error" *ngIf="retrainErrorMsg">⚠️ {{ retrainErrorMsg }}</div>
+
+      <!-- Loading State -->
+      <div class="tab-loading" *ngIf="smartAssignLoading && !smartAssignStats">
+        <div class="ai-spinner"></div>
+        <p>Analyzing ticket workloads & ML prediction models...</p>
+      </div>
+
+      <div *ngIf="smartAssignStats">
+        <!-- Top Toolbar & Automation Mode Toggle -->
+        <div class="sa-toolbar">
+          <div class="sa-mode-box">
+            <span class="sa-mode-lbl">Automation Engine:</span>
+            <div class="sa-mode-toggle" (click)="toggleSmartAssignMode()">
+              <button
+                type="button"
+                class="sa-mode-btn"
+                [class.active]="smartAssignStats.mode === 'Suggest'"
+              >
+                💡 Suggest Only
+              </button>
+              <button
+                type="button"
+                class="sa-mode-btn"
+                [class.active]="smartAssignStats.mode === 'Auto'"
+              >
+                ⚡ Auto-Assign (≥ {{ (smartAssignStats.confidenceThreshold * 100).toFixed(0) }}%)
+              </button>
+            </div>
+            <span class="sa-mode-hint" *ngIf="smartAssignStats.mode === 'Auto'">
+              Tickets with ≥{{ (smartAssignStats.confidenceThreshold * 100).toFixed(0) }}% confidence are assigned automatically.
+            </span>
+            <span class="sa-mode-hint" *ngIf="smartAssignStats.mode === 'Suggest'">
+              AI generates top 3 ranked suggestions with 'Why?' reasons for human review.
+            </span>
+          </div>
+
+          <div class="sa-actions">
+            <button
+              type="button"
+              class="sa-retrain-btn"
+              [disabled]="retraining"
+              (click)="triggerRetrain()"
+            >
+              <span *ngIf="!retraining">🔄 Retrain ML Model</span>
+              <span *ngIf="retraining">⏳ Training ML Pipeline...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Top 4 KPI Cards -->
+        <div class="sa-kpi-grid">
+          <!-- Card 1: Unassigned Queue -->
+          <div class="sa-kpi-card">
+            <div class="sa-kpi-hd">
+              <span class="sa-kpi-title">Unassigned Tickets</span>
+              <span class="sa-kpi-icon">📋</span>
+            </div>
+            <div class="sa-kpi-val">{{ smartAssignStats.unassignedTicketsCount }}</div>
+            <div class="sa-kpi-sub">Awaiting assignment in queue</div>
+          </div>
+
+          <!-- Card 2: Auto-Assigned Today -->
+          <div class="sa-kpi-card green">
+            <div class="sa-kpi-hd">
+              <span class="sa-kpi-title">Auto-Assigned Today</span>
+              <span class="sa-kpi-icon">⚡</span>
+            </div>
+            <div class="sa-kpi-val">{{ smartAssignStats.autoAssignedToday }}</div>
+            <div class="sa-kpi-sub">Total all-time: {{ smartAssignStats.autoAssignedTotal }}</div>
+          </div>
+
+          <!-- Card 3: Model Accuracy -->
+          <div class="sa-kpi-card purple">
+            <div class="sa-kpi-hd">
+              <span class="sa-kpi-title">Model Accuracy</span>
+              <span class="sa-kpi-icon">🎯</span>
+            </div>
+            <div class="sa-kpi-val">
+              {{ (smartAssignStats.modelAccuracy * 100).toFixed(1) }}%
+            </div>
+            <div class="sa-kpi-sub">
+              Top-3: {{ (smartAssignStats.modelTop3Accuracy * 100).toFixed(1) }}% · v{{ smartAssignStats.activeModelVersion || '1.0' }} ({{ smartAssignStats.trainingSamplesCount }} tickets)
+            </div>
+          </div>
+
+          <!-- Card 4: Override Rate -->
+          <div class="sa-kpi-card" [class.yellow]="smartAssignStats.overrideRate > 20">
+            <div class="sa-kpi-hd">
+              <span class="sa-kpi-title">Override Rate</span>
+              <span class="sa-kpi-icon">🔄</span>
+            </div>
+            <div class="sa-kpi-val">{{ smartAssignStats.overrideRate.toFixed(1) }}%</div>
+            <div class="sa-kpi-sub">{{ smartAssignStats.overrideCount }} of {{ smartAssignStats.totalDecisions }} decisions overridden</div>
+          </div>
+        </div>
+
+        <!-- Main Content Layout (Tickets Queue + Workload Chart) -->
+        <div class="sa-layout">
+          <!-- Left: Unassigned Ticket Queue -->
+          <div class="sa-left-col">
+            <div class="sa-section-hd">
+              <h3>
+                <span>🎯</span> Intelligent Assignment Queue
+                <span class="sa-queue-count" *ngIf="smartAssignQueue.length">({{ smartAssignQueue.length }})</span>
+              </h3>
+              <p>Top AI recommendations calculated from skill match, resolution history, and real-time workload.</p>
+            </div>
+
+            <!-- Empty State when no unassigned tickets -->
+            <div class="sa-empty-state" *ngIf="!smartAssignQueue.length">
+              <div class="sa-empty-icon">🎉</div>
+              <h3>Zero Unassigned Tickets!</h3>
+              <p>All incoming tickets are assigned. Smart Assign Agent is monitoring your incoming stream in real-time.</p>
+            </div>
+
+            <!-- Ticket Cards -->
+            <div class="sa-ticket-cards" *ngIf="smartAssignQueue.length">
+              <div class="sa-ticket-card" *ngFor="let ticket of smartAssignQueue">
+                <!-- Ticket Top Bar -->
+                <div class="sa-tc-top">
+                  <div class="sa-tc-info">
+                    <span class="sa-tc-number">#TN{{ ticket.ticketNumber }}</span>
+                    <span class="sa-tc-title">{{ ticket.title }}</span>
+                  </div>
+                  <div class="sa-tc-badges">
+                    <span class="sa-tc-cat" *ngIf="ticket.category">{{ ticket.category }}</span>
+                    <span class="sa-tc-prio" [class]="getPriorityClass(ticket.priority)">
+                      {{ getPriorityLabel(ticket.priority) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Explanation / Cold-start note -->
+                <div class="sa-tc-exp" *ngIf="ticket.decisionExplanation">
+                  <span class="sa-tc-exp-icon">💡</span>
+                  <span>{{ ticket.decisionExplanation }}</span>
+                </div>
+
+                <!-- Top Recommendations -->
+                <div class="sa-tc-recs">
+                  <div
+                    class="sa-rec-card"
+                    *ngFor="let rec of ticket.topRecommendations; let rIdx = index"
+                    [class.top-match]="rIdx === 0"
+                  >
+                    <!-- Rank + Agent Info -->
+                    <div class="sa-rec-head">
+                      <div class="sa-rec-rank">#{{ rec.rank }}</div>
+                      <div class="sa-rec-agent">
+                        <div class="sa-agent-avatar">
+                          <img *ngIf="rec.photoUrl" [src]="rec.photoUrl" alt="" />
+                          <span *ngIf="!rec.photoUrl">{{ rec.agentName ? rec.agentName.charAt(0) : 'A' }}</span>
+                          <span class="sa-online-dot" [class.online]="rec.isOnline"></span>
+                        </div>
+                        <div class="sa-agent-meta">
+                          <div class="sa-agent-name">{{ rec.agentName }}</div>
+                          <div class="sa-agent-active">
+                            {{ rec.currentActiveTickets }} active · {{ rec.highPriorityTickets }} critical
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Match Score Pill -->
+                      <div class="sa-rec-score">
+                        <span class="sa-score-pill" [class]="getConfidenceBadgeClass(rec.finalScore)">
+                          {{ (rec.finalScore * 100).toFixed(0) }}% Match
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- "Why?" Reasons List -->
+                    <div class="sa-rec-reasons" *ngIf="rec.reasons && rec.reasons.length">
+                      <div class="sa-reason-tag" *ngFor="let reason of rec.reasons">
+                        <span class="sa-reason-check">✓</span>
+                        <span>{{ reason }}</span>
+                      </div>
+                    </div>
+
+                    <!-- 1-Click Assign Button -->
+                    <div class="sa-rec-footer">
+                      <button
+                        type="button"
+                        class="sa-assign-btn"
+                        [class.primary]="rIdx === 0"
+                        [disabled]="assigningTicketId === ticket.ticketId"
+                        (click)="applyAgentAssignment(ticket, rec.agentId, rec.agentName)"
+                      >
+                        <span *ngIf="assigningTicketId !== ticket.ticketId">
+                          Assign to {{ rec.agentName.split(' ')[0] }}
+                        </span>
+                        <span *ngIf="assigningTicketId === ticket.ticketId">Assigning...</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Choose Other Agent Dropdown Fallback -->
+                <div class="sa-tc-manual">
+                  <span class="sa-manual-lbl">Or override with another agent:</span>
+                  <div class="sa-manual-group">
+                    <select
+                      class="sa-manual-select"
+                      [(ngModel)]="selectedAgentForTicket[ticket.ticketId]"
+                    >
+                      <option [ngValue]="undefined">Select agent...</option>
+                      <option
+                        *ngFor="let w of smartAssignStats.agentWorkloads"
+                        [value]="w.agentId"
+                      >
+                        {{ w.agentName }} ({{ w.activeTicketCount }} active, {{ w.isOnline ? 'Online' : 'Offline' }})
+                      </option>
+                    </select>
+                    <button
+                      type="button"
+                      class="sa-manual-btn"
+                      [disabled]="!selectedAgentForTicket[ticket.ticketId] || assigningTicketId === ticket.ticketId"
+                      (click)="applySelectedAgent(ticket)"
+                    >
+                      Assign
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Real-time Workload & Team Capacity -->
+          <div class="sa-right-col">
+            <!-- Workload Chart Box -->
+            <div class="sa-chart-box">
+              <div class="sa-box-hd">
+                <h4>📊 Agent Workload Distribution</h4>
+                <span class="sa-box-sub">Active vs Critical</span>
+              </div>
+              <div class="sa-chart-canvas-wrap">
+                <canvas id="smartAssignWorkloadCanvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Team Capacity List -->
+            <div class="sa-team-box">
+              <div class="sa-box-hd">
+                <h4>👥 Agent Status & Load</h4>
+                <span class="sa-box-sub">{{ smartAssignStats.agentWorkloads ? smartAssignStats.agentWorkloads.length : 0 }} Agents</span>
+              </div>
+              <div class="sa-agent-list">
+                <div class="sa-agent-row" *ngFor="let a of smartAssignStats.agentWorkloads">
+                  <div class="sa-ar-left">
+                    <div class="sa-agent-avatar sm">
+                      <img *ngIf="a.photoUrl" [src]="a.photoUrl" alt="" />
+                      <span *ngIf="!a.photoUrl">{{ a.agentName ? a.agentName.charAt(0) : 'A' }}</span>
+                      <span class="sa-online-dot" [class.online]="a.isOnline"></span>
+                    </div>
+                    <div>
+                      <div class="sa-ar-name">{{ a.agentName }}</div>
+                      <div class="sa-ar-status">
+                        {{ a.isOnline ? '🟢 Online' : '⚪ Offline' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="sa-ar-right">
+                    <span class="sa-ar-badge active">
+                      {{ a.activeTicketCount }} open
+                    </span>
+                    <span class="sa-ar-badge crit" *ngIf="a.highPriorityTicketCount > 0">
+                      {{ a.highPriorityTicketCount }} high
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
