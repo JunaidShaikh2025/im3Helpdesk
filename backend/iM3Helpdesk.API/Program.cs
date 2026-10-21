@@ -14,7 +14,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
+using iM3Helpdesk.Application;
 using iM3Helpdesk.Application.Contracts.Services;
+using iM3Helpdesk.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,7 +54,8 @@ builder.WebHost.ConfigureKestrel(o => {
 });
 
 
-builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<ISlaService, SlaService>();
 builder.Services.AddScoped<iM3Helpdesk.API.Services.ISubscriptionService, iM3Helpdesk.API.Services.SubscriptionService>();
 builder.Services.AddScoped<iM3Helpdesk.API.Services.IPermissionService, iM3Helpdesk.API.Services.PermissionService>();
@@ -70,14 +73,6 @@ builder.Services.Configure<HolidayPostOptions>(
   builder.Configuration.GetSection("HolidayPosts"));
 builder.Services.AddHostedService<HolidayPostWorker>();
 builder.Services.AddHttpClient();
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-  options
-    .ConfigureWarnings(w =>
-      w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning))
-    .UseSqlServer(
-      builder.Configuration.GetConnectionString("DefaultConnection"),
-      b => b.MigrationsAssembly("iM3Helpdesk.Infrastructure")));
 
 builder.Services.AddHangfire(config =>
     config

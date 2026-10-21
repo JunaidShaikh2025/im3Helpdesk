@@ -412,3 +412,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# AI Agent installed skills and local customizations
+.agents/
+.gemini/

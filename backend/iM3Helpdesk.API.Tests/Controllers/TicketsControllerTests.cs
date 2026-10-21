@@ -154,12 +154,23 @@ public class TicketsControllerTests
     var emailMock = new Mock<IEmailService>();
     var slaMock = new Mock<ISlaService>();
 
-    var controller = new TicketsController(
+    var ticketRepository = new iM3Helpdesk.Infrastructure.Repositories.TicketRepository(context, tenantService);
+    var uow = new iM3Helpdesk.Infrastructure.Persistence.UnitOfWork(
         context,
+        tenantService,
+        ticketRepository,
+        new iM3Helpdesk.Infrastructure.Repositories.UserRepository(context, tenantService),
+        new iM3Helpdesk.Infrastructure.Repositories.AuditRepository(context));
+    var ticketService = new iM3Helpdesk.Application.Services.TicketService(
+        uow,
         tenantService,
         notificationMock.Object,
         emailMock.Object,
         slaMock.Object,
+        NullLogger<iM3Helpdesk.Application.Services.TicketService>.Instance);
+
+    var controller = new TicketsController(
+        ticketService,
         NullLogger<TicketsController>.Instance);
 
     var claims = new[]

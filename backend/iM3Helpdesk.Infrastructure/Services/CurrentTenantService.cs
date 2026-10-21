@@ -1,4 +1,4 @@
-﻿namespace iM3Helpdesk.Infrastructure.Services;
+namespace iM3Helpdesk.Infrastructure.Services;
 
 public class CurrentTenantService : ICurrentTenantService
 {

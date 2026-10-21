@@ -1,15 +1,18 @@
 using iM3Helpdesk.API.Controllers;
 using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Application.DTOs.Auth;
+using iM3Helpdesk.Application.Services;
 using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
+using iM3Helpdesk.Infrastructure.Repositories;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -53,12 +56,23 @@ public class AuthControllerTests
 
     var emailMock = new Mock<IEmailService>();
     var otpMock = new Mock<IOtpService>();
-
-    var controller = new AuthController(
+    var uow = new UnitOfWork(
         context,
+        tenantService,
+        new TicketRepository(context, tenantService),
+        new UserRepository(context, tenantService),
+        new AuditRepository(context));
+    var authService = new AuthService(
+        uow,
         config,
         emailMock.Object,
-        otpMock.Object)
+        otpMock.Object,
+        NullLogger<AuthService>.Instance);
+
+    var controller = new AuthController(
+        authService,
+        otpMock.Object,
+        NullLogger<AuthController>.Instance)
     {
       ControllerContext = new ControllerContext
       {
@@ -145,11 +159,25 @@ public class AuthControllerTests
     var httpContext = new DefaultHttpContext();
     httpContext.Request.Headers.Append("Cookie", $"im3_refresh={rawStolenToken}");
 
-    var controller = new AuthController(
+    var otpMock2 = new Mock<IOtpService>();
+    var tenantService2 = new FakeCurrentTenantService();
+    var uow2 = new UnitOfWork(
         context,
+        tenantService2,
+        new TicketRepository(context, tenantService2),
+        new UserRepository(context, tenantService2),
+        new AuditRepository(context));
+    var authService2 = new AuthService(
+        uow2,
         config,
         new Mock<IEmailService>().Object,
-        new Mock<IOtpService>().Object)
+        otpMock2.Object,
+        NullLogger<AuthService>.Instance);
+
+    var controller = new AuthController(
+        authService2,
+        otpMock2.Object,
+        NullLogger<AuthController>.Instance)
     {
       ControllerContext = new ControllerContext { HttpContext = httpContext }
     };

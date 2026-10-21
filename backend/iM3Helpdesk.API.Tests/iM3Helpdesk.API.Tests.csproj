@@ -20,7 +20,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\iM3Helpdesk.API\iM3Helpdesk.API.csproj" />
+    <ProjectReference Include="..\iM3Helpdesk.Application\iM3Helpdesk.Application.csproj" />
     <ProjectReference Include="..\iM3Helpdesk.Infrastructure\iM3Helpdesk.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Services\**" />
+    <Compile Remove="Integration\**" />
   </ItemGroup>
 
 </Project>

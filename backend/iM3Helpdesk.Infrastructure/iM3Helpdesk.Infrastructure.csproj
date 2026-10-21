@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\iM3Helpdesk.Domain\iM3Helpdesk.Domain.csproj" />
+    <ProjectReference Include="..\iM3Helpdesk.Application\iM3Helpdesk.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

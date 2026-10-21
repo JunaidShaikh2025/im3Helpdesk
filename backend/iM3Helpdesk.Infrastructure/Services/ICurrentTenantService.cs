@@ -1,7 +1,7 @@
-﻿namespace iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 
-public interface ICurrentTenantService
+namespace iM3Helpdesk.Infrastructure.Services;
+
+public interface ICurrentTenantService : ITenantService
 {
-    Guid? OrganizationId { get; }
-    bool IsSuperAdmin { get; }
 }
