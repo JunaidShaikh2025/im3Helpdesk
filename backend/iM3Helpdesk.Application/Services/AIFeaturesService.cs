@@ -294,26 +294,137 @@ public class AIFeaturesService : IAIFeaturesService
 
         var tickets = await _uow.Tickets.GetOpenTicketsAsync(orgId, cutoff, ct);
 
-        var duplicateGroups = new List<object>();
-        var processed = new HashSet<Guid>();
+        var result = DetectDuplicates(tickets);
 
-        for (int i = 0; i < tickets.Count; i++)
+        return ServiceResult<object>.Success(result);
+    }
+
+    public static DuplicateDetectionDto DetectDuplicates(IReadOnlyList<Ticket> tickets)
+    {
+        if (tickets == null || tickets.Count == 0)
+        {
+            return new DuplicateDetectionDto
+            {
+                Groups = new List<DuplicateGroupDto>(),
+                TotalDuplicates = 0,
+                PotentialSavings = 0
+            };
+        }
+
+        int n = tickets.Count;
+        var tokenSets = new HashSet<string>[n];
+        var wordDocFreq = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        // Pre-tokenize ticket titles once: O(n)
+        for (int i = 0; i < n; i++)
+        {
+            var tokens = Tokenize(tickets[i].Title);
+            tokenSets[i] = tokens;
+            foreach (var word in tokens)
+            {
+                wordDocFreq[word] = wordDocFreq.GetValueOrDefault(word) + 1;
+            }
+        }
+
+        // Build inverted index (word token -> list of ticket indices)
+        var invertedIndex = new Dictionary<string, List<int>>(wordDocFreq.Count, StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < n; i++)
+        {
+            foreach (var word in tokenSets[i])
+            {
+                if (!invertedIndex.TryGetValue(word, out var postingList))
+                {
+                    postingList = new List<int>();
+                    invertedIndex[word] = postingList;
+                }
+                postingList.Add(i);
+            }
+        }
+
+        // Rare word threshold: words appearing in <= maxRareFreq of tickets
+        int maxRareFreq = Math.Max(250, (int)(n * 0.05));
+
+        var duplicateGroups = new List<DuplicateGroupDto>();
+        var processed = new HashSet<Guid>();
+        var lastChecked = new int[n];
+        Array.Fill(lastChecked, -1);
+        var candidateBuffer = new List<int>(64);
+
+        // Compare candidate pairs sharing rare words: O(n * k)
+        for (int i = 0; i < n; i++)
         {
             if (processed.Contains(tickets[i].Id))
                 continue;
 
-            var group = new List<object>();
             var t1 = tickets[i];
-            var t1Words = GetWords(t1.Title);
+            var t1Tokens = tokenSets[i];
+            if (t1Tokens.Count == 0)
+                continue;
 
-            for (int j = i + 1; j < tickets.Count; j++)
+            candidateBuffer.Clear();
+
+            bool hasRareWord = false;
+            foreach (var word in t1Tokens)
             {
-                var t2 = tickets[j];
-                if (processed.Contains(t2.Id))
+                if (wordDocFreq[word] <= maxRareFreq)
+                {
+                    hasRareWord = true;
+                    if (invertedIndex.TryGetValue(word, out var postingList))
+                    {
+                        for (int k = 0; k < postingList.Count; k++)
+                        {
+                            int j = postingList[k];
+                            if (j <= i || processed.Contains(tickets[j].Id) || lastChecked[j] == i)
+                                continue;
+                            lastChecked[j] = i;
+                            candidateBuffer.Add(j);
+                        }
+                    }
+                }
+            }
+
+            if (!hasRareWord)
+            {
+                string? rarestWord = null;
+                int minFreq = int.MaxValue;
+                foreach (var word in t1Tokens)
+                {
+                    int freq = wordDocFreq[word];
+                    if (freq < minFreq)
+                    {
+                        minFreq = freq;
+                        rarestWord = word;
+                    }
+                }
+
+                if (rarestWord != null && invertedIndex.TryGetValue(rarestWord, out var postingList))
+                {
+                    for (int k = 0; k < postingList.Count; k++)
+                    {
+                        int j = postingList[k];
+                        if (j <= i || processed.Contains(tickets[j].Id) || lastChecked[j] == i)
+                            continue;
+                        lastChecked[j] = i;
+                        candidateBuffer.Add(j);
+                    }
+                }
+            }
+
+            if (candidateBuffer.Count == 0)
+                continue;
+
+            candidateBuffer.Sort();
+
+            List<DuplicateTicketItemDto>? groupTickets = null;
+
+            for (int c = 0; c < candidateBuffer.Count; c++)
+            {
+                int j = candidateBuffer[c];
+                if (processed.Contains(tickets[j].Id))
                     continue;
 
-                var t2Words = GetWords(t2.Title);
-                var sim = GetSimilarity(t1Words, t2Words);
+                var t2 = tickets[j];
+                var sim = CalculateSimilarity(t1Tokens, tokenSets[j]);
                 var sameUser = t1.CreatedByUserId == t2.CreatedByUserId;
                 var sameCategory = t1.Category == t2.Category;
 
@@ -321,56 +432,57 @@ public class AIFeaturesService : IAIFeaturesService
 
                 if (score >= 0.6)
                 {
-                    if (!group.Any())
+                    if (groupTickets == null)
                     {
-                        group.Add(new
+                        groupTickets = new List<DuplicateTicketItemDto>
                         {
-                            id = t1.Id,
-                            ticketNumber = t1.TicketNumber,
-                            title = t1.Title,
-                            status = t1.Status.ToString(),
-                            createdAt = t1.CreatedAt,
-                            isOriginal = true,
-                            similarity = 100
-                        });
+                            new()
+                            {
+                                Id = t1.Id,
+                                TicketNumber = t1.TicketNumber,
+                                Title = t1.Title,
+                                Status = t1.Status.ToString(),
+                                CreatedAt = t1.CreatedAt,
+                                IsOriginal = true,
+                                Similarity = 100
+                            }
+                        };
                     }
 
-                    group.Add(new
+                    groupTickets.Add(new DuplicateTicketItemDto
                     {
-                        id = t2.Id,
-                        ticketNumber = t2.TicketNumber,
-                        title = t2.Title,
-                        status = t2.Status.ToString(),
-                        createdAt = t2.CreatedAt,
-                        isOriginal = false,
-                        similarity = (int)(score * 100)
+                        Id = t2.Id,
+                        TicketNumber = t2.TicketNumber,
+                        Title = t2.Title,
+                        Status = t2.Status.ToString(),
+                        CreatedAt = t2.CreatedAt,
+                        IsOriginal = false,
+                        Similarity = (int)(score * 100)
                     });
 
                     processed.Add(t2.Id);
                 }
             }
 
-            if (group.Any())
+            if (groupTickets != null && groupTickets.Count > 0)
             {
                 processed.Add(t1.Id);
-                duplicateGroups.Add(new
+                duplicateGroups.Add(new DuplicateGroupDto
                 {
-                    groupId = Guid.NewGuid(),
-                    count = group.Count,
-                    tickets = group,
-                    confidence = group.Count > 0 ? "High" : "Medium"
+                    GroupId = Guid.NewGuid(),
+                    Count = groupTickets.Count,
+                    Tickets = groupTickets,
+                    Confidence = groupTickets.Count > 0 ? "High" : "Medium"
                 });
             }
         }
 
-        var result = new
+        return new DuplicateDetectionDto
         {
-            groups = duplicateGroups,
-            totalDuplicates = duplicateGroups.Count,
-            potentialSavings = duplicateGroups.Sum(g => ((dynamic)g).count - 1)
+            Groups = duplicateGroups,
+            TotalDuplicates = duplicateGroups.Count,
+            PotentialSavings = duplicateGroups.Sum(g => g.Count - 1)
         };
-
-        return ServiceResult<object>.Success(result);
     }
 
     public async Task<ServiceResult<MergeTicketsResultDto>> MergeTicketsAsync(MergeTicketsDto dto, Guid userId, CancellationToken ct = default)
@@ -722,25 +834,55 @@ public class AIFeaturesService : IAIFeaturesService
         return Regex.Replace(noTags, @"\s+", " ").Trim();
     }
 
+    private static readonly char[] TitleDelimiters = { ' ', ',', '.', '!', '?', '-', '_', '/' };
+
+    public static HashSet<string> Tokenize(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var parts = text.Split(TitleDelimiters, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        for (int i = 0; i < parts.Length; i++)
+        {
+            var part = parts[i];
+            if (part.Length > 2)
+            {
+                tokens.Add(part.ToLowerInvariant());
+            }
+        }
+        return tokens;
+    }
+
+    public static double CalculateSimilarity(HashSet<string> words1, HashSet<string> words2)
+    {
+        if (words1.Count == 0 || words2.Count == 0)
+            return 0;
+
+        var (smaller, larger) = words1.Count <= words2.Count ? (words1, words2) : (words2, words1);
+        int intersection = 0;
+        foreach (var word in smaller)
+        {
+            if (larger.Contains(word))
+                intersection++;
+        }
+
+        int union = words1.Count + words2.Count - intersection;
+        return union > 0 ? (double)intersection / union : 0;
+    }
+
     private static List<string> GetWords(string text)
     {
-        if (string.IsNullOrEmpty(text))
-            return new List<string>();
-
-        return text.ToLower()
-            .Split(new[] { ' ', ',', '.', '!', '?', '-', '_', '/' }, StringSplitOptions.RemoveEmptyEntries)
-            .Where(w => w.Length > 2)
-            .ToList();
+        return Tokenize(text).ToList();
     }
 
     private static double GetSimilarity(List<string> words1, List<string> words2)
     {
-        if (!words1.Any() || !words2.Any())
+        if (words1.Count == 0 || words2.Count == 0)
             return 0;
 
-        var intersection = words1.Intersect(words2).Count();
-        var union = words1.Union(words2).Count();
-
-        return union > 0 ? (double)intersection / union : 0;
+        var s1 = new HashSet<string>(words1, StringComparer.OrdinalIgnoreCase);
+        var s2 = new HashSet<string>(words2, StringComparer.OrdinalIgnoreCase);
+        return CalculateSimilarity(s1, s2);
     }
 }

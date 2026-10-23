@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface AdminPayment {
   id: string;
@@ -35,6 +36,7 @@ interface AdminPayment {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PendingPaymentsComponent {
+  private destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/superadmin/subscription`;
 
@@ -59,7 +61,7 @@ export class PendingPaymentsComponent {
   load(): void {
     const filter = this.statusFilter();
     const url = `${this.base}/payments` + (filter ? `?status=${filter}` : '');
-    this.http.get<AdminPayment[]>(url).subscribe({
+    this.http.get<AdminPayment[]>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: list => this.payments.set(list),
       error: () => this.payments.set([]),
     });
@@ -76,7 +78,7 @@ export class PendingPaymentsComponent {
 
   approve(p: AdminPayment): void {
     this.busyId.set(p.id);
-    this.http.post(`${this.base}/payments/${p.id}/approve`, { notes: this.reviewNotes()[p.id] || '' })
+    this.http.post(`${this.base}/payments/${p.id}/approve`, { notes: this.reviewNotes()[p.id] || '' }).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => { this.busyId.set(null); this.flash(`Approved · ${p.orgName} → ${p.planName}`); this.load(); },
         error: () => { this.busyId.set(null); this.flash('Approval failed'); },
@@ -86,7 +88,7 @@ export class PendingPaymentsComponent {
   reject(p: AdminPayment): void {
     if (!this.reviewNotes()[p.id]) { this.flash('Please add a rejection note'); return; }
     this.busyId.set(p.id);
-    this.http.post(`${this.base}/payments/${p.id}/reject`, { notes: this.reviewNotes()[p.id] })
+    this.http.post(`${this.base}/payments/${p.id}/reject`, { notes: this.reviewNotes()[p.id] }).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => { this.busyId.set(null); this.flash(`Rejected · ${p.orgName}`); this.load(); },
         error: () => { this.busyId.set(null); this.flash('Rejection failed'); },

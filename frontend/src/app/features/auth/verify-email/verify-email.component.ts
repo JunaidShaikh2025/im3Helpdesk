@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-verify-email',
@@ -12,6 +13,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./verify-email.scss']
 })
 export class VerifyEmailComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
   private route  = inject(ActivatedRoute);
   private router = inject(Router);
   private http   = inject(HttpClient);
@@ -34,7 +36,7 @@ export class VerifyEmailComponent implements OnInit, OnDestroy {
 
     this.http.get(
       `${environment.apiUrl}/Auth/verify-email?token=${token}`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.status = 'success';
         this.cdr.detectChanges();   // ✅ UI turant update

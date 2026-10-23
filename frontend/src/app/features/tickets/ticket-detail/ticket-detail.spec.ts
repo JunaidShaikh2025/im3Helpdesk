@@ -17,7 +17,7 @@ describe('TicketDetailComponent', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideRouter([]),
+        provideRouter([{ path: '**', children: [] }]),
         provideAnimations(),
         provideToastr()
       ],

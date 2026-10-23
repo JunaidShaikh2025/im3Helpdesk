@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, Input, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-audit-log',
@@ -21,6 +22,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./audit-log.scss']
 })
 export class AuditLogComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   @Input() embedded = false;
 
   private http = inject(HttpClient);
@@ -49,7 +51,7 @@ loadLogs() {
     url += `&entityType=${this.selectedType}`;
   }
 
-  this.http.get<any>(url).subscribe({
+  this.http.get<any>(url).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
     next: (res) => {
       this.logs = res.logs;
       this.total = res.total;

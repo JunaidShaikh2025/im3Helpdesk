@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-contacts-page',
@@ -15,6 +16,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./contacts-page.scss']
 })
 export class ContactsPageComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   public router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -46,7 +48,7 @@ export class ContactsPageComponent implements OnInit {
 
   loadContacts() {
     this.loading = true;
-    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.contacts = data;
         this.buildFilteredContacts(data);
@@ -110,7 +112,7 @@ export class ContactsPageComponent implements OnInit {
   }
 
   loadCompanies() {
-    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         const groups: any = {};
         data.forEach(c => {

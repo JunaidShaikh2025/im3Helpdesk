@@ -3,10 +3,11 @@
 // dismissible toasts in the top-right corner whenever a chat message
 // arrives - for direct messages and group chats.
 
-import { Injectable, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Injectable, OnDestroy, inject, signal, computed, DestroyRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
 import { ChatService } from './chat.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface ChatToast {
   id: string;
@@ -25,6 +26,7 @@ export interface ChatToast {
 
 @Injectable({ providedIn: 'root' })
 export class GlobalChatNotificationService implements OnDestroy {
+  private destroyRef = inject(DestroyRef);
   private chat = inject(ChatService);
   private router = inject(Router);
 
@@ -53,11 +55,11 @@ export class GlobalChatNotificationService implements OnDestroy {
     this.bindAudioUnlockHandlers();
 
     this.subs.push(
-      this.chat.newMessage$.subscribe(msg => this.onIncomingMessage(msg))
+      this.chat.newMessage$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(msg => this.onIncomingMessage(msg))
     );
 
     this.subs.push(
-      this.chat.currentlyViewing$.subscribe(view => {
+      this.chat.currentlyViewing$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(view => {
         if (!view) return;
         // If the user opens the thread, clear any pending toast for it.
         this.toasts.update(list =>

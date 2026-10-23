@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, DestroyRef, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
@@ -10,6 +10,7 @@ import {
   TOKEN_KEY,
   TWO_FACTOR_ENABLED_KEY
 } from '../constants/auth.constants';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface CurrentUser {
   id: string;
@@ -23,6 +24,7 @@ export interface CurrentUser {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private destroyRef = inject(DestroyRef);
   private apiUrl = `${environment.apiUrl}/Auth`;
   public currentUser = signal<CurrentUser | null>(null);
   private inMemoryAccessToken: string | null = null;
@@ -155,7 +157,7 @@ export class AuthService {
 
   // Tokens are stored in HttpOnly cookies to prevent XSS theft, with in-memory caching for active sockets.
   getToken(): string | null {
-    return this.inMemoryAccessToken;
+    return this.inMemoryAccessToken || localStorage.getItem(TOKEN_KEY);
   }
 
   getRefreshToken(): string | null {
@@ -220,9 +222,10 @@ export class AuthService {
   }
 
   logout(): void {
-    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).subscribe({
-      next: () => this.cleanLocalStateAndRedirect(),
-      error: () => this.cleanLocalStateAndRedirect()
+    this.cleanLocalStateAndRedirect();
+    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => void 0,
+      error: () => void 0
     });
   }
 

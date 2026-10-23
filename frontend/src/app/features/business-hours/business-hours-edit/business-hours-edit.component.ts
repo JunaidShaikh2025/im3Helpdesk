@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,6 +7,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import {
   BusinessHoursService, BusinessHoursDetail, BusinessHoursGroup, BusinessHoursHoliday
 } from '../../../core/services/business-hours.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type Tab = 'hours' | 'holidays' | 'groups';
 
@@ -24,6 +25,7 @@ interface DayRow {
   styleUrls: ['./business-hours-edit.scss']
 })
 export class BusinessHoursEditComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private api = inject(BusinessHoursService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -73,7 +75,7 @@ export class BusinessHoursEditComponent implements OnInit {
 
   load() {
     this.loading = true;
-    this.api.get(this.id).subscribe({
+    this.api.get(this.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.detail = d;
         this.nameDraft = d.name;
@@ -124,7 +126,7 @@ export class BusinessHoursEditComponent implements OnInit {
       endTime:   this.endTime,
     };
 
-    this.api.update(this.id, body).subscribe({
+    this.api.update(this.id, body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.detail = d;
         setTimeout(() => {
@@ -171,7 +173,7 @@ export class BusinessHoursEditComponent implements OnInit {
     const body = { name, date: this.hDate, isRecurring: this.hRecurring };
 
     if (this.editingHoliday) {
-      this.api.updateHoliday(this.id, this.editingHoliday.id, body).subscribe({
+      this.api.updateHoliday(this.id, this.editingHoliday.id, body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (h) => {
           const idx = this.detail!.holidays.findIndex(x => x.id === h.id);
           if (idx >= 0) this.detail!.holidays[idx] = h;
@@ -182,7 +184,7 @@ export class BusinessHoursEditComponent implements OnInit {
         error: (err) => this.toastr.error(err?.error?.message || 'Update failed.')
       });
     } else {
-      this.api.addHoliday(this.id, body).subscribe({
+      this.api.addHoliday(this.id, body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (h) => {
           this.detail!.holidays = [...this.detail!.holidays, h];
           this.showHolidayModal = false;
@@ -196,7 +198,7 @@ export class BusinessHoursEditComponent implements OnInit {
 
   removeHoliday(h: BusinessHoursHoliday) {
     if (!confirm(`Delete holiday "${h.name}"?`)) return;
-    this.api.deleteHoliday(this.id, h.id).subscribe({
+    this.api.deleteHoliday(this.id, h.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.detail!.holidays = this.detail!.holidays.filter(x => x.id !== h.id);
         this.toastr.success('Deleted.');
@@ -213,7 +215,7 @@ export class BusinessHoursEditComponent implements OnInit {
     if (this.saving) return;
     this.saving = true; this.cdr.detectChanges();
     const ids = this.groupsDraft.filter(g => g.assigned).map(g => g.id);
-    this.api.assignGroups(this.id, ids).subscribe({
+    this.api.assignGroups(this.id, ids).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => setTimeout(() => {
         this.saving = false;
         this.toastr.success('Groups updated.');

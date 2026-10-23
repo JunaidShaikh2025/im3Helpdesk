@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, ChangeDetectorRef, inject
+  Component, OnInit, ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -17,6 +17,7 @@ import { ToastrService } from 'ngx-toastr';
 import { KnowledgeBaseService } from '../../../core/services/knowledge-base.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-kb-create',
@@ -32,6 +33,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./kb-create.scss']
 })
 export class KbCreateComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private kbService = inject(KnowledgeBaseService);
   public  router    = inject(Router);
   private route     = inject(ActivatedRoute);
@@ -71,7 +73,7 @@ export class KbCreateComponent implements OnInit {
   }
 
   loadArticle() {
-    this.kbService.getById(this.articleId).subscribe({
+    this.kbService.getById(this.articleId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any) => {
         this.form.patchValue(data);
         if (data.mediaUrl && data.mediaType !== 'none') {
@@ -101,7 +103,7 @@ export class KbCreateComponent implements OnInit {
 
     // Upload to server
     this.uploadingMedia = true;
-    this.kbService.uploadMedia(file).subscribe({
+    this.kbService.uploadMedia(file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.mediaUrl       = res.url;
         this.mediaType      = res.mediaType;
@@ -147,7 +149,7 @@ export class KbCreateComponent implements OnInit {
       ? this.kbService.update(this.articleId, payload)
       : this.kbService.create(payload);
 
-    action.subscribe({
+    action.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading = false;
         this.cdr.detectChanges();

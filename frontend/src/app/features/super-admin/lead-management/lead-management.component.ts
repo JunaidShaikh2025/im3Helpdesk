@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, ChangeDetectorRef, OnInit, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, inject, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../core/services/super-admin.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-lead-management',
@@ -14,6 +15,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
   styleUrls: ['./lead-management.scss']
 })
 export class LeadManagementComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private superAdminService = inject(SuperAdminService);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -112,7 +114,7 @@ export class LeadManagementComponent implements OnInit {
     this.loading = true;
     // Fetch all leads once, then filter client-side. This keeps summary chips accurate
     // and avoids depending on a separate /summary endpoint.
-    this.superAdminService.getLeads(undefined).subscribe({
+    this.superAdminService.getLeads(undefined).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.allLeads = (data || []).map((l: any) => this.normalizeLead(l));
         this.computeSummary();
@@ -168,7 +170,7 @@ export class LeadManagementComponent implements OnInit {
     this.approvingId = lead.id;
     this.cdr.detectChanges();
 
-    this.superAdminService.approveLead(lead.id).subscribe({
+    this.superAdminService.approveLead(lead.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.lastGeneratedSetupUrl = res?.setupUrl || '';
         this.lastGeneratedFor = lead.organizationName || lead.workEmail || 'Lead';
@@ -227,7 +229,7 @@ export class LeadManagementComponent implements OnInit {
     this.rejectingId = lead.id;
     this.cdr.detectChanges();
 
-    this.superAdminService.rejectLead(lead.id).subscribe({
+    this.superAdminService.rejectLead(lead.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Lead rejected.');
         const target = this.allLeads.find(x => x.id === lead.id);

@@ -30,9 +30,28 @@ public class AiInsightsDto
 
 public class DuplicateDetectionDto
 {
-    public object Groups { get; set; } = new();
+    public List<DuplicateGroupDto> Groups { get; set; } = new();
     public int TotalDuplicates { get; set; }
     public int PotentialSavings { get; set; }
+}
+
+public class DuplicateGroupDto
+{
+    public Guid GroupId { get; set; }
+    public int Count { get; set; }
+    public List<DuplicateTicketItemDto> Tickets { get; set; } = new();
+    public string Confidence { get; set; } = string.Empty;
+}
+
+public class DuplicateTicketItemDto
+{
+    public Guid Id { get; set; }
+    public int TicketNumber { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public bool IsOriginal { get; set; }
+    public int Similarity { get; set; }
 }
 
 public class TicketSummaryDto

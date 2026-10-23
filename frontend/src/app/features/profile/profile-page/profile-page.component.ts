@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -7,6 +7,7 @@ import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-profile-page',
@@ -22,6 +23,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./profile-page.scss']
 })
 export class ProfilePageComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private static readonly PROFILE_FIELDS = [
     'fullName',
     'email',
@@ -116,14 +118,14 @@ export class ProfilePageComponent implements OnInit {
     this.profileForm.disable({ emitEvent: false });
     this.loadProfile();
     if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
-    this.profileForm.valueChanges.subscribe(() => {
+    this.profileForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.refreshCompletion();
       this.cdr.detectChanges();
     });
   }
 
   private loadMailboxSetupStatus() {
-    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (org) => {
         const smtpPasswordSet = Boolean(org?.smtpPasswordSet);
         const complete = Boolean(
@@ -154,7 +156,7 @@ export class ProfilePageComponent implements OnInit {
   }
 
   loadProfile() {
-    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Profile`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.profileForm.patchValue({
           fullName: data.fullName ?? '',
@@ -229,7 +231,7 @@ export class ProfilePageComponent implements OnInit {
     this.http.post<any>(
       `${environment.apiUrl}/Profile/upload-photo`,
       formData
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.photoUrl = environment.baseUrl + res.photoUrl;
         this.photoPreview = '';
@@ -287,7 +289,7 @@ export class ProfilePageComponent implements OnInit {
     this.savingProfile = true;
     this.cdr.detectChanges();
 
-    this.http.put(`${environment.apiUrl}/Profile`, payload).subscribe({
+    this.http.put(`${environment.apiUrl}/Profile`, payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.savingProfile = false;
         this.isEditMode = false;
@@ -347,7 +349,7 @@ export class ProfilePageComponent implements OnInit {
       currentPassword: this.currentPasswordCtrl.value,
       newPassword: this.newPasswordCtrl.value,
       confirmNewPassword: this.confirmPasswordCtrl.value
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.changingPassword = false;
         this.showPasswordForm = false;
@@ -451,7 +453,7 @@ export class ProfilePageComponent implements OnInit {
     const enabled = (event.target as HTMLInputElement).checked;
     this.http.put<any>(`${environment.apiUrl}/Profile/two-factor`, {
       isTwoFactorEnabled: enabled
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.twoFactorEnabled = !!res?.isTwoFactorEnabled;
         this.authService.setTwoFactorEnabled(this.twoFactorEnabled);

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { HttpClient } from '@angular/common/http';
 import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-global-search',
@@ -20,6 +21,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./global-search.scss']
 })
 export class GlobalSearchComponent {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   public router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
@@ -36,7 +38,7 @@ export class GlobalSearchComponent {
       switchMap(q => {
         if (q.length < 2) return [];
         return this.http.get<any>(`${environment.apiUrl}/Search?q=${q}`);
-      })
+      }), takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (data) => {
         this.results = data;

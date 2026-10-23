@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { SubscriptionService } from '../../../core/services/subscription.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-plans-billing',
@@ -13,6 +14,7 @@ import { SubscriptionService } from '../../../core/services/subscription.service
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlansBillingComponent {
+  private destroyRef = inject(DestroyRef);
   private readonly subSvc = inject(SubscriptionService);
   private readonly router = inject(Router);
 
@@ -181,11 +183,11 @@ export class PlansBillingComponent {
       billingCycle: this.manageCycle(),
       agentSeats: seats,
       notes: this.manageNotes() || 'Manage subscription request',
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.manageBusy.set(false);
         this.manageOk.set('Request sent to SuperAdmin for approval.');
-        this.subSvc.myPayments().subscribe({
+        this.subSvc.myPayments().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: rows => this.payments.set(rows),
           error: () => void 0,
         });
@@ -198,8 +200,8 @@ export class PlansBillingComponent {
   }
 
   constructor() {
-    this.subSvc.ensureLoaded().subscribe({ error: () => void 0 });
-    this.subSvc.myPayments().subscribe({
+    this.subSvc.ensureLoaded().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => void 0 });
+    this.subSvc.myPayments().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: rows => this.payments.set(rows),
       error: () => this.payments.set([]),
     });

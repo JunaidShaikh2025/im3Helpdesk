@@ -12,7 +12,7 @@ describe('Frontend Architectural Layering Boundary', () => {
 
   it('core guards must never import from features layer', () => {
     const guardsDir = path.resolve(__dirname, '../guards');
-    const files = fs.readdirSync(guardsDir).filter(f => f.endsWith('.ts') && !f.endsWith('.spec.ts'));
+    const files = fs.readdirSync(guardsDir).filter((f: string) => f.endsWith('.ts') && !f.endsWith('.spec.ts'));
     for (const file of files) {
       const content = fs.readFileSync(path.join(guardsDir, file), 'utf-8');
       expect(content).not.toContain('features/auth');

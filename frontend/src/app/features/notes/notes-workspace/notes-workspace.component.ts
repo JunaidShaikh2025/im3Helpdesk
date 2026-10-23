@@ -1,13 +1,14 @@
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectionStrategy, ChangeDetectorRef, inject,
-  ViewChild, ElementRef
+  ViewChild, ElementRef, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { NotesService, NoteBook, NoteSection, NotePage } from '../../../core/services/notes.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-notes-workspace',
@@ -18,6 +19,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NotesWorkspaceComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
   private svc = inject(NotesService);
   private cdr = inject(ChangeDetectorRef);
   private san = inject(DomSanitizer);
@@ -75,7 +77,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
   // ── Load ──────────────────────────────────────────────────────────────────
   loadBooks() {
     this.loading = true;
-    this.svc.getBooks().subscribe({
+    this.svc.getBooks().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (books) => {
         this.books   = books;
         this.loading = false;
@@ -96,7 +98,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   loadSections(bookId: string) {
-    this.svc.getSections(bookId).subscribe({
+    this.svc.getSections(bookId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (secs) => {
         this.sections = secs;
         // Auto-open first page
@@ -120,7 +122,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
     this.loadingPage     = true;
     this.cdr.detectChanges();
 
-    this.svc.getPage(page.id).subscribe({
+    this.svc.getPage(page.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (full) => {
         this.selectedPage    = full;
         this.editingTitle    = full.title;
@@ -150,7 +152,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
     this.newBookName = '';
     if (!name) return;
     const color = this.COLORS[this.books.length % this.COLORS.length];
-    this.svc.createBook(name, color).subscribe({
+    this.svc.createBook(name, color).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (b) => { this.books.push(b); this.selectBook(b); this.cdr.detectChanges(); }
     });
   }
@@ -166,13 +168,13 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
     const name = this.renameBookVal.trim();
     this.renamingBookId = '';
     if (!name) return;
-    this.svc.updateBook(b.id, name, b.color).subscribe({ next: () => { b.name = name; this.cdr.detectChanges(); } });
+    this.svc.updateBook(b.id, name, b.color).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { b.name = name; this.cdr.detectChanges(); } });
   }
 
   deleteBook(b: NoteBook, e: Event) {
     e.stopPropagation();
     if (this.deletingBookId === b.id) {
-      this.svc.deleteBook(b.id).subscribe({ next: () => {
+      this.svc.deleteBook(b.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => {
         this.books = this.books.filter(x => x.id !== b.id);
         if (this.selectedBook?.id === b.id) { this.selectedBook = null; this.sections = []; this.selectedPage = null; }
         if (this.books.length) this.selectBook(this.books[0]);
@@ -200,7 +202,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
     this.showNewSection = false;
     this.newSectionName = '';
     if (!name || !bid) return;
-    this.svc.createSection(bid, name).subscribe({
+    this.svc.createSection(bid, name).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (s) => {
         this.sections.push({ ...s, pages: [] });
         this.cdr.detectChanges();
@@ -219,13 +221,13 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
     const name = this.renameSectionVal.trim();
     this.renamingSectionId = '';
     if (!name) return;
-    this.svc.updateSection(s.id, name).subscribe({ next: () => { s.name = name; this.cdr.detectChanges(); } });
+    this.svc.updateSection(s.id, name).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { s.name = name; this.cdr.detectChanges(); } });
   }
 
   deleteSection(s: NoteSection, e: Event) {
     e.stopPropagation();
     if (this.deletingSectionId === s.id) {
-      this.svc.deleteSection(s.id).subscribe({ next: () => {
+      this.svc.deleteSection(s.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => {
         this.sections = this.sections.filter(x => x.id !== s.id);
         if (this.selectedSection?.id === s.id) { this.selectedSection = null; this.selectedPage = null; }
         this.deletingSectionId = '';
@@ -248,7 +250,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
 
   // ── Page CRUD ─────────────────────────────────────────────────────────────
   addPage(s: NoteSection) {
-    this.svc.createPage(s.id, 'Untitled Page').subscribe({
+    this.svc.createPage(s.id, 'Untitled Page').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (p) => {
         if (!s.pages) s.pages = [];
         s.pages.push(p);
@@ -262,7 +264,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
   deletePage(p: NotePage, s: NoteSection, e: Event) {
     e.stopPropagation();
     if (this.deletingPageId === p.id) {
-      this.svc.deletePage(p.id).subscribe({ next: () => {
+      this.svc.deletePage(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => {
         if (s.pages) s.pages = s.pages.filter(x => x.id !== p.id);
         if (this.selectedPage?.id === p.id) {
           this.selectedPage = null;
@@ -302,7 +304,7 @@ export class NotesWorkspaceComponent implements OnInit, OnDestroy {
     this.saveState = 'saving';
     this.cdr.detectChanges();
 
-    this.svc.updatePage(this.selectedPage.id, title, content).subscribe({
+    this.svc.updatePage(this.selectedPage.id, title, content).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         if (this.selectedPage) {
           this.selectedPage.title     = title;

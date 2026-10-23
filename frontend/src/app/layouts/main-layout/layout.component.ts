@@ -4,7 +4,7 @@ import {
   ChangeDetectorRef, inject,
   ViewChild,
   ElementRef,
-  HostListener
+  HostListener, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -34,6 +34,7 @@ import { TopbarContextService } from '../../core/services/topbar-context.service
 import { OrgContextService } from '../../core/services/org-context.service';
 import { RoleRightsService } from '../../core/services/role-rights.service';
 import { SubscriptionService } from '../../core/services/subscription.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-layout',
@@ -50,6 +51,7 @@ import { SubscriptionService } from '../../core/services/subscription.service';
   styleUrls: ['./layout.scss']
 })
 export class LayoutComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
   private closeOtherTopbarPopups(except: 'profile' | 'search' | 'birthday' | 'kb' | 'notif' | 'todo') {
     let changed = false;
 
@@ -360,7 +362,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   loadTodoCount() {
     this.http.get<any>(
       `${environment.apiUrl}/Todo/unread-count`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.todoCount = data?.count ?? 0;
         this.cdr.detectChanges();
@@ -379,7 +381,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   loadMyTicketCounts() {
     this.http.get<any>(
       `${environment.apiUrl}/Tickets/my-status-counts`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.myTicketCounts = {
           open: data?.open ?? 0,
@@ -419,7 +421,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private loadSuperAdminPendingLeadsCount() {
     // Avoid depending on /admin/leads/summary (may not exist on older backends).
     // Use the list endpoint and compute pending count.
-    this.http.get<any[]>(`${environment.apiUrl}/admin/leads`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/admin/leads`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (rows) => {
         const list = Array.isArray(rows) ? rows : [];
         this.superAdminPendingLeadsCount = list.filter(x => {
@@ -438,7 +440,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   private loadSuperAdminPendingPaymentsCount() {
-    this.http.get<any[]>(`${environment.apiUrl}/superadmin/subscription/payments?status=Pending`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/superadmin/subscription/payments?status=Pending`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (rows) => {
         this.superAdminPendingPaymentsCount = Array.isArray(rows) ? rows.length : 0;
         this.cdr.detectChanges();
@@ -531,7 +533,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     this.http.get<any>(
       `${environment.apiUrl}/Birthdays/reminders`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.birthdayLastLoadedAt = now;
         const items = Array.isArray(data?.items) ? data.items : [];
@@ -570,7 +572,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     this.http.get<any>(
       `${environment.apiUrl}/Holidays/reminders`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.holidayLastLoadedAt = now;
         const items = Array.isArray(data?.items) ? data.items : [];
@@ -619,7 +621,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   loadKbUnread() {
     this.http.get<any>(
       `${environment.apiUrl}/KnowledgeBase/unread-count`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.kbUnreadCount    = data.count    || 0;
         this.kbUnreadArticles = data.articles || [];
@@ -653,7 +655,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   loadMissedCallCount() {
     this.http.get<any>(
       `${environment.apiUrl}/CallLog/unread-missed`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.missedCallCount = data.count ?? data.missedCount ?? 0;
         this.cdr.detectChanges();
@@ -673,10 +675,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.isCompanyAdmin = this.userRole === 'CompanyAdmin';
 
     // Load this user's effective permission map (used by UI gates).
-    this.rr.loadMine().subscribe({ error: () => { /* non-fatal */ } });
+    this.rr.loadMine().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => { /* non-fatal */ } });
     // SuperAdmin has no organization, so /subscription/me would 401.
     if (!this.isSuperAdmin) {
-      this.sub.ensureLoaded().subscribe({ error: () => { /* non-fatal */ } });
+      this.sub.ensureLoaded().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => { /* non-fatal */ } });
     }
 
     const savedEmail = localStorage.getItem('im3_email');
@@ -739,7 +741,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   private loadMailboxSetupStatus() {
-    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (org) => {
         const smtpPasswordSet = Boolean(org?.smtpPasswordSet);
         const complete = Boolean(
@@ -829,7 +831,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   ];
 
   loadProfile() {
-    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Profile`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         if (data.photoUrl) {
           this.userPhotoUrl = environment.apiUrl.replace('/api','') + data.photoUrl;
@@ -854,7 +856,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Notifications
   // ──────────────────────────────────────────────
   loadNotifications() {
-    this.http.get<any[]>(`${environment.apiUrl}/Notifications`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Notifications`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.notifications = data;
         this.unreadCount   = data.filter(n => !n.isRead).length;
@@ -864,7 +866,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   loadUnreadCount() {
-    this.http.get<any>(`${environment.apiUrl}/Notifications/unread-count`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Notifications/unread-count`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => { this.unreadCount = data.count || 0; this.cdr.detectChanges(); },
       error: () => {}
     });
@@ -888,7 +890,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   markAllRead() {
-    this.http.put(`${environment.apiUrl}/Notifications/mark-all-read`, {}).subscribe({
+    this.http.put(`${environment.apiUrl}/Notifications/mark-all-read`, {}).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;
@@ -899,7 +901,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   goToNotification(n: any) {
     this.showNotifDropdown = false;
-    this.http.put(`${environment.apiUrl}/Notifications/${n.id}/read`, {}).subscribe({
+    this.http.put(`${environment.apiUrl}/Notifications/${n.id}/read`, {}).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         const notif = this.notifications.find(x => x.id === n.id);
         if (notif) notif.isRead = true;

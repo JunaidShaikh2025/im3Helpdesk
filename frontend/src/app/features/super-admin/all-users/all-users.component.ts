@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,6 +7,7 @@ import { SuperAdminService } from '../../../core/services/super-admin.service';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-all-users',
@@ -19,6 +20,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./all-users.scss']
 })
 export class AllUsersComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private superAdminService = inject(SuperAdminService);
   private authService = inject(AuthService);
   public router = inject(Router);
@@ -45,7 +47,7 @@ export class AllUsersComponent implements OnInit {
 
   loadUsers() {
     this.loading = true;
-    this.superAdminService.getAllUsers().subscribe({
+    this.superAdminService.getAllUsers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.allUsers = data;
         this.applyFilter();
@@ -115,7 +117,7 @@ export class AllUsersComponent implements OnInit {
     this.selectedUser = null;
     this.cdr.detectChanges();
 
-    this.superAdminService.getUserById(id).subscribe({
+    this.superAdminService.getUserById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.selectedUser = res;
         this.detailsLoading = false;

@@ -5,7 +5,7 @@
 // 3. Call notification streams global service ke through flow karti hain
 
 import {
-  Injectable, inject
+  Injectable, inject, DestroyRef
 } from '@angular/core';
 import {
   HttpClient
@@ -16,9 +16,11 @@ import {
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
 import { TOKEN_KEY } from '../constants/auth.constants';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
+  private destroyRef = inject(DestroyRef);
 
   private http        = inject(HttpClient);
 
@@ -158,7 +160,7 @@ export class ChatService {
   }
 
   loadUnreadCount() {
-    this.getUnreadCount().subscribe({
+    this.getUnreadCount().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) =>
         this.unreadCount$.next(d.count || 0),
       error: () => {}
@@ -191,7 +193,7 @@ export class ChatService {
       this.http.post<any>(
         `${this.BASE}/api/CallLog/mark-read`,
         {}
-      ).subscribe({
+      ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (d) => {
           // ✅ Instantly badge 0 karo
           this.missedCallCount$.next(0);

@@ -1,6 +1,6 @@
 import {
   Component, OnInit, Output, EventEmitter,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-todo-panel',
@@ -17,6 +18,7 @@ import { HasPermissionDirective } from '../../../core/directives/has-permission.
   styleUrls: ['./todo-panel.scss']
 })
 export class TodoPanelComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
 
   @Output() close = new EventEmitter<void>();
   @Output() changed = new EventEmitter<number>();
@@ -43,7 +45,7 @@ export class TodoPanelComponent implements OnInit {
   }
 
   loadTodos() {
-    this.http.get<any[]>(`${environment.apiUrl}/Todo`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Todo`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.todos = data;
         this.changed.emit(this.pendingCount);
@@ -58,7 +60,7 @@ export class TodoPanelComponent implements OnInit {
     this.http.post<any>(
       `${environment.apiUrl}/Todo`,
       { title: this.newTitle.trim() }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (todo) => {
         this.todos.unshift(todo);
         this.newTitle = '';
@@ -73,7 +75,7 @@ export class TodoPanelComponent implements OnInit {
       `${environment.apiUrl}/Todo` +
       `/${todo.id}/toggle`,
       {}
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         todo.isCompleted = res.isCompleted;
         this.changed.emit(this.pendingCount);
@@ -83,7 +85,7 @@ export class TodoPanelComponent implements OnInit {
   }
 
   deleteTodo(id: string) {
-    this.http.delete(`${environment.apiUrl}/Todo/${id}`).subscribe({
+    this.http.delete(`${environment.apiUrl}/Todo/${id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.todos =
           this.todos.filter(t => t.id !== id);

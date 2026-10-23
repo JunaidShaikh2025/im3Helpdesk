@@ -2,7 +2,7 @@ import {
   Component,
   OnInit,
   ChangeDetectorRef,
-  inject
+  inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import {
   YearDetail,
   YearSetupSummary
 } from '../../../core/services/holiday.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface DraftHoliday {
   // Local-only id used to track unsaved rows in the table.
@@ -49,6 +50,7 @@ interface DraftHoliday {
   styleUrls: ['./holiday-setup.scss']
 })
 export class HolidaySetupComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private holidayService = inject(HolidayService);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -85,7 +87,7 @@ export class HolidaySetupComponent implements OnInit {
   // ─────────────────────────────────────────────────
   loadYears(autoSelectFirst = false) {
     this.loading = true;
-    this.holidayService.listYears().subscribe({
+    this.holidayService.listYears().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.years = res || [];
         this.loading = false;
@@ -107,7 +109,7 @@ export class HolidaySetupComponent implements OnInit {
 
   selectYear(year: number) {
     this.selectedYear = year;
-    this.holidayService.getYear(year).subscribe({
+    this.holidayService.getYear(year).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.detail = d;
         this.editFloatingAllowance = d.setup.floatingHolidayAllowance || 0;
@@ -157,7 +159,7 @@ export class HolidaySetupComponent implements OnInit {
       year: y,
       floatingHolidayAllowance: 0,
       policyText: ''
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success(`Holiday list ${y} created`);
         this.showNewYearPanel = false;
@@ -172,7 +174,7 @@ export class HolidaySetupComponent implements OnInit {
     if (!this.selectedYear) return;
     if (!confirm(`Delete the holiday list for ${this.selectedYear}? This also removes every holiday row for that year.`)) return;
 
-    this.holidayService.deleteYear(this.selectedYear).subscribe({
+    this.holidayService.deleteYear(this.selectedYear).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Year deleted');
         this.detail = null;
@@ -193,7 +195,7 @@ export class HolidaySetupComponent implements OnInit {
       year: this.selectedYear,
       floatingHolidayAllowance: this.editFloatingAllowance || 0,
       policyText: this.editPolicyText || ''
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.toastr.success('Saved');
@@ -223,7 +225,7 @@ export class HolidaySetupComponent implements OnInit {
       : false;
 
     this.uploadingPdf = true;
-    this.holidayService.uploadPdf(this.selectedYear, file, replace).subscribe({
+    this.holidayService.uploadPdf(this.selectedYear, file, replace).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         // Defer all state mutations + toast + reload to the next macrotask
         // so we don't trip Angular's NG0100 (ExpressionChangedAfterChecked).
@@ -296,7 +298,7 @@ export class HolidaySetupComponent implements OnInit {
       occasion: r.occasion.trim(),
       day: this.computeDayLabel(r.date, r.isFloating, r.day),
       isFloating: !!r.isFloating
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (created) => {
         this.rows = [...this.rows, {
           id: created.id, date: created.date, occasion: created.occasion,
@@ -334,7 +336,7 @@ export class HolidaySetupComponent implements OnInit {
       occasion: row.occasion.trim(),
       day: this.computeDayLabel(row.date, row.isFloating, row.day),
       isFloating: !!row.isFloating
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (u) => {
         row.saving = false;
         row.editing = false;
@@ -356,7 +358,7 @@ export class HolidaySetupComponent implements OnInit {
   deleteRow(row: DraftHoliday) {
     if (!row.id) return;
     if (!confirm(`Delete "${row.occasion}"?`)) return;
-    this.holidayService.delete(row.id).subscribe({
+    this.holidayService.delete(row.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.rows = this.rows.filter(r => r.id !== row.id);
         this.loadYears(false);

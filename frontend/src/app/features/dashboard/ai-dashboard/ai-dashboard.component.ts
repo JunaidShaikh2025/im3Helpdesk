@@ -2,7 +2,7 @@ import {
   Component, OnInit,
   ChangeDetectorRef, inject,
   ViewChildren, QueryList,
-  ElementRef, AfterViewInit
+  ElementRef, AfterViewInit, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,7 @@ import {
   TicketSmartAssignResult,
   AgentRecommendation
 } from '../../../core/services/smart-assign.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-ai-dashboard',
@@ -33,6 +34,7 @@ import {
 })
 export class AIDashboardComponent
   implements OnInit, AfterViewInit {
+  private destroyRef = inject(DestroyRef);
 
   private http = inject(HttpClient);
   public router = inject(Router);
@@ -124,7 +126,7 @@ export class AIDashboardComponent
     this.http.get<any>(
       `${this.BASE}/api/AIFeatures` +
       `/tide-forecast?days=7`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.tideData = d;
         this.tideLoading = false;
@@ -272,7 +274,7 @@ export class AIDashboardComponent
   // ── INSIGHTS ─────────────────────────
   loadInsights() {
     this.insightsLoading = true;
-    this.http.get<any>(`${this.BASE}/api/AIFeatures/insights`).subscribe({
+    this.http.get<any>(`${this.BASE}/api/AIFeatures/insights`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.insightsData = d;
         this.insightsLoading = false;
@@ -299,7 +301,7 @@ export class AIDashboardComponent
   // ── DUPLICATES ───────────────────────
   loadDuplicates() {
     this.duplicatesLoading = true;
-    this.http.get<any>(`${this.BASE}/api/AIFeatures/duplicates`).subscribe({
+    this.http.get<any>(`${this.BASE}/api/AIFeatures/duplicates`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.duplicatesData = d;
         this.duplicatesLoading = false;
@@ -338,7 +340,7 @@ export class AIDashboardComponent
         originalTicketId: origTicket.id,
         ticketIdsToClose: toClose
       }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.mergeLoading = false;
         this.mergingGroup = null;
@@ -358,7 +360,7 @@ export class AIDashboardComponent
 
   // ── TICKET SUMMARY ───────────────────
   loadRecentTickets() {
-    this.http.get<any[]>(`${this.BASE}/api/Tickets`).subscribe({
+    this.http.get<any[]>(`${this.BASE}/api/Tickets`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.recentTickets = d.slice(0, 15);
         this.cdr.detectChanges();
@@ -379,7 +381,7 @@ export class AIDashboardComponent
     this.http.get<any>(
       `${this.BASE}/api/AIFeatures` +
       `/summary/${id}`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.summaryData = d;
         this.summaryLoading = false;
@@ -437,7 +439,7 @@ export class AIDashboardComponent
     this.hotTopicsLoading = true;
     this.http.get<any>(
       `${this.BASE}/api/AIFeatures/hot-topics`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.hotTopicsData = d;
         this.hotTopicsLoading = false;
@@ -546,7 +548,7 @@ export class AIDashboardComponent
     try {
       this.smartAssign.connectHub();
 
-      this.smartAssign.smartAssigned$.subscribe((ev) => {
+      this.smartAssign.smartAssigned$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
         if (ev) {
           this.smartAssignQueue = this.smartAssignQueue.filter(
             (t) => t.ticketId.toLowerCase() !== ev.ticketId.toLowerCase()
@@ -562,13 +564,13 @@ export class AIDashboardComponent
         }
       });
 
-      this.smartAssign.suggestionGenerated$.subscribe((ev) => {
+      this.smartAssign.suggestionGenerated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
         if (ev) {
           this.loadSmartAssign();
         }
       });
 
-      this.smartAssign.modelRetrained$.subscribe((ev) => {
+      this.smartAssign.modelRetrained$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
         if (ev && this.smartAssignStats) {
           this.smartAssignStats.activeModelVersion = ev.version;
           this.smartAssignStats.modelAccuracy = ev.accuracy;
@@ -578,7 +580,7 @@ export class AIDashboardComponent
         }
       });
 
-      this.smartAssign.workloadUpdated$.subscribe((ev) => {
+      this.smartAssign.workloadUpdated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
         if (ev && this.smartAssignStats?.agentWorkloads) {
           const item = this.smartAssignStats.agentWorkloads.find(
             (w) => w.agentId.toLowerCase() === ev.agentId.toLowerCase()
@@ -597,7 +599,7 @@ export class AIDashboardComponent
 
   loadSmartAssign(): void {
     this.smartAssignLoading = true;
-    this.smartAssign.getStats().subscribe({
+    this.smartAssign.getStats().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (stats) => {
         this.smartAssignStats = stats;
         this.smartAssignLoading = false;
@@ -612,7 +614,7 @@ export class AIDashboardComponent
       }
     });
 
-    this.smartAssign.getUnassignedQueue(30).subscribe({
+    this.smartAssign.getUnassignedQueue(30).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (queue) => {
         this.smartAssignQueue = queue || [];
         this.cdr.detectChanges();
@@ -624,7 +626,7 @@ export class AIDashboardComponent
   toggleSmartAssignMode(): void {
     if (!this.smartAssignStats) return;
     const nextMode = this.smartAssignStats.mode === 'Auto' ? 'Suggest' : 'Auto';
-    this.smartAssign.updateConfig({ mode: nextMode }).subscribe({
+    this.smartAssign.updateConfig({ mode: nextMode }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (cfg) => {
         if (this.smartAssignStats) {
           this.smartAssignStats.mode = cfg.mode;
@@ -639,7 +641,7 @@ export class AIDashboardComponent
     this.retrainSuccessMsg = '';
     this.retrainErrorMsg = '';
 
-    this.smartAssign.retrainModel().subscribe({
+    this.smartAssign.retrainModel().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.retraining = false;
         if (res.success) {
@@ -682,7 +684,7 @@ export class AIDashboardComponent
         ticket.ticketId,
         agentId,
         `Assigned via Smart Assign Agent to ${agentName}`
-      )
+      ).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.assigningTicketId = '';

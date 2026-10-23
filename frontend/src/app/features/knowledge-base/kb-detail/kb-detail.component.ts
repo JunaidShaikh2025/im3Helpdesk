@@ -1,6 +1,6 @@
 import {
   Component, OnInit,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
 import { ToastrService } from 'ngx-toastr';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-kb-detail',
@@ -25,6 +26,7 @@ import { ToastrService } from 'ngx-toastr';
   styleUrls: ['./kb-detail.scss']
 })
 export class KbDetailComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private kbService   = inject(KnowledgeBaseService);
   private authService = inject(AuthService);
   private route       = inject(ActivatedRoute);
@@ -59,7 +61,7 @@ export class KbDetailComponent implements OnInit {
     this.userRole  = this.authService.getUserRole();
     this.articleId = this.route.snapshot.paramMap.get('id') || '';
 
-    this.kbService.getById(this.articleId).subscribe({
+    this.kbService.getById(this.articleId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any) => {
         this.article     = data;
         this.viewCount   = data.viewCount || 0;
@@ -69,7 +71,7 @@ export class KbDetailComponent implements OnInit {
         this.comments    = data.comments || [];
         this.loading     = false;
         this.cdr.detectChanges();
-        this.kbService.recordView(this.articleId).subscribe();
+        this.kbService.recordView(this.articleId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
       },
       error: () => {
         this.loading = false;
@@ -80,7 +82,7 @@ export class KbDetailComponent implements OnInit {
 
   // ── Reactions ──────────────────────────────
   react(type: 'like' | 'dislike') {
-    this.kbService.react(this.articleId, type).subscribe({
+    this.kbService.react(this.articleId, type).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.likeCount    = res.likeCount;
         this.dislikeCount = res.dislikeCount;
@@ -96,7 +98,7 @@ export class KbDetailComponent implements OnInit {
     const text = this.commentText.trim();
     if (!text) return;
 
-    this.kbService.addComment(this.articleId, text).subscribe({
+    this.kbService.addComment(this.articleId, text).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (c: any) => {
         this.comments.push(c);
         this.commentText = '';
@@ -115,7 +117,7 @@ export class KbDetailComponent implements OnInit {
   saveEditComment(c: any) {
     const text = this.editingCommentText.trim();
     if (!text) return;
-    this.kbService.updateComment(c.id, text).subscribe({
+    this.kbService.updateComment(c.id, text).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         c.text = res.text;
         c.updatedAt = new Date().toISOString();
@@ -133,7 +135,7 @@ export class KbDetailComponent implements OnInit {
 
   deleteComment(commentId: string) {
     if (!confirm('Delete this comment?')) return;
-    this.kbService.deleteComment(commentId).subscribe({
+    this.kbService.deleteComment(commentId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.comments = this.comments.filter(c => c.id !== commentId);
         this.cdr.detectChanges();
@@ -146,7 +148,7 @@ export class KbDetailComponent implements OnInit {
   toggleViewers() {
     this.showViewers = !this.showViewers;
     if (this.showViewers) {
-      this.kbService.getViewers(this.articleId).subscribe({
+      this.kbService.getViewers(this.articleId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (data: any) => {
           this.articleViewers = data.viewers || [];
           this.viewCount = data.viewCount || 0;
@@ -160,7 +162,7 @@ export class KbDetailComponent implements OnInit {
   // ── Delete Post ────────────────────────────
   deletePost() {
     if (!confirm('Delete this post permanently?')) return;
-    this.kbService.delete(this.articleId).subscribe({
+    this.kbService.delete(this.articleId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Post deleted');
         this.router.navigate([this.getBackRoute()]);

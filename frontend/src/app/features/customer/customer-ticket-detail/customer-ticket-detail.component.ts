@@ -1,6 +1,6 @@
 import {
   Component, OnInit, OnDestroy,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,6 +9,7 @@ import { ToastrService } from 'ngx-toastr';
 import { CustomerService } from '../../../core/services/customer.service';
 import { AuthService } from '../../auth/auth.service';
 import { Subject, interval, takeUntil } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-customer-ticket-detail',
@@ -20,6 +21,7 @@ import { Subject, interval, takeUntil } from 'rxjs';
 })
 export class CustomerTicketDetailComponent
   implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
 
   private customerService = inject(CustomerService);
   private authService     = inject(AuthService);
@@ -53,7 +55,7 @@ export class CustomerTicketDetailComponent
 
   loadTicket() {
     this.customerService
-      .getMyTicket(this.ticketId)
+      .getMyTicket(this.ticketId).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data: any) => {
           this.ticket  = data;
@@ -73,7 +75,7 @@ export class CustomerTicketDetailComponent
     this.cdr.detectChanges();
 
     this.customerService
-      .addReply(this.ticketId, this.replyText)
+      .addReply(this.ticketId, this.replyText).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.replyText = '';

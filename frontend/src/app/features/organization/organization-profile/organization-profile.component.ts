@@ -2,7 +2,7 @@ import {
   Component,
   OnInit,
   ChangeDetectorRef,
-  inject
+  inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -20,6 +20,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
 import { OrgContextService } from '../../../core/services/org-context.service';
 import { TimezonePickerComponent } from '../../../shared/components/timezone-picker/timezone-picker.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 /**
  * Workspace / Organization profile editor.
@@ -49,6 +50,7 @@ import { TimezonePickerComponent } from '../../../shared/components/timezone-pic
   styleUrls: ['./organization-profile.scss']
 })
 export class OrganizationProfileComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private toastr = inject(ToastrService);
@@ -152,7 +154,7 @@ export class OrganizationProfileComponent implements OnInit {
   private loadOrg() {
     this.loading = true;
     this.http
-      .get<any>(`${environment.apiUrl}/Organizations/current`)
+      .get<any>(`${environment.apiUrl}/Organizations/current`).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (org) => {
           this.readonlyInfo = {
@@ -286,7 +288,7 @@ export class OrganizationProfileComponent implements OnInit {
 
     this.saving = true;
     this.http
-      .put(`${environment.apiUrl}/Organizations/current`, payload)
+      .put(`${environment.apiUrl}/Organizations/current`, payload).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.saving = false;
@@ -319,7 +321,7 @@ export class OrganizationProfileComponent implements OnInit {
     fd.append('file', file);
     this.uploadingLogo = true;
     this.http
-      .post<any>(`${environment.apiUrl}/Organizations/upload-logo`, fd)
+      .post<any>(`${environment.apiUrl}/Organizations/upload-logo`, fd).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           this.uploadingLogo = false;

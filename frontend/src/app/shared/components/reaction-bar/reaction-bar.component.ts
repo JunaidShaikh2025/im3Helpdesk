@@ -1,9 +1,10 @@
 import {
   Component, Input, OnInit, OnChanges, SimpleChanges,
-  ChangeDetectionStrategy, ChangeDetectorRef, inject, ElementRef, HostListener
+  ChangeDetectionStrategy, ChangeDetectorRef, inject, ElementRef, HostListener, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactionService, ReactionKey, ReactionState } from './reaction.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ReactionDef {
   key: ReactionKey;
@@ -28,6 +29,7 @@ interface ReactionDef {
   styleUrls: ['./reaction-bar.scss']
 })
 export class ReactionBarComponent implements OnInit, OnChanges {
+  private destroyRef = inject(DestroyRef);
   private svc = inject(ReactionService);
   private cdr = inject(ChangeDetectorRef);
   private host = inject(ElementRef<HTMLElement>);
@@ -69,7 +71,7 @@ export class ReactionBarComponent implements OnInit, OnChanges {
 
   private loadReactions(): void {
     if (!this.targetId) return;
-    this.svc.load(this.targetKey).subscribe({
+    this.svc.load(this.targetKey).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (state: ReactionState) => {
         this.counts = state.counts;
         this.myReaction = state.myReaction;
@@ -113,7 +115,7 @@ export class ReactionBarComponent implements OnInit, OnChanges {
   pick(r: ReactionDef, ev: MouseEvent): void {
     ev.stopPropagation();
     this.pickerOpen = false;
-    this.svc.toggle(this.targetKey, r.key).subscribe({
+    this.svc.toggle(this.targetKey, r.key).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: state => this.applyState(state),
       error: () => { /* keep current state on error */ }
     });
@@ -122,7 +124,7 @@ export class ReactionBarComponent implements OnInit, OnChanges {
   /** Click an existing chip to remove your reaction (if it was yours). */
   toggleChip(key: ReactionKey, ev: MouseEvent): void {
     ev.stopPropagation();
-    this.svc.toggle(this.targetKey, key).subscribe({
+    this.svc.toggle(this.targetKey, key).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: state => this.applyState(state),
       error: () => { /* keep current state on error */ }
     });

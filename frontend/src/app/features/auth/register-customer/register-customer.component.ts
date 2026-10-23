@@ -1,9 +1,10 @@
-import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-register-customer',
@@ -13,6 +14,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./register-customer.scss']
 })
 export class RegisterCustomerComponent {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -53,7 +55,7 @@ export class RegisterCustomerComponent {
     this.http.post(
       `${environment.apiUrl}/Auth/register-customer`,
       this.form.value
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading = false;
         this.success = true;

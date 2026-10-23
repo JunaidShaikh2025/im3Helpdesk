@@ -1,6 +1,6 @@
 import {
   Component, OnInit,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -10,6 +10,7 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-agent-groups-settings',
@@ -19,6 +20,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./agent-groups-settings.scss']
 })
 export class AgentGroupsSettingsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
 
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
@@ -57,7 +59,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
   loadGroups() {
     this.http.get<any[]>(
       `${environment.apiUrl}/AgentGroups`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.groups = data;
         this.cdr.detectChanges();
@@ -68,7 +70,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
   loadAgents() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Agents`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.agents = data;
         this.cdr.detectChanges();
@@ -133,7 +135,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
           `${environment.apiUrl}/AgentGroups`,
         payload);
 
-    req.subscribe({
+    req.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showForm = false;
         this.editingId = '';
@@ -182,7 +184,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
 
   deleteGroup(id: string) {
     if (!confirm('Delete this group? All members will be removed.')) return;
-    this.http.delete(`${environment.apiUrl}/AgentGroups/${id}`).subscribe({
+    this.http.delete(`${environment.apiUrl}/AgentGroups/${id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         Promise.resolve().then(() =>
           this.toastr.success('Group deleted'));

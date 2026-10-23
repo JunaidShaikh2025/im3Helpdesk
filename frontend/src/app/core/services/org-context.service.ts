@@ -1,6 +1,7 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, DestroyRef, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 /**
  * Holds the current organization's project-wide preferences that must be
@@ -12,6 +13,7 @@ import { environment } from '../../../environments/environment';
  */
 @Injectable({ providedIn: 'root' })
 export class OrgContextService {
+  private destroyRef = inject(DestroyRef);
   private static readonly STORAGE_KEY = 'im3_org_timezone';
   private static readonly DEFAULT_TZ = 'Asia/Kolkata';
 
@@ -22,7 +24,7 @@ export class OrgContextService {
   /** One-shot loader; safe to call from app bootstrap / main layout. */
   load(): void {
     this.http
-      .get<{ timezone?: string }>(`${environment.apiUrl}/Organizations/current`)
+      .get<{ timezone?: string }>(`${environment.apiUrl}/Organizations/current`).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (org) => {
           const tz = (org?.timezone || '').trim();

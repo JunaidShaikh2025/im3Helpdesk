@@ -4,7 +4,7 @@ import {
   ChangeDetectionStrategy,
   HostListener,
   ElementRef,
-  ViewChild
+  ViewChild, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -29,6 +29,7 @@ import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master.service';
 import { OrgContextService } from '../../../core/services/org-context.service';
 import { AgentService } from '../../../core/services/agent.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 
 @Component({
@@ -48,6 +49,7 @@ import { AgentService } from '../../../core/services/agent.service';
 })
 export class TicketListComponent
   implements OnInit, OnDestroy, AfterViewInit {
+  private destroyRef = inject(DestroyRef);
 
   private authService = inject(AuthService);
   public router = inject(Router);
@@ -167,7 +169,7 @@ export class TicketListComponent
   }
 
   loadMasterOptions() {
-    this.ticketMasterService.getAll(true).subscribe({
+    this.ticketMasterService.getAll(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.statusOptions = data.ticketStatuses || [];
         this.priorityOptions = data.ticketPriorities || [];

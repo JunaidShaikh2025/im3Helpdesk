@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, ViewChild, ElementRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -11,6 +11,7 @@ import { AgentGroupService } from '../../../core/services/agent-group.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-ticket-create',
@@ -23,6 +24,7 @@ import { TicketMasterOption, TicketMasterService } from '../../../core/services/
   styleUrls: ['./ticket-create.scss']
 })
 export class TicketCreateComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private ticketService = inject(TicketService);
   private agentService = inject(AgentService);
   private groupService = inject(AgentGroupService);
@@ -76,7 +78,7 @@ export class TicketCreateComponent implements OnInit {
   }
 
   loadMasterOptions() {
-    this.ticketMasterService.getAll(true).subscribe({
+    this.ticketMasterService.getAll(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.ticketTypes = data.ticketTypes || [];
         this.statuses = data.ticketStatuses || [];
@@ -94,7 +96,7 @@ export class TicketCreateComponent implements OnInit {
   }
 
   loadAgents() {
-    this.agentService.getAll().subscribe({
+    this.agentService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.agents = data;
         this.cdr.detectChanges();
@@ -103,7 +105,7 @@ export class TicketCreateComponent implements OnInit {
   }
 
   loadGroups() {
-    this.groupService.getAll().subscribe({
+    this.groupService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.groups = data;
         this.cdr.detectChanges();
@@ -112,7 +114,7 @@ export class TicketCreateComponent implements OnInit {
   }
 
   loadTemplates() {
-    this.http.get<any[]>(`${environment.apiUrl}/TicketTemplates`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/TicketTemplates`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.templates = data;
         this.cdr.detectChanges();
@@ -121,7 +123,7 @@ export class TicketCreateComponent implements OnInit {
   }
 
   loadCustomFields() {
-    this.http.get<any[]>(`${environment.apiUrl}/CustomFields`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/CustomFields`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.customFields = data;
         data.forEach(f => this.customFieldValues[f.id] = '');

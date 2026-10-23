@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms'; // 👈 FormsModule yahan add kiya
 import { Router, RouterModule } from '@angular/router';
@@ -15,6 +15,7 @@ import { AgentGroupService } from '../../../core/services/agent-group.service';
 import { AgentService } from '../../../core/services/agent.service';
 import { AuthService } from '../../auth/auth.service';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-agent-groups',
@@ -31,6 +32,7 @@ import { HasPermissionDirective } from '../../../core/directives/has-permission.
   styleUrls: ['./agent-groups.scss']
 })
 export class AgentGroupsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private groupService = inject(AgentGroupService);
   private agentService = inject(AgentService);
   private authService = inject(AuthService);
@@ -58,7 +60,7 @@ export class AgentGroupsComponent implements OnInit {
 
   loadGroups() {
     this.loading = true;
-    this.groupService.getAll().subscribe({
+    this.groupService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.groups = data;
         this.loading = false;
@@ -72,7 +74,7 @@ export class AgentGroupsComponent implements OnInit {
   }
 
   loadAgents() {
-    this.agentService.getAll().subscribe({
+    this.agentService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.agents = data;
         this.cdr.detectChanges();
@@ -82,7 +84,7 @@ export class AgentGroupsComponent implements OnInit {
 
   createGroup() {
     if (this.form.invalid) return;
-    this.groupService.create(this.form.value).subscribe({
+    this.groupService.create(this.form.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Group created!');
         this.showCreateForm = false;
@@ -95,7 +97,7 @@ export class AgentGroupsComponent implements OnInit {
 
   addMember(groupId: string) {
     if (!this.selectedAgentToAdd) return;
-    this.groupService.addMember(groupId, this.selectedAgentToAdd)
+    this.groupService.addMember(groupId, this.selectedAgentToAdd).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.toastr.success('Member added!');
@@ -108,7 +110,7 @@ export class AgentGroupsComponent implements OnInit {
   }
 
   removeMember(groupId: string, userId: string) {
-    this.groupService.removeMember(groupId, userId).subscribe({
+    this.groupService.removeMember(groupId, userId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Member removed');
         this.loadGroups();
@@ -118,7 +120,7 @@ export class AgentGroupsComponent implements OnInit {
 
   deleteGroup(id: string) {
     if (!confirm('Delete this group?')) return;
-    this.groupService.delete(id).subscribe({
+    this.groupService.delete(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Group deleted');
         this.loadGroups();

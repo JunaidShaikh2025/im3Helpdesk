@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-whatsapp-settings',
@@ -13,6 +14,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./whatsapp-settings.scss']
 })
 export class WhatsappSettingsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -28,7 +30,7 @@ export class WhatsappSettingsComponent implements OnInit {
   ngOnInit() {
     this.http.get<any>(
       `${environment.apiUrl}/Organizations/current`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.config.whatsAppNumber = data.whatsAppNumber || '';
         this.config.twilioAccountSid = data.twilioAccountSid || '';
@@ -46,7 +48,7 @@ export class WhatsappSettingsComponent implements OnInit {
         twilioAccountSid: this.config.twilioAccountSid,
         twilioAuthToken: this.config.twilioAuthToken
       }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.cdr.detectChanges();

@@ -1,7 +1,7 @@
 import {
   Component,Input, OnInit, AfterViewInit,
   ChangeDetectorRef, inject,
-  ViewChild, ElementRef
+  ViewChild, ElementRef, DestroyRef
 } from '@angular/core';
 import Chart from 'chart.js/auto';
 import { CommonModule } from '@angular/common';
@@ -10,6 +10,7 @@ import { HttpClient } from '@angular/common/http';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 
 @Component({
@@ -21,6 +22,7 @@ import { environment } from '../../../../environments/environment';
 })
 export class ReportsComponent
   implements OnInit, AfterViewInit {
+  private destroyRef = inject(DestroyRef);
 
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
@@ -50,7 +52,7 @@ export class ReportsComponent
 
   loadStats() {
     this.loading = true;
-    this.http.get<any>(`${environment.apiUrl}/Dashboard/widgets`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Dashboard/widgets`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.stats = data;
         this.loading = false;
@@ -62,7 +64,7 @@ export class ReportsComponent
   }
 
   loadDashStats() {
-    this.http.get<any>(`${environment.apiUrl}/Dashboard/stats`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Dashboard/stats`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.dashStats = data;
         this.cdr.detectChanges();

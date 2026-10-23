@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, OnInit, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -11,6 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../auth/auth.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-onboarding-wizard',
@@ -20,6 +21,7 @@ import { AuthService } from '../../auth/auth.service';
   styleUrls: ['./onboarding-wizard.scss']
 })
 export class OnboardingWizardComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -58,7 +60,7 @@ export class OnboardingWizardComponent implements OnInit {
       this.currentStep = 2;
     }
 
-    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (org) => {
         this.orgLoaded = true;
         this.orgName = String(org?.name || org?.Name || '');
@@ -153,7 +155,7 @@ export class OnboardingWizardComponent implements OnInit {
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
       payload
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.completeOnboarding('Workspace email setup saved');
       },
@@ -174,7 +176,7 @@ export class OnboardingWizardComponent implements OnInit {
     this.http.post(
       `${environment.apiUrl}/Organizations/current/complete-onboarding`,
       {}
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading = false;
         this.authService.markFirstLoginComplete();

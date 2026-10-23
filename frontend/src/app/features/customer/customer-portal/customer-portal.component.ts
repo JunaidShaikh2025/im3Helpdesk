@@ -1,6 +1,6 @@
 import {
   Component, OnInit,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -13,6 +13,7 @@ import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-customer-portal',
@@ -27,6 +28,7 @@ import { TicketMasterOption, TicketMasterService } from '../../../core/services/
 })
 export class CustomerPortalComponent
   implements OnInit {
+  private destroyRef = inject(DestroyRef);
 
   private http = inject(HttpClient);
   public router = inject(Router);
@@ -60,7 +62,7 @@ export class CustomerPortalComponent
   }
 
   loadMasterOptions() {
-    this.ticketMasterService.getAll(true).subscribe({
+    this.ticketMasterService.getAll(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.priorities = data.ticketPriorities || [];
         this.createForm.patchValue({
@@ -73,7 +75,7 @@ export class CustomerPortalComponent
 
   loadMyTickets() {
     this.loading = true;
-    this.http.get<any[]>(`${environment.apiUrl}/Customer/my-tickets`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Customer/my-tickets`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.myTickets = data;
         this.loading = false;
@@ -98,7 +100,7 @@ export class CustomerPortalComponent
       `${environment.apiUrl}/Customer` +
       '/submit-ticket',
       this.createForm.value
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.creating = false;
         this.showCreateForm = false;

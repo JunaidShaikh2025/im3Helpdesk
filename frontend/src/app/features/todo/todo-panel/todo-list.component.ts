@@ -1,6 +1,6 @@
 import {
   Component, OnInit,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +11,7 @@ import { LayoutComponent }
   from '../../../layouts/main-layout/layout.component';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export type Priority = 'high' | 'medium' | 'low';
 
@@ -34,6 +35,7 @@ export interface SubTask {
   styleUrls: ['./todo-list.component.scss']
 })
 export class TodoListComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
 
   private http = inject(HttpClient);
   public router = inject(Router);
@@ -76,7 +78,7 @@ export class TodoListComponent implements OnInit {
 
   loadTodos() {
     this.loading = true;
-    this.http.get<any[]>(`${environment.apiUrl}/Todo`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Todo`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         const savedPriorities = this.loadPriorityMap();
         const savedSubtasks = this.loadSubtaskMap();
@@ -156,7 +158,7 @@ export class TodoListComponent implements OnInit {
     this.http.post<any>(
       `${environment.apiUrl}/Todo`,
       { title: this.newTitle.trim() }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (todo) => {
         todo.priority = this.newPriority;
         todo.subTasks = [];
@@ -179,7 +181,7 @@ export class TodoListComponent implements OnInit {
     this.http.put<any>(
       `${environment.apiUrl}/Todo/${todo.id}/toggle`,
       {}
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         todo.isCompleted = res.isCompleted;
         todo.completedAt = res.isCompleted
@@ -194,7 +196,7 @@ export class TodoListComponent implements OnInit {
     event.stopPropagation();
     if (!confirm('Delete this task?')) return;
 
-    this.http.delete(`${environment.apiUrl}/Todo/${id}`).subscribe({
+    this.http.delete(`${environment.apiUrl}/Todo/${id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.todos = this.todos.filter(t => t.id !== id);
         if (this.expandedTodoId === id)

@@ -19,7 +19,8 @@ import {
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
 import {
-  AUTH_EXCLUDED_URLS
+  AUTH_EXCLUDED_URLS,
+  TOKEN_KEY
 } from '../constants/auth.constants';
 
 const RETRY_HEADER = 'x-auth-retry';
@@ -38,23 +39,35 @@ function isExcludedAuthRequest(url: string): boolean {
 }
 
 function buildRequestWithCredentials(
-  req: HttpRequest<unknown>
+  req: HttpRequest<unknown>,
+  token?: string | null
 ): HttpRequest<unknown> {
   if (!isApiRequest(req.url)) {
     return req;
   }
 
+  const setHeaders: Record<string, string> = {};
+  if (token) {
+    setHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   return req.clone({
-    withCredentials: true
+    withCredentials: true,
+    setHeaders
   });
 }
 
-function withRetryMarker(req: HttpRequest<unknown>): HttpRequest<unknown> {
+function withRetryMarker(req: HttpRequest<unknown>, token?: string | null): HttpRequest<unknown> {
+  const setHeaders: Record<string, string> = {
+    [RETRY_HEADER]: '1'
+  };
+  if (token) {
+    setHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   return req.clone({
     withCredentials: true,
-    setHeaders: {
-      [RETRY_HEADER]: '1'
-    }
+    setHeaders
   });
 }
 
@@ -63,7 +76,8 @@ export const authInterceptor: HttpInterceptorFn = (
   next: HttpHandlerFn
 ): Observable<HttpEvent<unknown>> => {
   const authService = inject(AuthService);
-  const authReq = buildRequestWithCredentials(req);
+  const token = localStorage.getItem(TOKEN_KEY) || authService.getToken();
+  const authReq = buildRequestWithCredentials(req, token);
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -84,7 +98,8 @@ export const authInterceptor: HttpInterceptorFn = (
             if (!success) {
               return throwError(() => error);
             }
-            return next(withRetryMarker(req));
+            const currentToken = localStorage.getItem(TOKEN_KEY) || authService.getToken();
+            return next(withRetryMarker(req, currentToken));
           })
         );
       }
@@ -96,7 +111,8 @@ export const authInterceptor: HttpInterceptorFn = (
       return authService.refreshToken().pipe(
         switchMap(() => {
           refreshStatus$.next(true);
-          return next(withRetryMarker(req));
+          const currentToken = localStorage.getItem(TOKEN_KEY) || authService.getToken();
+          return next(withRetryMarker(req, currentToken));
         }),
         catchError(refreshError => {
           refreshStatus$.next(false);

@@ -1,10 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-integrations',
@@ -14,6 +15,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./integrations.scss']
 })
 export class IntegrationsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -46,7 +48,7 @@ simulateEmail() {
       subject: this.testSubject,
       body: this.testBody
     }
-  ).subscribe({
+  ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
     next: (res) => {
       this.emailTestResult =
         `Ticket created: "${res.ticketTitle}" for ${res.customer}`;
@@ -64,7 +66,7 @@ simulateEmail() {
   });
 }
   ngOnInit() {
-    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.organizationId = data.id || data.organizationId || '';
         this.slackWebhookUrl = data.slackWebhookUrl || '';
@@ -79,7 +81,7 @@ simulateEmail() {
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
       { slackWebhookUrl: this.slackWebhookUrl }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.cdr.detectChanges();
@@ -95,7 +97,7 @@ simulateEmail() {
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
       { teamsWebhookUrl: this.teamsWebhookUrl }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.cdr.detectChanges();
@@ -122,7 +124,7 @@ simulateEmail() {
         ticketTitle: 'Test Ticket',
         status: 'Open'
       }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () =>
         Promise.resolve().then(() =>
           this.toastr.success('Test sent to Slack!')
@@ -150,7 +152,7 @@ simulateEmail() {
         ticketTitle: 'Test Ticket',
         status: 'Open'
       }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () =>
         Promise.resolve().then(() =>
           this.toastr.success('Test sent to Teams!')

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +10,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { AuthService } from '../../auth/auth.service';
 import { Subject, interval, takeUntil } from 'rxjs';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 
 
@@ -25,6 +26,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
   styleUrls: ['./notifications-page.scss']
 })
 export class NotificationsPageComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
   private notifService = inject(NotificationService);
   private authService = inject(AuthService);
   public router = inject(Router);
@@ -54,7 +56,7 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
   }
 
   loadNotifications() {
-    this.notifService.getAll().subscribe({
+    this.notifService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.notifications = data;
         this.unreadCount = data.filter(n => !n.isRead).length;
@@ -69,7 +71,7 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
   }
 
   loadActivity() {
-    this.notifService.getActivity().subscribe({
+    this.notifService.getActivity().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.activityLogs = data;
         this.loadingActivity = false;
@@ -83,7 +85,7 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
   }
 
   markRead(id: string) {
-    this.notifService.markRead(id).subscribe({
+    this.notifService.markRead(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         const n = this.notifications.find(x => x.id === id);
         if (n && !n.isRead) {
@@ -96,7 +98,7 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
   }
 
   markAllRead() {
-    this.notifService.markAllRead().subscribe({
+    this.notifService.markAllRead().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;

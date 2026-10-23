@@ -1,10 +1,11 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface NotifSetting {
   key: string;
@@ -21,6 +22,7 @@ interface NotifSetting {
   styleUrls: ['./email-notifications.scss']
 })
 export class EmailNotificationsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -112,7 +114,7 @@ export class EmailNotificationsComponent implements OnInit {
     this.http.post(
       `${environment.apiUrl}/EmailNotificationSettings`,
       payload
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () =>
         Promise.resolve().then(() =>
           this.toastr.success('Notification settings saved!')

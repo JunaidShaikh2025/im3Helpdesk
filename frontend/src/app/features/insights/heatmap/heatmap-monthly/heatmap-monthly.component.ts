@@ -1,8 +1,9 @@
-import { Component, Input, OnChanges, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, Input, OnChanges, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type MonthlyPoint = {
   date: string; // yyyy-MM-dd
@@ -26,6 +27,7 @@ type TicketLite = {
   styleUrls: ['./heatmap-monthly.scss']
 })
 export class HeatmapMonthlyComponent implements OnChanges {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   public router = inject(Router);
@@ -125,7 +127,7 @@ export class HeatmapMonthlyComponent implements OnChanges {
     this.selectedYmd = '';
     this.cdr.detectChanges();
 
-    this.http.get<any[]>(`${environment.apiUrl}/Tickets`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Tickets`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         const month = monthStart.getMonth();
         const year = monthStart.getFullYear();

@@ -1,7 +1,7 @@
 import {
   Component, OnInit,
   ChangeDetectorRef,
-  inject
+  inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { AgentService } from '../../../core/services/agent.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-agents',
@@ -25,6 +26,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./agent-list.scss']
 })
 export class AgentsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private cdr = inject(ChangeDetectorRef);
   private agentService = inject(AgentService);
   private authService = inject(AuthService);
@@ -60,7 +62,7 @@ export class AgentsComponent implements OnInit {
     this.loading = true;
 
     // Always render users first. Group lookup is enrichment only.
-    this.agentService.getAll().subscribe({
+    this.agentService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.agents = data.map(a => ({
           ...this.normalizeAgent(a),
@@ -86,7 +88,7 @@ export class AgentsComponent implements OnInit {
   }
 
   private enrichGroupNames() {
-    this.http.get<any>(`${environment.apiUrl}/AgentGroups`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/AgentGroups`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (groupsRaw) => {
         const groups = Array.isArray(groupsRaw)
           ? groupsRaw
@@ -246,7 +248,7 @@ export class AgentsComponent implements OnInit {
 
     this.http.delete(
       `${environment.apiUrl}/Agents/${agent.id}`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         Promise.resolve().then(() =>
           this.toastr.success('Agent deleted')
@@ -264,7 +266,7 @@ export class AgentsComponent implements OnInit {
     this.http.put(
       `${environment.apiUrl}/Agents/${agent.id}/toggle-active`,
       {}
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         Promise.resolve().then(() =>
           this.toastr.success(
@@ -329,7 +331,7 @@ export class AgentsComponent implements OnInit {
 
     this.uploading = true;
 
-    this.agentService.bulkImport(file, true).subscribe({
+    this.agentService.bulkImport(file, true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.finishBulkUpload(input);
 

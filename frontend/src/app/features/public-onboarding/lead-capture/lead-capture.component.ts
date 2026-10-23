@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { PublicOnboardingService } from '../public-onboarding.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-lead-capture',
@@ -13,6 +14,7 @@ import { PublicOnboardingService } from '../public-onboarding.service';
   styleUrls: ['./lead-capture.scss']
 })
 export class LeadCaptureComponent {
+  private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
   private onboardingService = inject(PublicOnboardingService);
   private toastr = inject(ToastrService);
@@ -49,7 +51,7 @@ export class LeadCaptureComponent {
       notes: String(this.form.value.notes || '').trim() || null
     };
 
-    this.onboardingService.submitLead(payload).subscribe({
+    this.onboardingService.submitLead(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading = false;
         this.success = true;

@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, HostListener, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { BusinessHoursService, BusinessHoursListItem } from '../../../core/services/business-hours.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-business-hours-page',
@@ -14,6 +15,7 @@ import { BusinessHoursService, BusinessHoursListItem } from '../../../core/servi
   styleUrls: ['./business-hours-page.scss']
 })
 export class BusinessHoursPageComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private api = inject(BusinessHoursService);
   private router = inject(Router);
   private toastr = inject(ToastrService);
@@ -30,7 +32,7 @@ export class BusinessHoursPageComponent implements OnInit {
 
   load() {
     this.loading = true;
-    this.api.list().subscribe({
+    this.api.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (rows) => { this.items = rows || []; this.loading = false; this.cdr.detectChanges(); },
       error: () => { this.loading = false; this.toastr.error('Failed to load business hours.'); this.cdr.detectChanges(); }
     });
@@ -52,7 +54,7 @@ export class BusinessHoursPageComponent implements OnInit {
     this.openMenuId = null;
     if (b.isDefault) { this.toastr.warning('Default business hours cannot be deleted.'); return; }
     if (!confirm(`Delete "${b.name}"?`)) return;
-    this.api.delete(b.id).subscribe({
+    this.api.delete(b.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.toastr.success('Deleted.'); this.load(); },
       error: () => this.toastr.error('Delete failed.')
     });
@@ -69,7 +71,7 @@ export class BusinessHoursPageComponent implements OnInit {
       monday: true, tuesday: true, wednesday: true, thursday: true, friday: true,
       saturday: false, sunday: false,
       startTime: '09:00', endTime: '18:00',
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (created) => {
         this.showCreate = false;
         this.toastr.success('Business hours created.');

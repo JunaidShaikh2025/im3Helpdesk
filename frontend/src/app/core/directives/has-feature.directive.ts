@@ -1,5 +1,6 @@
-import { Directive, Input, TemplateRef, ViewContainerRef, effect, inject } from '@angular/core';
+import { Directive, Input, TemplateRef, ViewContainerRef, effect, inject, DestroyRef } from '@angular/core';
 import { SubscriptionService } from '../services/subscription.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 /**
  * Structural directive that only renders the template if the current
@@ -14,6 +15,7 @@ import { SubscriptionService } from '../services/subscription.service';
   standalone: true,
 })
 export class HasFeatureDirective {
+  private destroyRef = inject(DestroyRef);
   private readonly tpl = inject(TemplateRef<unknown>);
   private readonly vc = inject(ViewContainerRef);
   private readonly sub = inject(SubscriptionService);
@@ -30,7 +32,7 @@ export class HasFeatureDirective {
       this.update();
     });
     // Trigger initial load if not yet loaded; subscribe ignored intentionally
-    this.sub.ensureLoaded().subscribe({ error: () => void 0 });
+    this.sub.ensureLoaded().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => void 0 });
   }
 
   @Input({ required: true }) set hasFeature(key: string) {

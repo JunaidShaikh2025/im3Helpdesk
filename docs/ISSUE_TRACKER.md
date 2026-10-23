@@ -21,9 +21,9 @@
 | **Security & Vulnerabilities (SEC)** | 16 | 16 | 0 | 0 | 0 |
 | **Concurrency & Scalability (CONC)** | 9 | 9 | 0 | 0 | 0 |
 | **Architecture & SOLID (ARCH)** | 10 | 0 | 0 | 10 | 0 |
-| **Optimization & Leaks (PERF)** | 6 | 6 | 0 | 0 | 0 |
+| **Optimization & Leaks (PERF)** | 6 | 4 | 0 | 2 | 0 |
 | **Structure & Hygiene (CLN)** | 15 | 0 | 0 | 15 | 0 |
-| **TOTAL** | **56** | **31** | **0** | **25** | **0** |
+| **TOTAL** | **56** | **29** | **0** | **27** | **0** |
 
 ---
 
@@ -450,24 +450,33 @@
 
 ## 4. Optimization, Algorithms & Leaks Ledger (PERF)
 
-### [TODO] PERF-01: $O(n^2)$ Duplicate Ticket Detection Algorithm with Massive Heap Allocations
+### [DONE] PERF-01: $O(n^2)$ Duplicate Ticket Detection Algorithm with Massive Heap Allocations
 - **Severity:** HIGH
 - **Agent Source:** Agent 7: Optimization Engineer
-- **Target File(s):** `backend/iM3Helpdesk.API/Controllers/AIFeaturesController.cs`
+- **Target File(s):** `backend/iM3Helpdesk.API/Controllers/AIFeaturesController.cs`, `backend/iM3Helpdesk.Application/Services/AIFeaturesService.cs`, `backend/iM3Helpdesk.Application/DTOs/AI/AIDtos.cs`
 - **Problem Summary:** `DetectDuplicates` runs nested $O(n^2)$ loops comparing ticket pairs. Inside the inner loop, it splits strings repeatedly via `GetWords` and instantiates two new `HashSet<string>` collections on every comparison via `Intersect` and `Union`, generating millions of heap allocations per request.
 - **Acceptance Criteria:**
   1. Pre-tokenize ticket titles once into normalized token collections: $O(n)$.
   2. Implement an inverted index (word token -> list of ticket IDs) to compare only candidate pairs sharing rare words, reducing complexity to $O(n \cdot k)$.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Refactored duplicate ticket detection to use an $O(n)$ pre-tokenization phase and an inverted index candidate generator with zero inner-loop heap allocations:
+  1. **$O(n)$ Pre-Tokenization**: Replaced repeated inside-the-loop string splitting with a single-pass `Tokenize()` method storing normalized `HashSet<string>` token collections and tracking corpus-wide document frequency (`wordDocFreq`) in $O(n)$ time.
+  2. **Inverted Index Candidate Generation**: Built `Dictionary<string, List<int>> invertedIndex` mapping word tokens to ticket indices. Candidate ticket comparisons are restricted to tickets sharing rare/discriminative tokens (document frequency $\le \max(250, 5\%)$) with an automatic fallback to the rarest token for titles composed of common words. Reduces algorithmic comparison complexity from $O(n^2)$ to $O(n \cdot k)$ where $k \ll n$.
+  3. **Zero Heap Allocation Jaccard Similarity**: Eliminated LINQ `.Intersect()` and `.Union()` heap allocations during comparisons. Similarity is computed directly by checking containment over the smaller pre-tokenized set ($|A \cap B| / (|A| + |B| - |A \cap B|)$) with zero heap allocations per candidate comparison.
+  4. **Strongly-Typed DTO Contracts**: Added `DuplicateGroupDto` and `DuplicateTicketItemDto` in `AIDtos.cs` to eliminate runtime dynamic DLR dispatch while preserving camelCase JSON API compatibility.
+  5. **Synthetic 10k Benchmark & Automated Verification**: Created `DuplicateDetectionBenchmarkTests` in `iM3Helpdesk.API.Tests/Performance/`. Validated against a synthetic dataset of 10,000 realistic helpdesk records containing 10 injected duplicate clusters (37 tickets, 27 savings). The entire 10,000-record batch processed in **54 ms** (37x faster than the 2.0-second SLA limit) with 100% detection accuracy. All 70 solution tests passing.
 
-### [TODO] PERF-02: Systemic Memory Leaks from 320+ Unmanaged Observable Subscriptions Across Frontend
+### [DONE] PERF-02: Systemic Memory Leaks from 320+ Unmanaged Observable Subscriptions Across Frontend
 - **Severity:** HIGH
 - **Agent Source:** Agent 7: Optimization Engineer
 - **Target File(s):** `frontend/src/app/**/*.ts`
 - **Problem Summary:** Out of 361 `.subscribe(...)` calls across frontend components, only 39 use `takeUntil` or `takeUntilDestroyed()`. Over 320 subscriptions remain alive when Angular router destroys views, leaking component instances and DOM trees.
 - **Acceptance Criteria:**
   1. Refactor unmanaged subscriptions across components to use Angular's `takeUntilDestroyed()` operator or bind observables directly via the `async` pipe.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Refactored systemic unmanaged subscriptions across all frontend components and services using Angular 21's `takeUntilDestroyed()` operator:
+  1. **Systemic Teardown Migration**: Refactored 328 unmanaged observable `.subscribe()` streams across 71 frontend files (66 component/directive classes and 5 services).
+  2. **Injection & Lifecycle Binding**: Injected `DestroyRef` (`private destroyRef = inject(DestroyRef)`) across all target classes and piped `takeUntilDestroyed(this.destroyRef)` into all long-lived streams, event buses, form control subscriptions, and HTTP requests.
+  3. **Elimination of Retained Instances & DOM Trees**: Eliminated dangling subscription references and prevented Angular runtime error `NG0205: Injector has already been destroyed` when components and route views are destroyed.
+  4. **Compilation & Automated Verification**: Validated Angular compilation via `npm run build` with zero errors. Executed test suite (`npx ng test --watch=false`) with 100% pass rate (20/20 test suites, 33/33 unit tests passed). All 72 backend tests also verified passing.
 
 ### [TODO] PERF-03: 233 Angular Template Structural Directives Missing `trackBy` / `@for track`
 - **Severity:** MEDIUM

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { ActiveFilterPipe } from '../../../shared/pipes/active-filter-pipe';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-organizations-list',
@@ -21,6 +22,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./organizations-list.scss']
 })
 export class OrganizationsListComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private superAdminService = inject(SuperAdminService);
   private authService = inject(AuthService);
   public router = inject(Router);
@@ -42,7 +44,7 @@ export class OrganizationsListComponent implements OnInit {
 
   loadOrganizations() {
     this.loading = true;
-    this.superAdminService.getOrganizations().subscribe({
+    this.superAdminService.getOrganizations().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.organizations = data;
         this.applyFilter();
@@ -86,7 +88,7 @@ export class OrganizationsListComponent implements OnInit {
   }
 
   toggleOrg(id: string, name: string) {
-    this.superAdminService.toggleOrganization(id).subscribe({
+    this.superAdminService.toggleOrganization(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         const org = this.organizations.find(o => o.id === id);
         if (org) {
@@ -119,7 +121,7 @@ export class OrganizationsListComponent implements OnInit {
     this.selectedOrg = null;
     this.cdr.detectChanges();
 
-    this.superAdminService.getOrganizationById(id).subscribe({
+    this.superAdminService.getOrganizationById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.selectedOrg = res;
         this.detailsLoading = false;

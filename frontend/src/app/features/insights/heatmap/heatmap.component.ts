@@ -1,7 +1,7 @@
 import {
   Component, OnInit,
   ChangeDetectorRef, inject,
-  ViewChild, ElementRef
+  ViewChild, ElementRef, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { HeatmapDailyComponent } from './heatmap-daily/heatmap-daily.component';
 import { HeatmapMonthlyComponent } from './heatmap-monthly/heatmap-monthly.component';
 import { HeatmapInsightsComponent } from './heatmap-insights/heatmap-insights.component';
 import { TicketMasterService } from '../../../core/services/ticket-master.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type HeatmapTab = 'hourly' | 'daily' | 'monthly';
 
@@ -66,6 +67,7 @@ type InsightsModel = {
   styleUrls: ['./heatmap.scss']
 })
 export class HeatmapComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private ticketMasterService = inject(TicketMasterService);
@@ -126,7 +128,7 @@ export class HeatmapComponent implements OnInit {
   }
 
   private loadPriorities() {
-    this.ticketMasterService.getAll(true).subscribe({
+    this.ticketMasterService.getAll(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         const values = (data.ticketPriorities || []).map(x => x.value);
         this.priorityOptions = ['All', ...values];
@@ -223,7 +225,7 @@ export class HeatmapComponent implements OnInit {
   }
 
   private loadAgents() {
-    this.http.get<any[]>(`${environment.apiUrl}/Agents`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Agents`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.agents = (data || []).map(a => ({
           id: a.id,
@@ -272,7 +274,7 @@ export class HeatmapComponent implements OnInit {
       }
     };
 
-    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/hourly`, { params }).subscribe({
+    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/hourly`, { params }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.hourly = res?.data || [];
         done();
@@ -280,7 +282,7 @@ export class HeatmapComponent implements OnInit {
       error: () => { this.hourly = []; done(); }
     });
 
-    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/daily`, { params }).subscribe({
+    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/daily`, { params }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.daily = res?.data || [];
         done();
@@ -288,7 +290,7 @@ export class HeatmapComponent implements OnInit {
       error: () => { this.daily = []; done(); }
     });
 
-    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/monthly`, { params: monthlyParams }).subscribe({
+    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/monthly`, { params: monthlyParams }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.monthly = res?.data || [];
         this.monthlyMaxCount = res?.maxCount ?? 0;
@@ -432,7 +434,7 @@ export class HeatmapComponent implements OnInit {
     p = p.set('startDate', this.toYmd(prevStart));
     p = p.set('endDate', this.toYmd(prevEnd));
 
-    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/daily`, { params: p }).subscribe({
+    this.http.get<any>(`${this.BASE}/api/analytics/heatmap/daily`, { params: p }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         const prevDaily: DailyPoint[] = res?.data || [];
         const prevTotal = prevDaily.reduce((acc, x) => acc + (x.count ?? 0), 0);

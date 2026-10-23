@@ -1,9 +1,10 @@
-import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-forgot-password',
@@ -13,6 +14,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./forgot-password.scss']
 })
 export class ForgotPasswordComponent {
+  private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
 
@@ -34,7 +36,7 @@ export class ForgotPasswordComponent {
     this.http.post(
       `${environment.apiUrl}/Auth/forgot-password`,
       { email: this.email }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading = false;
         this.submitted = true;

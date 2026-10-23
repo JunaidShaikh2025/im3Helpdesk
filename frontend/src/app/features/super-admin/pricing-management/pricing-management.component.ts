@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface AdminPlan {
   id: string;
@@ -29,6 +30,7 @@ interface AdminPlan {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PricingManagementComponent {
+  private destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/superadmin/subscription`;
 
@@ -40,7 +42,7 @@ export class PricingManagementComponent {
   constructor() { this.load(); }
 
   load(): void {
-    this.http.get<AdminPlan[]>(`${this.base}/plans`).subscribe({
+    this.http.get<AdminPlan[]>(`${this.base}/plans`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: list => {
         this.plans.set(list);
         const map: Record<string, string> = {};
@@ -72,7 +74,7 @@ export class PricingManagementComponent {
       isActive: plan.isActive,
       featureKeys,
     };
-    this.http.put(`${this.base}/plans/${plan.id}`, payload).subscribe({
+    this.http.put(`${this.base}/plans/${plan.id}`, payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving.update(m => ({ ...m, [plan.id]: false }));
         this.toast.set(`${plan.name} updated`);

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -11,6 +11,7 @@ import {
 } from '../../../core/services/role-rights.service';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type Action = 'canView' | 'canAdd' | 'canEdit' | 'canDelete' | 'canExport';
 
@@ -24,6 +25,7 @@ interface ActionMeta { key: Action; label: string; icon: string; }
   styleUrls: ['./role-rights.scss']
 })
 export class RoleRightsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private svc = inject(RoleRightsService);
   private toastr = inject(ToastrService);
   protected sub = inject(SubscriptionService);
@@ -106,8 +108,8 @@ export class RoleRightsComponent implements OnInit {
     this.loading.set(true);
     // Make sure the plan/feature list is hydrated so the page filters
     // correctly even if the user lands here on a deep link.
-    this.sub.ensureLoaded().subscribe();
-    this.svc.getCatalog().subscribe({
+    this.sub.ensureLoaded().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    this.svc.getCatalog().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (cat) => {
         this.modules.set(cat.modules);
         this.roles.set(cat.roles);
@@ -121,7 +123,7 @@ export class RoleRightsComponent implements OnInit {
   }
 
   loadMatrix(): void {
-    this.svc.getMatrix().subscribe({
+    this.svc.getMatrix().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (m) => {
         this.matrix.set(m);
         this.loading.set(false);
@@ -206,12 +208,12 @@ export class RoleRightsComponent implements OnInit {
     const visibleKeys = new Set(this.availableModules().map(m => m.key));
     const rows = Object.values(this.currentMatrix).filter(r => visibleKeys.has(r.module));
     this.saving.set(true);
-    this.svc.save(role, rows).subscribe({
+    this.svc.save(role, rows).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving.set(false);
         this.toastr.success(`${role} permissions saved`);
         // Refresh current user's cached permissions in case admin edited their own role.
-        this.svc.loadMine().subscribe();
+        this.svc.loadMine().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
       },
       error: () => {
         this.saving.set(false);
@@ -224,11 +226,11 @@ export class RoleRightsComponent implements OnInit {
     if (this.isReadOnly) return;
     const role = this.selectedRole();
     if (!confirm(`Reset ${role} permissions to defaults?`)) return;
-    this.svc.reset(role).subscribe({
+    this.svc.reset(role).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success(`${role} reset to defaults`);
         this.loadMatrix();
-        this.svc.loadMine().subscribe();
+        this.svc.loadMine().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
       },
       error: () => this.toastr.error('Failed to reset permissions')
     });

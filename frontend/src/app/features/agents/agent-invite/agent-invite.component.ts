@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -7,6 +7,7 @@ import { ToastrService } from 'ngx-toastr';
 import { AgentService } from '../../../core/services/agent.service';
 import { AgentGroupService } from '../../../core/services/agent-group.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-agent-invite',
@@ -19,6 +20,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
   styleUrls: ['./agent-invite.scss']
 })
 export class AgentInviteComponent {
+  private destroyRef = inject(DestroyRef);
   private agentService = inject(AgentService);
   private groupService = inject(AgentGroupService);
   public router = inject(Router);
@@ -51,7 +53,7 @@ export class AgentInviteComponent {
   });
 
   constructor() {
-    this.groupService.getAll().subscribe({
+    this.groupService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.groups = data;
         this.cdr.detectChanges();
@@ -107,7 +109,7 @@ export class AgentInviteComponent {
 
     this.invitedRoleLabel = String(this.form.value.role || 'User');
 
-    this.agentService.invite(payload).subscribe({
+    this.agentService.invite(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.loading = false;
         this.invitedTempPassword = res.tempPassword;

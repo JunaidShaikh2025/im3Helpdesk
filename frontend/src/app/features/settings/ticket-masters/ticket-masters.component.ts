@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
@@ -8,6 +8,7 @@ import {
   TicketMasterOption,
   TicketMasterService
 } from '../../../core/services/ticket-master.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-ticket-masters',
@@ -17,6 +18,7 @@ import {
   styleUrls: ['./ticket-masters.scss']
 })
 export class TicketMastersComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private readonly service = inject(TicketMasterService);
   private readonly toastr = inject(ToastrService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -73,7 +75,7 @@ export class TicketMastersComponent implements OnInit {
             this.cdr.markForCheck();
           });
         }
-      })
+      }), takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (data) => {
         this.allOptions = {
@@ -138,7 +140,7 @@ export class TicketMastersComponent implements OnInit {
         value: payload.value,
         label: payload.label,
         sortOrder: payload.sortOrder
-      }).subscribe({
+      }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.toastr.success('Created');
           this.resetForm();
@@ -166,7 +168,7 @@ export class TicketMastersComponent implements OnInit {
       updatePayload.value = value;
     }
 
-    this.service.update(this.editingId, updatePayload).subscribe({
+    this.service.update(this.editingId, updatePayload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Updated');
         this.resetForm();
@@ -181,7 +183,7 @@ export class TicketMastersComponent implements OnInit {
   activate(item: TicketMasterOption) {
     if (item.isActive) return;
 
-    this.service.update(item.id, { isActive: true }).subscribe({
+    this.service.update(item.id, { isActive: true }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Activated');
         this.loadAllOptions(false);
@@ -196,7 +198,7 @@ export class TicketMastersComponent implements OnInit {
     if (!item.isActive) return;
     if (!confirm('Disable this option?')) return;
 
-    this.service.update(item.id, { isActive: false }).subscribe({
+    this.service.update(item.id, { isActive: false }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Disabled');
         this.loadAllOptions(false);
@@ -210,7 +212,7 @@ export class TicketMastersComponent implements OnInit {
   remove(item: TicketMasterOption) {
     if (!confirm('Delete this option permanently? This cannot be undone.')) return;
 
-    this.service.hardDelete(item.id).subscribe({
+    this.service.hardDelete(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Deleted permanently');
         this.loadAllOptions(false);

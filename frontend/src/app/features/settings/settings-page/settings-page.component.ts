@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject, Input } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, Input, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -21,6 +21,7 @@ import { WhatsappSettingsComponent } from '../whatsapp-settings/whatsapp-setting
 import { IntegrationsComponent } from '../integrations/integrations.component';
 import { AgentGroupsSettingsComponent } from '../agent-groups-settings/agent-groups-settings.component';
 import { TicketMastersComponent } from '../ticket-masters/ticket-masters.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-settings-page',
@@ -45,6 +46,7 @@ import { TicketMastersComponent } from '../ticket-masters/ticket-masters.compone
   styleUrls: ['./settings-page.scss']
 })
 export class SettingsPageComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
@@ -185,7 +187,7 @@ export class SettingsPageComponent implements OnInit {
   /** Pull email-polling interval + timezone from the org record. */
   private loadGeneralOrgSettings() {
     this.http
-      .get<any>(`${environment.apiUrl}/Organizations/current`)
+      .get<any>(`${environment.apiUrl}/Organizations/current`).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (org) => {
           const sec =
@@ -240,7 +242,7 @@ export class SettingsPageComponent implements OnInit {
     this.http
       .put(`${environment.apiUrl}/Organizations/current`, {
         emailPollingIntervalSeconds: seconds,
-      })
+      }).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.pollingSaving = false;
@@ -261,7 +263,7 @@ export class SettingsPageComponent implements OnInit {
     this.http
       .put(`${environment.apiUrl}/Organizations/current`, {
         timezone: this.timezone,
-      })
+      }).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.timezoneSaving = false;

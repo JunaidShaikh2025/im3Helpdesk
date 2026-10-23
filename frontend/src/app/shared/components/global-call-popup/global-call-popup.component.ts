@@ -2,7 +2,7 @@
 
 import {
   Component, ChangeDetectorRef, inject, OnInit, OnDestroy, ElementRef,
-  ViewChild, Directive, Input
+  ViewChild, Directive, Input, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +11,7 @@ import { Subscription } from 'rxjs';
 import { GlobalCallNotificationService }
   from '../../../core/services/global-call-notification.service';
 import { ChatService } from '../../../core/services/chat.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 /** Tiny attribute directive so we can bind a MediaStream to a
  *  `<video>` or `<audio>` element via Angular template syntax. */
@@ -992,6 +993,7 @@ export class SrcObjectDirective {
   `]
 })
 export class GlobalCallPopupComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
 
   callSvc    = inject(GlobalCallNotificationService);
   chatSvc    = inject(ChatService);
@@ -1043,7 +1045,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     this.syncMediaOwnership();
 
     this.subs.push(
-      this.router.events.subscribe(evt => {
+      this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(evt => {
         if (evt instanceof NavigationEnd) {
           this.updateRouteState();
           this.syncMediaOwnership();
@@ -1054,7 +1056,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     );
 
     this.subs.push(
-      this.chatSvc.callAccepted$.subscribe(d => {
+      this.chatSvc.callAccepted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         this.syncStreams();
         this.cdr.detectChanges();
@@ -1062,7 +1064,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     );
 
     this.subs.push(
-      this.callSvc.remoteStream$.subscribe(() => {
+      this.callSvc.remoteStream$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
         this.syncStreams();
         this.cdr.detectChanges();
       })
@@ -1070,7 +1072,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
     // Auto-scroll chat when a new in-call message arrives.
     this.subs.push(
-      this.callSvc.callChatChanged$.subscribe(() => {
+      this.callSvc.callChatChanged$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
         this.cdr.detectChanges();
         setTimeout(() => this.scrollChatToBottom(), 30);
       })
@@ -1078,7 +1080,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
 
     // Re-render when conference roster/streams change.
     this.subs.push(
-      this.callSvc.conferenceChanged$.subscribe(() => {
+      this.callSvc.conferenceChanged$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
         this.ensureValidMainTile();
         this.autoStageDominantSpeaker();
         this.cdr.detectChanges();
@@ -1088,14 +1090,14 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     // Re-render whenever someone starts/stops speaking so the roster
     // chips pulse like Microsoft Teams.
     this.subs.push(
-      this.callSvc.speakingChanged$.subscribe(() => {
+      this.callSvc.speakingChanged$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
         this.autoStageDominantSpeaker();
         this.cdr.detectChanges();
       })
     );
 
     this.subs.push(
-      this.chatSvc.callEnded$.subscribe(d => {
+      this.chatSvc.callEnded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         this.syncMediaOwnership();
         this.resetLocalControls();
@@ -1103,7 +1105,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     );
 
     this.subs.push(
-      this.chatSvc.callRejected$.subscribe(d => {
+      this.chatSvc.callRejected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         this.syncMediaOwnership();
         this.resetLocalControls();
@@ -1423,7 +1425,7 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
     this.inviteSearch = '';
     this.inviteSelected.clear();
     this.loadingInviteUsers = true;
-    this.chatSvc.getChatUsers().subscribe({
+    this.chatSvc.getChatUsers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.inviteUsers = data || [];
         this.loadingInviteUsers = false;

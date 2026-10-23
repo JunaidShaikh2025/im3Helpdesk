@@ -2,7 +2,7 @@ import {
   Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject,
   ViewChild, ElementRef,
-  ChangeDetectionStrategy, HostListener
+  ChangeDetectionStrategy, HostListener, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -31,6 +31,7 @@ import { TicketMasterOption, TicketMasterService } from '../../../core/services/
 import { TopbarContextService } from '../../../core/services/topbar-context.service';
 import { OrgContextService } from '../../../core/services/org-context.service';
 import { ReactionBarComponent } from '../../../shared/components/reaction-bar/reaction-bar.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -49,6 +50,7 @@ import { ReactionBarComponent } from '../../../shared/components/reaction-bar/re
 })
 export class TicketDetailComponent
   implements OnInit, AfterViewInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
 
   private route = inject(ActivatedRoute);
   public router = inject(Router);
@@ -259,7 +261,7 @@ export class TicketDetailComponent
   }
 
   loadJumpTickets() {
-    this.ticketService.getAll().subscribe({
+    this.ticketService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (rows) => {
         const filtered = (rows || []).filter(t => this.isNavigableStatus(t?.status));
         this.jumpTickets = this.sortJumpTickets(filtered);
@@ -722,7 +724,7 @@ export class TicketDetailComponent
     ev?.stopPropagation();
     if (!this.ticketId || this.watcherBusyUserId) return;
     this.watcherBusyUserId = 'me';
-    this.ticketService.addMeWatcher(this.ticketId).subscribe({
+    this.ticketService.addMeWatcher(this.ticketId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.runUiUpdate(() => {
           this.watcherBusyUserId = null;
@@ -750,7 +752,7 @@ export class TicketDetailComponent
     this.watcherBusyUserId = userId;
     const agent = (this.agents || []).find(a =>
       String(a?.id || '').toLowerCase() === String(userId).toLowerCase());
-    this.ticketService.addWatcher(this.ticketId, userId).subscribe({
+    this.ticketService.addWatcher(this.ticketId, userId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.runUiUpdate(() => {
           this.watcherBusyUserId = null;
@@ -778,7 +780,7 @@ export class TicketDetailComponent
     ev?.stopPropagation();
     if (!userId || this.watcherBusyUserId) return;
     this.watcherBusyUserId = userId;
-    this.ticketService.removeWatcher(this.ticketId, userId).subscribe({
+    this.ticketService.removeWatcher(this.ticketId, userId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.runUiUpdate(() => {
           this.watcherBusyUserId = null;
@@ -972,7 +974,7 @@ export class TicketDetailComponent
       this.ticketId,
       c.id,
       { comment: html, isInternal: true }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.runUiUpdate(() => {
           c.comment = html;
@@ -1007,7 +1009,7 @@ export class TicketDetailComponent
       this.noteMenuOpenId = null;
       this.deletingNoteId = c.id;
     });
-    this.ticketService.deleteComment(this.ticketId, c.id).subscribe({
+    this.ticketService.deleteComment(this.ticketId, c.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.runUiUpdate(() => {
           this.ticket.comments =
@@ -1177,7 +1179,7 @@ export class TicketDetailComponent
     const url = this.getAttachmentUrl(a);
     const fileName = a.fileName || 'attachment';
 
-    this.http.get(url, { responseType: 'blob' }).subscribe({
+    this.http.get(url, { responseType: 'blob' }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (blob) => {
         const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -1207,7 +1209,7 @@ export class TicketDetailComponent
     const url = this.getAttachmentUrl(a);
     const fileName = a.fileName || 'attachment';
 
-    this.http.get(url, { responseType: 'blob' }).subscribe({
+    this.http.get(url, { responseType: 'blob' }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (blob) => {
         const file = new File([blob], fileName, { type: a.contentType || blob.type || 'application/octet-stream' });
         this.pendingFiles.push(file);
@@ -1235,7 +1237,7 @@ export class TicketDetailComponent
     if (!confirm(`Are you sure you want to remove "${a.fileName}"?`)) {
       return;
     }
-    this.http.delete(`${environment.apiUrl}/Attachments/${a.id}`).subscribe({
+    this.http.delete(`${environment.apiUrl}/Attachments/${a.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showToast('success', 'Attachment deleted');
         this.loadAttachments();
@@ -1359,7 +1361,7 @@ export class TicketDetailComponent
       timeline: safe(timeline$, [] as any[]),
       viewers: safe(viewers$, [] as any[]),
       watchers: safe(watchers$, [] as any[])
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (bundle: any) => {
         const { ticket, org, attachments, timeline, viewers, watchers } = bundle;
         if (!ticket) {
@@ -1401,7 +1403,7 @@ export class TicketDetailComponent
   }
 
   loadMasterOptions() {
-    this.ticketMasterService.getAll(true).subscribe({
+    this.ticketMasterService.getAll(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         // Defer to next macrotask so the assignment never lands inside
         // an in-flight CD pass (avoids NG0100 when the response races
@@ -1443,7 +1445,7 @@ export class TicketDetailComponent
   // DATA LOAD
   // ─────────────────────────────────────
 loadTicket() {
-  this.ticketService.getById(this.ticketId)
+  this.ticketService.getById(this.ticketId).pipe(takeUntilDestroyed(this.destroyRef))
     .subscribe({
       next: (data: any) => {
         // Avoid replacing the ticket object reference on every poll
@@ -1490,7 +1492,7 @@ loadTicket() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Attachments` +
       `/ticket/${this.ticketId}`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         // Only swap reference when the set actually changed —
         // otherwise <audio>/<img> chips would re-mount on each poll.
@@ -1506,7 +1508,7 @@ loadTicket() {
   private _attachmentsSig: string | null = null;
 
   loadAgents() {
-    this.agentService.getAll().subscribe({
+    this.agentService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.agents = data;
       }
@@ -1514,7 +1516,7 @@ loadTicket() {
   }
 
   loadGroups() {
-    this.agentGroupService.getAll().subscribe({
+    this.agentGroupService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.groups = data;
       }
@@ -1578,7 +1580,7 @@ loadTicket() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/timeline`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => { this.timeline = data; }
     });
   }
@@ -1588,21 +1590,21 @@ loadTicket() {
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/view`,
       {}
-    ).subscribe();
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   loadViewers() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/viewers`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => { this.viewers = data; }
     });
   }
 
   loadWatchers() {
     this.watcherLoading = true;
-    this.ticketService.getWatchers(this.ticketId)
+    this.ticketService.getWatchers(this.ticketId).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
           this.runUiUpdate(() => {
@@ -1623,7 +1625,7 @@ loadTicket() {
     this.http.get<any>(
       `${environment.apiUrl}/Organizations` +
       '/current'
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.orgSupportEmail =
           data.smtpFromEmail ||
@@ -1652,13 +1654,13 @@ loadTicket() {
   }
 
   loadAgentSignature() {
-    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Profile`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (profile) => {
         const userId = profile?.id || profile?.userId;
         if (!userId) return;
         this.http.get<any>(
           `${environment.apiUrl}/Agents/${userId}`
-        ).subscribe({
+        ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (d) => {
             this.agentSignature = d.signature || '';
           }
@@ -1670,7 +1672,7 @@ loadTicket() {
   loadCustomFieldValues() {
     this.http.get<any[]>(
       `${environment.apiUrl}/CustomFields`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (fields) => {
         this.runUiUpdate(() => {
           this.customFields = fields;
@@ -1680,7 +1682,7 @@ loadTicket() {
         this.http.get<any[]>(
           `${environment.apiUrl}/CustomFields` +
           `/ticket/${this.ticketId}/values`
-        ).subscribe({
+        ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (values) => {
             this.runUiUpdate(() => {
               fields.forEach(f => {
@@ -1710,7 +1712,7 @@ loadTicket() {
       `${environment.apiUrl}/CustomFields` +
       `/ticket/${this.ticketId}/values`,
       values
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () =>
         this.showToast('success',
           'Custom fields saved!')
@@ -1725,7 +1727,7 @@ loadTicket() {
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/status`,
       { status: status }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showToast('success',
           'Status updated!');
@@ -1747,7 +1749,7 @@ loadTicket() {
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/priority`,
       { priority }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showToast('success',
           'Priority updated!');
@@ -1760,7 +1762,7 @@ loadTicket() {
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/type`,
       { ticketType: this.ticket.ticketType }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () =>
         this.showToast('success', 'Type updated!')
     });
@@ -1773,7 +1775,7 @@ loadTicket() {
     if (!tags.includes(tag)) tags.push(tag);
 
     this.ticketService
-      .updateTags(this.ticketId, tags)
+      .updateTags(this.ticketId, tags).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.newTag = '';
@@ -1786,7 +1788,7 @@ loadTicket() {
     const tags = this.getTagsArray()
       .filter(t => t !== tag);
     this.ticketService
-      .updateTags(this.ticketId, tags)
+      .updateTags(this.ticketId, tags).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: () => this.loadTicket() });
   }
 
@@ -1817,7 +1819,7 @@ loadTicket() {
     if (!confirm(
       'Delete this ticket permanently?')) return;
 
-    this.ticketService.delete(this.ticketId).subscribe({
+    this.ticketService.delete(this.ticketId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showToast('success', 'Ticket deleted');
         this.router.navigate(['/tickets']);
@@ -2285,7 +2287,7 @@ updateAllProps() {
           .map(a => a.email)
           .filter((e: string) => !!e)
       }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         const commentId = res?.commentId;
         // Upload any queued attachments against the

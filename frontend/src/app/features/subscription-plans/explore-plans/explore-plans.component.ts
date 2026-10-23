@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { PlanInfo, SubscriptionService } from '../../../core/services/subscription.service';
 import { PLANS, Plan, PlanCategory, PlanFeature, PlanTier } from './plans.data';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface PaymentForm {
   agentSeats: number;
@@ -26,6 +27,7 @@ interface PaymentForm {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExplorePlansComponent {
+  private destroyRef = inject(DestroyRef);
   private readonly subSvc = inject(SubscriptionService);
   private readonly router = inject(Router);
 
@@ -132,8 +134,8 @@ export class ExplorePlansComponent {
       }
     });
 
-    this.subSvc.ensureLoaded().subscribe({ error: () => void 0 });
-    this.subSvc.getPlans().subscribe({
+    this.subSvc.ensureLoaded().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => void 0 });
+    this.subSvc.getPlans().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: list => {
         const map: Record<string, PlanInfo> = {};
         for (const p of list) map[p.tierKey] = p;
@@ -238,7 +240,7 @@ export class ExplorePlansComponent {
       cardLast4: f.cardLast4,
       cardBrand: f.cardBrand,
       notes: f.notes,
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         this.paymentSaving.set(false);
         this.paymentSuccess.set(res.message || 'Payment submitted for approval.');

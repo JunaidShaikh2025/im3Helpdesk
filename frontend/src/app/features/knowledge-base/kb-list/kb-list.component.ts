@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, ChangeDetectorRef, inject
+  Component, OnInit, ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-kb-list',
@@ -25,6 +26,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./kb-list.scss']
 })
 export class KbListComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private kbService   = inject(KnowledgeBaseService);
   private authService = inject(AuthService);
   public  router      = inject(Router);
@@ -68,7 +70,7 @@ export class KbListComponent implements OnInit {
     this.loadUsersWithPosts();
 
     this.filterForm.valueChanges
-      .pipe(debounceTime(400), distinctUntilChanged())
+      .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.loadArticles());
   }
 
@@ -79,7 +81,7 @@ export class KbListComponent implements OnInit {
 
     // My Posts view
     if (this.isMyPostsView) {
-      this.kbService.getMyPosts().subscribe({
+      this.kbService.getMyPosts().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (data) => { this.articles = data; this.loading = false; this.cdr.detectChanges(); },
         error: () => { this.loading = false; this.cdr.detectChanges(); }
       });
@@ -89,7 +91,7 @@ export class KbListComponent implements OnInit {
     // Specific user's posts
     if (this.selectedUserId) {
       const publishedOnly = this.userRole === 'Customer';
-      this.kbService.getPostsByUser(this.selectedUserId, publishedOnly).subscribe({
+      this.kbService.getPostsByUser(this.selectedUserId, publishedOnly).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (data) => { this.articles = data; this.loading = false; this.cdr.detectChanges(); },
         error: () => { this.loading = false; this.cdr.detectChanges(); }
       });
@@ -99,20 +101,20 @@ export class KbListComponent implements OnInit {
     // All posts (default)
     const { search, category } = this.filterForm.value;
     const publishedOnly = this.userRole === 'Customer';
-    this.kbService.getAll({ search, category, publishedOnly }).subscribe({
+    this.kbService.getAll({ search, category, publishedOnly }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => { this.articles = data; this.loading = false; this.cdr.detectChanges(); },
       error: () => { this.loading = false; this.cdr.detectChanges(); }
     });
   }
 
   loadCategories() {
-    this.kbService.getCategories().subscribe({
+    this.kbService.getCategories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => { this.categories = data; this.cdr.detectChanges(); }
     });
   }
 
   loadUsersWithPosts() {
-    this.kbService.getUsersWithPosts().subscribe({
+    this.kbService.getUsersWithPosts().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => { this.usersWithPosts = data; this.cdr.detectChanges(); }
     });
   }
@@ -157,7 +159,7 @@ export class KbListComponent implements OnInit {
   // ── Reactions ──────────────────────────────────
   onReact(article: any, type: 'like' | 'dislike', event: Event) {
     event.stopPropagation();
-    this.kbService.react(article.id, type).subscribe({
+    this.kbService.react(article.id, type).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         article.likeCount    = res.likeCount;
         article.dislikeCount = res.dislikeCount;
@@ -181,7 +183,7 @@ export class KbListComponent implements OnInit {
     event.stopPropagation();
     const text = (this.commentTexts[article.id] || '').trim();
     if (!text) return;
-    this.kbService.addComment(article.id, text).subscribe({
+    this.kbService.addComment(article.id, text).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (c: any) => {
         if (!article.commentList) article.commentList = [];
         article.commentList.push(c);
@@ -195,7 +197,7 @@ export class KbListComponent implements OnInit {
 
   loadCommentsForPost(article: any) {
     if (article.commentList) return;
-    this.kbService.getComments(article.id).subscribe({
+    this.kbService.getComments(article.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         article.commentList = data;
         this.cdr.detectChanges();
@@ -206,7 +208,7 @@ export class KbListComponent implements OnInit {
   deleteComment(article: any, commentId: string, event: Event) {
     event.stopPropagation();
     if (!confirm('Delete this comment?')) return;
-    this.kbService.deleteComment(commentId).subscribe({
+    this.kbService.deleteComment(commentId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         article.commentList = article.commentList
           .filter((c: any) => c.id !== commentId);
@@ -221,7 +223,7 @@ export class KbListComponent implements OnInit {
   deleteArticle(id: string, event: Event) {
     event.stopPropagation();
     if (!confirm('Delete this post?')) return;
-    this.kbService.delete(id).subscribe({
+    this.kbService.delete(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Post deleted');
         this.articles = this.articles.filter(a => a.id !== id);

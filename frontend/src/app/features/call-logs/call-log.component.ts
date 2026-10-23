@@ -1,6 +1,6 @@
 import {
   Component, OnInit, OnDestroy,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ChatService }
   from '../../core/services/chat.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type LogFilter =
   'all' | 'missed' | 'incoming' | 'outgoing';
@@ -446,6 +447,7 @@ type LogFilter =
 })
 export class CallLogComponent
   implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
 
   private chatService = inject(ChatService);
   private cdr         = inject(ChangeDetectorRef);
@@ -471,7 +473,7 @@ export class CallLogComponent
     this.loadMissedCount();
 
     this.subs.push(
-      this.chatService.callEnded$.subscribe((d: any) => {
+      this.chatService.callEnded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((d: any) => {
         if (!d) return;
         setTimeout(() => {
           this.loadLogs();
@@ -481,7 +483,7 @@ export class CallLogComponent
     );
 
     this.subs.push(
-      this.chatService.callRejected$.subscribe((d: any) => {
+      this.chatService.callRejected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((d: any) => {
         if (!d) return;
         setTimeout(() => {
           this.loadLogs();
@@ -505,7 +507,7 @@ export class CallLogComponent
     this.cdr.detectChanges();
 
     this.chatService
-      .getCallLogs(this.activeFilter)
+      .getCallLogs(this.activeFilter).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res: any) => {
           this.logs    = Array.isArray(res) ? res : (res.data || []);
@@ -520,7 +522,7 @@ export class CallLogComponent
   }
 
   loadMissedCount() {
-    this.chatService.getMissedCallCount()
+    this.chatService.getMissedCallCount().pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (r: any) => {
           this.missedCount = r.count || 0;

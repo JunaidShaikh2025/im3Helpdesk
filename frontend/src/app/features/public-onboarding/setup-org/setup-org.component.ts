@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, ChangeDetectorRef, OnInit, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, inject, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { PublicOnboardingService } from '../public-onboarding.service';
 import { AuthService } from '../../auth/auth.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 function passwordMatchValidator(group: AbstractControl) {
   const password = String(group.get('password')?.value ?? '');
@@ -21,6 +22,7 @@ function passwordMatchValidator(group: AbstractControl) {
   styleUrls: ['./setup-org.scss']
 })
 export class SetupOrgComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -52,7 +54,7 @@ export class SetupOrgComponent implements OnInit {
       return;
     }
 
-    this.onboardingService.verifyToken(this.token).subscribe({
+    this.onboardingService.verifyToken(this.token).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.form.patchValue({
           organizationName: res.organizationName,
@@ -84,7 +86,7 @@ export class SetupOrgComponent implements OnInit {
       token: this.token,
       password,
       confirmPassword
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         if (res?.token) {
           // Auto-login so we can immediately continue to authenticated onboarding.

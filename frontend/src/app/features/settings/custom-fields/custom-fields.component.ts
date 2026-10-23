@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { CustomFieldService } from '../../../core/services/custom-field.service';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-custom-fields',
@@ -13,6 +14,7 @@ import { HasPermissionDirective } from '../../../core/directives/has-permission.
   styleUrls: ['./custom-fields.scss']
 })
 export class CustomFieldsComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private cfService = inject(CustomFieldService);
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
@@ -44,7 +46,7 @@ export class CustomFieldsComponent implements OnInit {
   }
 
   loadFields() {
-    this.cfService.getAll().subscribe({
+    this.cfService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.fields = data;
         this.cdr.detectChanges();
@@ -59,7 +61,7 @@ export class CustomFieldsComponent implements OnInit {
       ? this.cfService.update(this.editingId, this.form.value)
       : this.cfService.create(this.form.value);
 
-    action.subscribe({
+    action.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showForm = false;
         this.editingId = '';
@@ -82,7 +84,7 @@ export class CustomFieldsComponent implements OnInit {
 
   deleteField(id: string) {
     if (!confirm('Delete this field?')) return;
-    this.cfService.delete(id).subscribe({
+    this.cfService.delete(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         Promise.resolve().then(() => this.toastr.success('Deleted'));
         this.loadFields();

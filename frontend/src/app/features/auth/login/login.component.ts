@@ -1,6 +1,6 @@
 import {
   Component, ChangeDetectorRef, inject,
-  OnDestroy, AfterViewInit, OnInit, ElementRef, ViewChild
+  OnDestroy, AfterViewInit, OnInit, ElementRef, ViewChild, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -10,6 +10,7 @@ import {
 import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../auth.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type LoginStep = 'credentials' | 'otp' | 'success';
 
@@ -21,6 +22,7 @@ type LoginStep = 'credentials' | 'otp' | 'success';
   styleUrls: ['./login.scss']
 })
 export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
+  private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   private router      = inject(Router);
   private toastr      = inject(ToastrService);
@@ -205,7 +207,7 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
     // loginWithOtp: false — backend seedha JWT dega
     const payload = { ...this.credForm.value, loginWithOtp: false };
 
-    this.authService.login(payload).subscribe({
+    this.authService.login(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         if (res?.requiresOtp) {
           this.loading = false;
@@ -241,7 +243,7 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cdr.detectChanges();
 
     this.authService
-      .resendOtp({ email: this.credForm.value.email })
+      .resendOtp({ email: this.credForm.value.email }).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.loading  = false;
@@ -264,7 +266,7 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const payload = { ...this.credForm.value, loginWithOtp: true };
 
-    this.authService.login(payload).subscribe({
+    this.authService.login(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.loading = false;
         if (res?.requiresOtp) {
@@ -312,7 +314,7 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cdr.detectChanges();
 
     this.authService
-      .verifyOtp({ email: this.otpEmail, otp: this.otpString })
+      .verifyOtp({ email: this.otpEmail, otp: this.otpString }).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res: any) => {
           this.authService.saveUserData(res);
@@ -341,7 +343,7 @@ export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loading = true;
     this.cdr.detectChanges();
 
-    this.authService.resendOtp({ email: this.otpEmail }).subscribe({
+    this.authService.resendOtp({ email: this.otpEmail }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading = false;
         this.clearAllBoxes();

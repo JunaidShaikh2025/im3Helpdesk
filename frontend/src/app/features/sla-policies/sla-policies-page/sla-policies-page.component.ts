@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -9,6 +9,7 @@ import {
   SlaPoliciesService,
   SlaPolicyListItem
 } from '../../../core/services/sla-policies.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-sla-policies-page',
@@ -18,6 +19,7 @@ import {
   styleUrls: ['./sla-policies-page.scss']
 })
 export class SlaPoliciesPageComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private api = inject(SlaPoliciesService);
   private auth = inject(AuthService);
   private toastr = inject(ToastrService);
@@ -37,7 +39,7 @@ export class SlaPoliciesPageComponent implements OnInit {
 
   load() {
     this.loading = true;
-    this.api.list().subscribe({
+    this.api.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (rows) => {
         this.rows = rows || [];
         this.loading = false;
@@ -58,7 +60,7 @@ export class SlaPoliciesPageComponent implements OnInit {
   toggle(row: SlaPolicyListItem, ev: Event) {
     ev.stopPropagation();
     const next = !row.isActive;
-    this.api.toggle(row.id, next).subscribe({
+    this.api.toggle(row.id, next).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         row.isActive = next;
         this.toastr.success(`Policy ${next ? 'enabled' : 'disabled'}.`);
@@ -85,7 +87,7 @@ export class SlaPoliciesPageComponent implements OnInit {
       return;
     }
     if (!confirm(`Delete SLA policy "${row.name}"?`)) return;
-    this.api.delete(row.id).subscribe({
+    this.api.delete(row.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.rows = this.rows.filter(r => r.id !== row.id);
         this.toastr.success('Policy deleted.');
@@ -109,7 +111,7 @@ export class SlaPoliciesPageComponent implements OnInit {
       ],
       reminders: [],
       escalations: [],
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (p) => this.router.navigate(['/sla-policies', p.id, 'edit']),
       error: () => this.toastr.error('Failed to create policy.')
     });

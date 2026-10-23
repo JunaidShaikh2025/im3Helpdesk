@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../core/services/super-admin.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-email-queue-dashboard',
@@ -13,6 +14,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
   styleUrls: ['./email-queue-dashboard.scss']
 })
 export class EmailQueueDashboardComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private readonly superAdminService = inject(SuperAdminService);
   private readonly toastr = inject(ToastrService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -55,7 +57,7 @@ export class EmailQueueDashboardComponent implements OnInit {
       status: this.selectedStatus || undefined,
       webhookPage: this.webhookPage,
       webhookPageSize: this.webhookPageSize
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         queueMicrotask(() => {
           this.kpis = res?.kpis || this.kpis;
@@ -89,7 +91,7 @@ export class EmailQueueDashboardComponent implements OnInit {
 
   retryEmail(item: any): void {
     this.actionBusyId = item.id;
-    this.superAdminService.retryQueuedEmail(item.id).subscribe({
+    this.superAdminService.retryQueuedEmail(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Email queued for retry');
         this.actionBusyId = '';
@@ -104,7 +106,7 @@ export class EmailQueueDashboardComponent implements OnInit {
 
   cancelEmail(item: any): void {
     this.actionBusyId = item.id;
-    this.superAdminService.cancelQueuedEmail(item.id).subscribe({
+    this.superAdminService.cancelQueuedEmail(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Queued email cancelled');
         this.actionBusyId = '';

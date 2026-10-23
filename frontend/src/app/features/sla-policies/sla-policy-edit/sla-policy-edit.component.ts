@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, HostListener, ElementRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, HostListener, ElementRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -13,6 +13,7 @@ import {
   TicketPriorityValue
 } from '../../../core/services/sla-policies.service';
 import { AgentService } from '../../../core/services/agent.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface RecipientOption {
   /** Stable token stored in the CSV — e.g. "AssignedAgent" or "User:{guid}". */
@@ -41,6 +42,7 @@ interface TargetRow extends SlaTarget {
   styleUrls: ['./sla-policy-edit.scss']
 })
 export class SlaPolicyEditComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private api = inject(SlaPoliciesService);
   private agents = inject(AgentService);
   private toastr = inject(ToastrService);
@@ -99,7 +101,7 @@ export class SlaPolicyEditComponent implements OnInit {
       { value: 'Group',            label: 'Group leads',       sortGroup: 0 },
       { value: 'ReportingManager', label: 'Reporting manager', sortGroup: 0 },
     ];
-    this.agents.getAll().subscribe({
+    this.agents.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (rows) => {
         const real: RecipientOption[] = (rows || [])
           .map((r: any) => ({
@@ -119,7 +121,7 @@ export class SlaPolicyEditComponent implements OnInit {
 
   load() {
     this.loading = true;
-    this.api.get(this.policyId).subscribe({
+    this.api.get(this.policyId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (p) => {
         this.policy = p;
         // Backend may serialize priority as enum name ("Critical","High"…)
@@ -331,7 +333,7 @@ export class SlaPolicyEditComponent implements OnInit {
         ...es,
         recipients: es.recipients || 'AssignedAgent',
       })),
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('SLA policy saved.');
         setTimeout(() => {

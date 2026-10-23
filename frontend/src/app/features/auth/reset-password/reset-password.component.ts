@@ -1,11 +1,12 @@
 import {
-  Component, inject, ChangeDetectorRef, OnInit
+  Component, inject, ChangeDetectorRef, OnInit, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-reset-password',
@@ -15,6 +16,7 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./reset-password.scss']
 })
 export class ResetPasswordComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private http   = inject(HttpClient);
   private route  = inject(ActivatedRoute);
   private router = inject(Router);
@@ -57,7 +59,7 @@ export class ResetPasswordComponent implements OnInit {
     this.http.post(
       `${environment.apiUrl}/Auth/reset-password`,
       { token: this.token, newPassword: this.newPassword }
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading   = false;
         this.submitted = true;

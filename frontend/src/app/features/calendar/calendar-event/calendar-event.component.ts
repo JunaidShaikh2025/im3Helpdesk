@@ -1,7 +1,7 @@
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, inject,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +14,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
 import { OrgContextService } from '../../../core/services/org-context.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 // ── Interfaces ──────────────────────────────────────
 export interface CalendarEvent {
@@ -59,6 +60,7 @@ interface DayCell {
   styleUrls: ['./calendar-event.scss']
 })
 export class CalendarEventComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
 
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
@@ -668,7 +670,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       this.http.put<CalendarEvent>(
         `${environment.apiUrl}/CalendarEvents/${payload.id}`,
         payload
-      ).subscribe({
+      ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (updated) => {
           const idx = this.allEvents.findIndex(e => e.id === updated.id);
           if (idx > -1) this.allEvents[idx] = updated;
@@ -698,7 +700,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
       this.http.post<CalendarEvent>(
         `${environment.apiUrl}/CalendarEvents`, newEv
-      ).subscribe({
+      ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (created) => {
           this.allEvents.push(created);
           this.saveLocal();
@@ -725,7 +727,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     if (!confirm(`Delete "${event.title}"?`)) return;
     this.http.delete(
       `${environment.apiUrl}/CalendarEvents/${event.id}`
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.removeEventLocally(event.id),
       error: () => this.removeEventLocally(event.id)
     });
@@ -747,7 +749,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     event.isCompleted = !event.isCompleted;
     this.http.put(
       `${environment.apiUrl}/CalendarEvents/${event.id}`, event
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {},
       error: () => {}
     });
@@ -908,7 +910,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     this.http.post(
       `${environment.apiUrl}/CalendarEvents/${ev.id}/send-reminder`,
       {}
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         this.sendingReminder = false;
         this.toastr.success(

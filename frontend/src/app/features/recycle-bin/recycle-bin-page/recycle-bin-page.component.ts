@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -9,6 +9,7 @@ import {
   RecycleBinService,
   DeletedTicketRow
 } from '../../../core/services/recycle-bin.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-recycle-bin-page',
@@ -18,6 +19,7 @@ import {
   styleUrls: ['./recycle-bin-page.scss']
 })
 export class RecycleBinPageComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private bin = inject(RecycleBinService);
   private auth = inject(AuthService);
   private toastr = inject(ToastrService);
@@ -44,7 +46,7 @@ export class RecycleBinPageComponent implements OnInit {
 
   load() {
     this.loading = true;
-    this.bin.list(this.search?.trim() || undefined).subscribe({
+    this.bin.list(this.search?.trim() || undefined).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.retention = res.retention || { value: 30, unit: 'days' };
         this.rows = res.items || [];

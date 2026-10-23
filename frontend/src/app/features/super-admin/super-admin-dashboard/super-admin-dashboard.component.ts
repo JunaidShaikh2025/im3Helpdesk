@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../core/services/super-admin.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 
 @Component({
@@ -18,6 +19,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
   styleUrls: ['./super-admin-dashboard.scss']
 })
 export class SuperAdminDashboardComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private superAdminService = inject(SuperAdminService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
@@ -32,7 +34,7 @@ export class SuperAdminDashboardComponent implements OnInit {
 
   loadStats() {
     this.loading = true;
-    this.superAdminService.getStats().subscribe({
+    this.superAdminService.getStats().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any) => {
         this.stats = data;
         this.loading = false;

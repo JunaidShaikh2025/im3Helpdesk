@@ -2,7 +2,7 @@
 
 import {
   Component, OnInit, OnDestroy, AfterViewChecked,
-  ChangeDetectorRef, inject, ViewChild, ElementRef
+  ChangeDetectorRef, inject, ViewChild, ElementRef, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +15,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { GlobalCallNotificationService }
   from '../../../core/services/global-call-notification.service';
 import { environment } from '../../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type FilterType = 'all' | 'unread' | 'online' | 'groups';
 
@@ -26,6 +27,7 @@ type FilterType = 'all' | 'unread' | 'online' | 'groups';
   styleUrls: ['./chat-page.scss']
 })
 export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
+  private destroyRef = inject(DestroyRef);
 
   private chatService = inject(ChatService);
   private authService = inject(AuthService);
@@ -133,7 +135,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private loadMissedCallCount() {
-    this.chatService.getMissedCallCount().subscribe({
+    this.chatService.getMissedCallCount().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d: any) => {
         this.missedCallCount = Number(d?.count ?? d?.missedCount ?? 0);
         this.cdr.detectChanges();
@@ -144,7 +146,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private loadMyProfile() {
     this.myName = this.authService.getUserName() || '';
-    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Profile`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (profile) => {
         this.myId = profile?.id || profile?.userId || '';
         if (!this.myName) {
@@ -234,7 +236,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // New message
     this.subs.push(
-      this.chatService.newMessage$.subscribe(msg => {
+      this.chatService.newMessage$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(msg => {
         if (!msg) return;
         const forUser =
           this.selectedUser && !msg.groupId &&
@@ -302,7 +304,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Group lifecycle (created / members added) → refresh sidebar list
     this.subs.push(
-      this.chatService.groupChanged$.subscribe(g => {
+      this.chatService.groupChanged$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(g => {
         if (!g) return;
         this.loadGroups();
       })
@@ -310,7 +312,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Typing
     this.subs.push(
-      this.chatService.typing$.subscribe(d => {
+      this.chatService.typing$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d || d.userId !== this.selectedUser?.id) return;
         this.isTyping = d.isTyping;
         this.cdr.detectChanges();
@@ -319,7 +321,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Online status
     this.subs.push(
-      this.chatService.userStatus$.subscribe(d => {
+      this.chatService.userStatus$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         const u = this.users.find(u => u.id === d.userId);
         if (u) { u.isOnline = d.isOnline; if (!d.isOnline) u.lastSeen = d.lastSeen; this.applyFilter(); }
@@ -329,7 +331,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     // ✅ Incoming call — sirf receiving state (agar callSvc ne popup nahi dikhaya)
     // Global popup already handle karta hai, yahan sirf chat page ke liye
     this.subs.push(
-      this.chatService.incomingCall$.subscribe(d => {
+      this.chatService.incomingCall$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) {
           // ✅ Clear — agar receiving tha toh idle karo
           if (this.callState === 'receiving') {
@@ -352,7 +354,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // ✅ Outgoing call accepted — UI active karo
     this.subs.push(
-      this.chatService.callAccepted$.subscribe(d => {
+      this.chatService.callAccepted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         // callSvc already handling WebRTC
         // Hum yahan sirf UI update karte hain
@@ -371,18 +373,18 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Call rejected/ended
     this.subs.push(
-      this.chatService.callRejected$.subscribe(d => {
+      this.chatService.callRejected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (d) this.resetCallUI();
       })
     );
     this.subs.push(
-      this.chatService.callEnded$.subscribe(d => {
+      this.chatService.callEnded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (d) this.resetCallUI();
       })
     );
 
     this.subs.push(
-      this.chatService.missedCallCount$.subscribe(count => {
+      this.chatService.missedCallCount$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(count => {
         this.missedCallCount = Number(count || 0);
         this.cdr.detectChanges();
       })
@@ -390,7 +392,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Remote stream arrived
     this.subs.push(
-      this.callSvc.remoteStream$.subscribe(stream => {
+      this.callSvc.remoteStream$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(stream => {
         if (!stream || this.isLocalEchoStream(stream)) return;
         setTimeout(() => {
           if (this.remoteVideoRef?.nativeElement) {
@@ -408,7 +410,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Mini bar expand → maximize
     this.subs.push(
-      this.callSvc.expandCallRequest$.subscribe(v => {
+      this.callSvc.expandCallRequest$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(v => {
         if (!v) return;
         this.callState = 'active';
         this.callType  = this.callSvc.callType;
@@ -420,7 +422,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Call-back from call log
     this.subs.push(
-      this.chatService.startCallRequest$.subscribe(req => {
+      this.chatService.startCallRequest$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(req => {
         if (!req) return;
         const user = this.users.find(u => u.id === req.userId);
         if (user) {
@@ -481,7 +483,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   setSidebarTab(t: 'chat' | 'calls') {
     this.sidebarTab = t;
     if (t === 'calls') {
-      this.chatService.markCallsRead().subscribe({
+      this.chatService.markCallsRead().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.missedCallCount = 0;
           this.cdr.detectChanges();
@@ -611,7 +613,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.inviteSearch = '';
     this.inviteSelected.clear();
     this.loadingInviteUsers = true;
-    this.chatService.getChatUsers().subscribe({
+    this.chatService.getChatUsers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.inviteUsers = data || [];
         this.loadingInviteUsers = false;
@@ -659,7 +661,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   // ── Chat data ────────────────────────────
   loadUsers(silent = false) {
     if (!silent) this.loadingUsers = true;
-    this.chatService.getChatUsers().subscribe({
+    this.chatService.getChatUsers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.users = data;
         this.loadingUsers = false;
@@ -680,7 +682,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   loadGroups() {
-    this.chatService.getGroups().subscribe({
+    this.chatService.getGroups().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         // Server now sends authoritative unreadCount; if user is
         // currently viewing a group, force-zero its count locally to
@@ -781,7 +783,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.messages = [];
     this.loadingMessages = true;
     this.cdr.detectChanges();
-    this.chatService.getMessages(user.id).subscribe({
+    this.chatService.getMessages(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         // Ignore a slower response for a conversation the user has already
         // left; otherwise its history can overwrite the active thread.
@@ -823,14 +825,14 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
         ];
         this.applyFilter();
       }
-      this.chatService.markGroupRead(group.id).subscribe({
+      this.chatService.markGroupRead(group.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         error: () => { /* ignore — next reload will reconcile */ }
       });
     }
     this.messages = [];
     this.loadingMessages = true;
     this.cdr.detectChanges();
-    this.chatService.getGroupMessages(group.id).subscribe({
+    this.chatService.getGroupMessages(group.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         if (requestId !== this.messageLoadRequestId ||
             this.selectedGroup?.id !== group.id) return;
@@ -905,7 +907,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendFile(file: File) {
     this.uploadingFile = true;
     this.cdr.detectChanges();
-    this.chatService.uploadFile(file).subscribe({
+    this.chatService.uploadFile(file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.uploadingFile = false;
         const rid = this.selectedUser?.id, gid = this.selectedGroup?.id;
@@ -959,7 +961,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
       name: this.newGroupName.trim(),
       description: this.newGroupDesc,
       memberIds: this.selectedMemberIds
-    }).subscribe({ next: () => { this.showCreateGroup = false; this.loadGroups(); this.cdr.detectChanges(); } });
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.showCreateGroup = false; this.loadGroups(); this.cdr.detectChanges(); } });
   }
 
   openAddMembers(group: any) {
@@ -979,7 +981,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   confirmAddMembers() {
     if (!this.addMemberSelected.length) return;
     this.addMemberLoading = true;
-    this.chatService.addGroupMembers(this.addMemberGroupId, this.addMemberSelected)
+    this.chatService.addGroupMembers(this.addMemberGroupId, this.addMemberSelected).pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.addMemberLoading = false; this.showAddMembers = false;

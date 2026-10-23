@@ -1,10 +1,11 @@
 // FILE: src/app/core/services/global-call-notification.service.ts
 // Root service — WebRTC yahan hai, tab/page change pe alive rahega
 
-import { Injectable, inject, OnDestroy } from '@angular/core';
+import { Injectable, inject, OnDestroy, DestroyRef } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { ChatService } from './chat.service';
 import { environment } from '../../../environments/environment';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface ConferenceParticipant {
   id: string;
@@ -27,6 +28,7 @@ export interface CallDiagnostics {
 
 @Injectable({ providedIn: 'root' })
 export class GlobalCallNotificationService implements OnDestroy {
+  private destroyRef = inject(DestroyRef);
 
   private chatSvc = inject(ChatService);
   private subs: Subscription[] = [];
@@ -156,7 +158,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     // Incoming call → show popup
     this.subs.push(
-      this.chatSvc.incomingCall$.subscribe(d => {
+      this.chatSvc.incomingCall$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) {
           // Stream null hua — popup hide
           this.isVisible    = false;
@@ -178,7 +180,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     // Caller side: backend echoes the new CallLog id so we know our
     // conference roomId in case the user later promotes the call.
     this.subs.push(
-      this.chatSvc.callInitiated$.subscribe(d => {
+      this.chatSvc.callInitiated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         this.currentCallLogId = d.callLogId || d.CallLogId || null;
       })
@@ -186,7 +188,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     // Outgoing call accepted by remote
     this.subs.push(
-      this.chatSvc.callAccepted$.subscribe(async d => {
+      this.chatSvc.callAccepted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(async d => {
         if (!d || !this.pc) return;
         if (this.isSettingRemoteAnswer) return;
         if (this.pc.signalingState !== 'have-local-offer') return;
@@ -212,7 +214,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     // Remote ended the call
     this.subs.push(
-      this.chatSvc.callEnded$.subscribe(d => {
+      this.chatSvc.callEnded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         this.hidePopup();
         this.endCall(false); // false = hub ko signal mat bhejo (remote ne bheja)
@@ -221,7 +223,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     // Call rejected
     this.subs.push(
-      this.chatSvc.callRejected$.subscribe(d => {
+      this.chatSvc.callRejected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         this.hidePopup();
         this.endCall(false);
@@ -230,7 +232,7 @@ export class GlobalCallNotificationService implements OnDestroy {
 
     // ICE candidates
     this.subs.push(
-      this.chatSvc.iceCandidate$.subscribe(async d => {
+      this.chatSvc.iceCandidate$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(async d => {
         if (!d || !this.pc) return;
         try {
           const c = this.parseRtcJson(
@@ -248,7 +250,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     // ── Conference signaling ──────────────────────────
 
     this.subs.push(
-      this.chatSvc.conferenceInvite$.subscribe(d => {
+      this.chatSvc.conferenceInvite$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         // Don't ring if user is already in this exact call.
         const id = d.callLogId || d.CallLogId;
@@ -260,7 +262,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     );
 
     this.subs.push(
-      this.chatSvc.conferenceParticipantJoined$.subscribe(d => {
+      this.chatSvc.conferenceParticipantJoined$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         const eventCallLogId = String(d.callLogId || d.CallLogId || '');
         // Auto-promote: if this is OUR active 1-to-1 call and someone
@@ -297,7 +299,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     );
 
     this.subs.push(
-      this.chatSvc.conferenceParticipantLeft$.subscribe(d => {
+      this.chatSvc.conferenceParticipantLeft$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         const id = String(d.userId || d.UserId);
         this.removePeer(id);
@@ -313,14 +315,14 @@ export class GlobalCallNotificationService implements OnDestroy {
     // Someone in the room offered us a peer connection (they joined late
     // and are now dialing every existing member).
     this.subs.push(
-      this.chatSvc.conferenceOffer$.subscribe(async d => {
+      this.chatSvc.conferenceOffer$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(async d => {
         if (!d || !this.isConference) return;
         await this.handleConferenceOffer(d);
       })
     );
 
     this.subs.push(
-      this.chatSvc.conferenceAnswer$.subscribe(async d => {
+      this.chatSvc.conferenceAnswer$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(async d => {
         if (!d) return;
         const fromId = String(d.fromUserId || d.FromUserId);
         const pc = this.peers.get(fromId);
@@ -340,7 +342,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     );
 
     this.subs.push(
-      this.chatSvc.conferenceIce$.subscribe(async d => {
+      this.chatSvc.conferenceIce$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(async d => {
         if (!d) return;
         const fromId = String(d.fromUserId || d.FromUserId);
         const pc = this.peers.get(fromId);
@@ -359,7 +361,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     );
 
     this.subs.push(
-      this.chatSvc.callMessage$.subscribe(d => {
+      this.chatSvc.callMessage$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(d => {
         if (!d) return;
         const callId = String(d.callLogId || d.CallLogId || '');
         if (!this.currentCallLogId || callId !== this.currentCallLogId) return;

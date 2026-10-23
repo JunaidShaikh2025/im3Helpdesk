@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -8,6 +8,7 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { AuthService } from '../../auth/auth.service';
 import { DeletedTicketDetail, RecycleBinService } from '../../../core/services/recycle-bin.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-recycle-bin-detail-page',
@@ -17,6 +18,7 @@ import { DeletedTicketDetail, RecycleBinService } from '../../../core/services/r
   styleUrls: ['./recycle-bin-detail-page.scss']
 })
 export class RecycleBinDetailPageComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toastr = inject(ToastrService);
@@ -61,7 +63,7 @@ export class RecycleBinDetailPageComponent implements OnInit, OnDestroy {
     this.loading = !this.detail;
     this.loadingFresh = !!this.detail;
     this.confirmPurge = false;
-    this.bin.get(id).subscribe({
+    this.bin.get(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.detail = res;
         this.loading = false;
@@ -115,7 +117,7 @@ export class RecycleBinDetailPageComponent implements OnInit, OnDestroy {
     if (!this.detail || this.acting) return;
     this.acting = true;
 
-    this.bin.restore(this.detail.id).subscribe({
+    this.bin.restore(this.detail.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Ticket restored successfully.');
         this.router.navigate(['/recycle-bin']);
@@ -139,7 +141,7 @@ export class RecycleBinDetailPageComponent implements OnInit, OnDestroy {
     if (!this.detail || this.acting) return;
     this.acting = true;
 
-    this.bin.purge(this.detail.id).subscribe({
+    this.bin.purge(this.detail.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toastr.success('Ticket permanently deleted.');
         this.router.navigate(['/recycle-bin']);

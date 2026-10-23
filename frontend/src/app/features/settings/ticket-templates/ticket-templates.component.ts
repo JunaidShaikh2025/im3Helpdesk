@@ -1,10 +1,11 @@
-import { Component, OnInit, Input, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, Input, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { TicketTemplateService } from '../../../core/services/ticket-template.service';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master.service';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-ticket-templates',
@@ -14,6 +15,7 @@ import { HasPermissionDirective } from '../../../core/directives/has-permission.
   styleUrls: ['./ticket-templates.scss']
 })
 export class TicketTemplatesComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   @Input() embedded = false;
 
   private templateService = inject(TicketTemplateService);
@@ -52,7 +54,7 @@ export class TicketTemplatesComponent implements OnInit {
   }
 
   loadMasterOptions() {
-    this.ticketMasterService.getAll(true).subscribe({
+    this.ticketMasterService.getAll(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.ticketTypes = data.ticketTypes || [];
         this.statuses = data.ticketStatuses || [];
@@ -71,7 +73,7 @@ export class TicketTemplatesComponent implements OnInit {
 
   loadTemplates() {
     this.loading = true;
-    this.templateService.getAll().subscribe({
+    this.templateService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => {
         this.templates = data;
         this.loading = false;
@@ -86,7 +88,7 @@ export class TicketTemplatesComponent implements OnInit {
 
   saveTemplate() {
     if (this.form.invalid) return;
-    this.templateService.create(this.form.value).subscribe({
+    this.templateService.create(this.form.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showForm = false;
         this.form.reset({
@@ -109,7 +111,7 @@ export class TicketTemplatesComponent implements OnInit {
 
   deleteTemplate(id: string) {
     if (!confirm('Delete this template?')) return;
-    this.templateService.delete(id).subscribe({
+    this.templateService.delete(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         Promise.resolve().then(() =>
           this.toastr.success('Template deleted')

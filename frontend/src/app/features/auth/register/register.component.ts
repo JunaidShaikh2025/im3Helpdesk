@@ -8,7 +8,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../auth.service';
-import { ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-register',
@@ -22,6 +23,7 @@ import { ChangeDetectorRef } from '@angular/core';
   styleUrls: ['./register.scss']
 })
 export class RegisterComponent {
+  private destroyRef = inject(DestroyRef);
   loading = false;
   success = false; // <-- ADDED THIS
   form: FormGroup;
@@ -59,7 +61,7 @@ export class RegisterComponent {
     this.loading = true;
     this.cdr.detectChanges();
 
-    this.authService.register(this.form.value).subscribe({
+    this.authService.register(this.form.value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.loading = false;
         this.success = true; // <-- ADDED THIS
