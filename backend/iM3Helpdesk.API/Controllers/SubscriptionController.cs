@@ -1,8 +1,9 @@
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
+using iM3Helpdesk.Application.Contracts.Subscriptions;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,15 +19,18 @@ public class SubscriptionController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly ICurrentTenantService _tenant;
     private readonly ISubscriptionService _sub;
+    private readonly ISubscriptionTierPolicyProvider _tierPolicyProvider;
 
     public SubscriptionController(
         ApplicationDbContext db,
         ICurrentTenantService tenant,
-        ISubscriptionService sub)
+        ISubscriptionService sub,
+        ISubscriptionTierPolicyProvider tierPolicyProvider)
     {
         _db = db;
         _tenant = tenant;
         _sub = sub;
+        _tierPolicyProvider = tierPolicyProvider;
     }
 
     private Guid GetUserId()
@@ -36,15 +40,7 @@ public class SubscriptionController : ControllerBase
         return id;
     }
 
-    private static int TierRank(string? tierKey) => (tierKey ?? "").ToLowerInvariant() switch
-    {
-        "growth" => 0,
-        "pro" => 1,
-        "enterprise" => 2,
-        _ => 0,
-    };
-
-    // ── Public-to-tenant: list plans (read-only) ────────────────────
+    // â”€â”€ Public-to-tenant: list plans (read-only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     [HttpGet("plans")]
     [AllowAnonymous]
     public async Task<IActionResult> GetPlans()
@@ -70,7 +66,7 @@ public class SubscriptionController : ControllerBase
         return Ok(plans);
     }
 
-    // ── Get my org's current subscription + feature keys ───────────
+    // â”€â”€ Get my org's current subscription + feature keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     [HttpGet("me")]
     public async Task<IActionResult> GetMy()
     {
@@ -108,7 +104,7 @@ public class SubscriptionController : ControllerBase
         });
     }
 
-    // ── Org admin submits payment to switch/extend plan ────────────
+    // â”€â”€ Org admin submits payment to switch/extend plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public class SubmitPaymentDto
     {
         public Guid PlanId { get; set; }
@@ -137,12 +133,12 @@ public class SubscriptionController : ControllerBase
         var plan = await _db.SubscriptionPlans.FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.IsActive);
         if (plan == null) return NotFound(new { error = "Plan not found" });
 
-        // Block downgrades — they must go through support (refund/proration).
+        // Block downgrades â€” they must go through support (refund/proration).
         var currentSub = await _sub.GetActiveSubscriptionAsync(orgId.Value);
         if (currentSub != null)
         {
             var currentPlan = await _db.SubscriptionPlans.FirstOrDefaultAsync(p => p.Id == currentSub.PlanId);
-            if (currentPlan != null && TierRank(plan.TierKey) < TierRank(currentPlan.TierKey))
+            if (currentPlan != null && _tierPolicyProvider.GetRank(plan.TierKey) < _tierPolicyProvider.GetRank(currentPlan.TierKey))
             {
                 return BadRequest(new { error = "Plan downgrade is not allowed. Please contact support." });
             }
@@ -186,7 +182,7 @@ public class SubscriptionController : ControllerBase
         });
     }
 
-    // ── List org's own payments ────────────────────────────────────
+    // â”€â”€ List org's own payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     [HttpGet("payments")]
     public async Task<IActionResult> GetMyPayments()
     {

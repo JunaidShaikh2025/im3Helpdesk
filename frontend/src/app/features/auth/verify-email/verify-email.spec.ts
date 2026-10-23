@@ -5,7 +5,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 
-import { VerifyEmailComponent } from './verify-email';
+import { VerifyEmailComponent } from './verify-email.component';
 
 describe('VerifyEmailComponent', () => {
   let component: VerifyEmailComponent;

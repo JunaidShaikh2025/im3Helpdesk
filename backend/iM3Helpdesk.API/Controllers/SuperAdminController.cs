@@ -1,6 +1,5 @@
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Domain.Enums;
-using iM3Helpdesk.Application.Contracts.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,14 +15,10 @@ namespace iM3Helpdesk.API.Controllers;
 public class SuperAdminController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
-  private readonly IEmailQueueService _emailQueueService;
 
-  public SuperAdminController(
-      ApplicationDbContext context,
-      IEmailQueueService emailQueueService)
+  public SuperAdminController(ApplicationDbContext context)
   {
     _context = context;
-    _emailQueueService = emailQueueService;
   }
 
   [HttpGet("organizations")]

@@ -5,7 +5,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 
-import { TicketCreateComponent } from './ticket-create';
+import { TicketCreateComponent } from './ticket-create.component';
 
 describe('TicketCreateComponent', () => {
   let component: TicketCreateComponent;

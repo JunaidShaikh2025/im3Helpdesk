@@ -63,4 +63,107 @@ public class Ticket : IMustHaveTenant
     public DateTime? DeletedAt { get; set; }
     /// <summary>User who soft-deleted the ticket. Null if deleted by system / migration.</summary>
     public Guid? DeletedByUserId { get; set; }
+
+    // ── Domain Methods & Invariant Rules ────────────────────────────────
+    public void AssignTo(Guid agentId)
+    {
+        if (agentId == Guid.Empty)
+            throw new ArgumentException("Agent ID cannot be empty.", nameof(agentId));
+
+        AssignedToUserId = agentId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Unassign()
+    {
+        AssignedToUserId = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Resolve(DateTime? resolvedAt = null)
+    {
+        if (IsDeleted)
+            throw new Exceptions.DomainException("Cannot resolve a deleted ticket.");
+
+        Status = TicketStatus.Resolved;
+        ResolvedAt = resolvedAt ?? DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Close()
+    {
+        if (IsDeleted)
+            throw new Exceptions.DomainException("Cannot close a deleted ticket.");
+
+        Status = TicketStatus.Closed;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (IsDeleted)
+            throw new Exceptions.DomainException("Cannot reopen a deleted ticket.");
+
+        if (Status != TicketStatus.Closed && Status != TicketStatus.Resolved && Status != TicketStatus.ResolvedOnBeta)
+            throw new Exceptions.DomainException($"Cannot reopen a ticket with status '{Status}'. Only Closed or Resolved tickets can be reopened.");
+
+        Status = TicketStatus.Open;
+        ResolvedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ChangePriority(TicketPriority priority)
+    {
+        Priority = priority;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ChangeStatus(TicketStatus newStatus, DateTime? transitionTime = null)
+    {
+        if (newStatus == TicketStatus.Resolved || newStatus == TicketStatus.ResolvedOnBeta)
+        {
+            Resolve(transitionTime);
+            Status = newStatus;
+        }
+        else if (newStatus == TicketStatus.Closed)
+        {
+            Close();
+        }
+        else
+        {
+            if (Status == TicketStatus.Closed || Status == TicketStatus.Resolved || Status == TicketStatus.ResolvedOnBeta)
+            {
+                ResolvedAt = null;
+            }
+            Status = newStatus;
+            UpdatedAt = transitionTime ?? DateTime.UtcNow;
+        }
+    }
+
+    public void LogTime(int minutes)
+    {
+        if (minutes <= 0)
+            throw new Exceptions.DomainException("Logged time must be greater than zero minutes.");
+
+        TimeSpentMinutes += minutes;
+        LastActivityAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SoftDelete(Guid? deletedByUserId)
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedByUserId = deletedByUserId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
+        DeletedByUserId = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
+

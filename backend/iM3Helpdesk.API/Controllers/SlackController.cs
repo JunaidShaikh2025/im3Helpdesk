@@ -1,3 +1,4 @@
+using iM3Helpdesk.Application.DTOs.Integrations;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -186,21 +187,4 @@ public class SlackController : ControllerBase
 
     return Ok(new { message = "Teams notification sent" });
   }
-}
-
-public class SlackWebhookDto
-{
-  public string? Command { get; set; }
-  public string? Text { get; set; }
-  public string? EventType { get; set; }
-  public string? Channel { get; set; }
-  public string? UserId { get; set; }
-}
-
-public class SlackNotifyDto
-{
-  public string OrgId { get; set; } = string.Empty;
-  public string Message { get; set; } = string.Empty;
-  public string TicketTitle { get; set; } = string.Empty;
-  public string Status { get; set; } = string.Empty;
 }

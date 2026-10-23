@@ -43,9 +43,12 @@ public class ChatHub : Hub
         callLogId, _ => new HashSet<Guid>());
   }
 
-  public ChatHub(ApplicationDbContext db)
+  private readonly ILogger<ChatHub>? _logger;
+
+  public ChatHub(ApplicationDbContext db, ILogger<ChatHub>? logger = null)
   {
     _db = db;
+    _logger = logger;
   }
 
   // ─────────────────────────────────────────────
@@ -1113,7 +1116,10 @@ public class ChatHub : Hub
 
       await _db.SaveChangesAsync();
     }
-    catch { /* don't crash the hub */ }
+    catch (Exception ex)
+    {
+      _logger?.LogError(ex, "Failed to update user online status in ChatHub");
+    }
   }
 
   private static Guid GuidCombine(Guid a, Guid b)

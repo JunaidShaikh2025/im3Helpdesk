@@ -98,4 +98,54 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     {
         await _context.UserSessions.AddAsync(session, ct);
     }
+
+    public async Task<IReadOnlyList<User>> GetAgentsAsync(Guid? organizationId, bool isSuperAdmin, CancellationToken ct = default)
+    {
+        var query = _context.Users
+            .IgnoreQueryFilters()
+            .Where(u =>
+                u.Role == Domain.Enums.UserRole.Agent ||
+                u.Role == Domain.Enums.UserRole.CompanyAdmin ||
+                u.Role == Domain.Enums.UserRole.Customer);
+
+        if (organizationId.HasValue)
+            query = query.Where(u => u.OrganizationId == organizationId.Value);
+        else if (!isSuperAdmin)
+            query = query.Where(_ => false);
+
+        return await query.ToListAsync(ct);
+    }
+
+    public async Task<User?> GetAgentByIdAsync(Guid id, Guid? organizationId, bool isSuperAdmin, CancellationToken ct = default)
+    {
+        return await _context.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u =>
+                u.Id == id &&
+                (isSuperAdmin || (organizationId.HasValue && u.OrganizationId == organizationId.Value)), ct);
+    }
+
+    public async Task<Guid?> GetOrganizationIdByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.Id == userId)
+            .Select(u => (Guid?)u.OrganizationId)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<string>> GetExistingEmailsAsync(IEnumerable<string> emails, CancellationToken ct = default)
+    {
+        var lowerEmails = emails.Select(e => e.ToLower()).ToList();
+        return await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => lowerEmails.Contains(u.Email.ToLower()))
+            .Select(u => u.Email.ToLower())
+            .ToListAsync(ct);
+    }
+
+    public async Task AddAgentGroupMembersAsync(IEnumerable<AgentGroupMember> members, CancellationToken ct = default)
+    {
+        await _context.AgentGroupMembers.AddRangeAsync(members, ct);
+    }
 }

@@ -11,7 +11,7 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
-import { AuthService } from '../../features/auth/auth.service';
+import { AuthService } from '../services/auth.service';
 import { authInterceptor } from './auth.interceptor';
 import { TOKEN_KEY } from '../constants/auth.constants';
 import { environment } from '../../../environments/environment';

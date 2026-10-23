@@ -1,9 +1,10 @@
 using iM3Helpdesk.API.Hubs;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Hubs;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using Hangfire;
 using Hangfire.SqlServer;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using iM3Helpdesk.Infrastructure.ML;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
@@ -15,7 +16,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
 using iM3Helpdesk.Application;
-using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,8 +57,8 @@ builder.WebHost.ConfigureKestrel(o => {
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<ISlaService, SlaService>();
-builder.Services.AddScoped<iM3Helpdesk.API.Services.ISubscriptionService, iM3Helpdesk.API.Services.SubscriptionService>();
-builder.Services.AddScoped<iM3Helpdesk.API.Services.IPermissionService, iM3Helpdesk.API.Services.PermissionService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IEmailQueueService, EmailQueueService>();
 builder.Services.AddScoped<IEmailDispatchService, QueuedEmailDispatchService>();
 builder.Services.AddSingleton<IBackgroundTaskService, BackgroundTaskService>();
@@ -112,7 +112,7 @@ builder.Services.AddAuthentication(options =>
     IssuerSigningKey = new SymmetricSecurityKey(
           Encoding.UTF8.GetBytes(secretKey))
   };
-  // ✅ Required for SignalR: read token from query string
+  // âœ… Required for SignalR: read token from query string
   options.Events = new JwtBearerEvents
   {
     OnMessageReceived = context =>
@@ -176,10 +176,15 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddResponseCaching();
 builder.Services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IEmailService>(sp => sp.GetRequiredService<EmailService>());
+builder.Services.AddScoped<IEmailDispatcher>(sp => sp.GetRequiredService<EmailService>());
+builder.Services.AddScoped<ITicketNotificationService>(sp => sp.GetRequiredService<EmailService>());
+builder.Services.AddScoped<IAuthEmailService>(sp => sp.GetRequiredService<EmailService>());
+builder.Services.AddScoped<ICalendarEmailService>(sp => sp.GetRequiredService<EmailService>());
 builder.Services.AddSignalR();
 
-// ── AI Smart Assign Agent (ML.NET + Real-time Hub + Worker) ──
+// â”€â”€ AI Smart Assign Agent (ML.NET + Real-time Hub + Worker) â”€â”€
 builder.Services.AddSingleton<ISmartAssignMlTrainer, SmartAssignMlTrainer>();
 builder.Services.AddScoped<ISmartAssignService, SmartAssignService>();
 builder.Services.AddScoped<ISmartAssignNotifier, SmartAssignNotifier>();
@@ -240,11 +245,11 @@ app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<SmartAssignHub>("/hubs/smart-assign");
 
-// ── Seed subscription plans + trial subscriptions for existing orgs ──
+// â”€â”€ Seed subscription plans + trial subscriptions for existing orgs â”€â”€
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<iM3Helpdesk.Infrastructure.Persistence.ApplicationDbContext>();
-    try { await iM3Helpdesk.API.Services.SubscriptionSeeder.SeedAsync(db); }
+    try { await SubscriptionSeeder.SeedAsync(db); }
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();

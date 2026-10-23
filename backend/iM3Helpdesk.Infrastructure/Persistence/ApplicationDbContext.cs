@@ -10,1233 +10,185 @@ public class ApplicationDbContext : DbContext
   private readonly Guid? _currentTenantId;
   private readonly bool _isSuperAdmin;
 
+  public Guid? CurrentTenantId => _currentTenantId;
+  public bool IsSuperAdmin => _isSuperAdmin;
+
   public ApplicationDbContext(
-      DbContextOptions<ApplicationDbContext>
-          options,
+      DbContextOptions<ApplicationDbContext> options,
       ICurrentTenantService tenantService)
           : base(options)
   {
-    _currentTenantId =
-        tenantService.OrganizationId;
-    _isSuperAdmin =
-        tenantService.IsSuperAdmin;
+    _currentTenantId = tenantService.OrganizationId;
+    _isSuperAdmin = tenantService.IsSuperAdmin;
   }
 
   // ════════════════════════════════════
   // DbSets — All Tables
   // ════════════════════════════════════
-  public DbSet<Organization> Organizations
-      => Set<Organization>();
-  public DbSet<User> Users
-      => Set<User>();
-  public DbSet<Lead> Leads
-      => Set<Lead>();
-  public DbSet<Ticket> Tickets
-      => Set<Ticket>();
-  public DbSet<TicketComment> TicketComments
-      => Set<TicketComment>();
-  public DbSet<Notification> Notifications
-      => Set<Notification>();
-  public DbSet<ActivityLog> ActivityLogs
-      => Set<ActivityLog>();
-  public DbSet<KbArticle> KbArticles
-      => Set<KbArticle>();
-  public DbSet<KbReaction> KbReactions
-      => Set<KbReaction>();
-  public DbSet<CommentReaction> CommentReactions
-      => Set<CommentReaction>();
-  public DbSet<KbComment> KbComments
-      => Set<KbComment>();
-  public DbSet<TicketTemplate> TicketTemplates
-      => Set<TicketTemplate>();
-  public DbSet<EmailQueue> EmailQueues
-      => Set<EmailQueue>();
-  public DbSet<EmailWebhookLog> EmailWebhookLogs
-      => Set<EmailWebhookLog>();
-  public DbSet<AgentGroup> AgentGroups
-      => Set<AgentGroup>();
-  public DbSet<AgentGroupMember>
-      AgentGroupMembers
-      => Set<AgentGroupMember>();
-  public DbSet<TicketAttachment>
-      TicketAttachments
-      => Set<TicketAttachment>();
-  public DbSet<CustomField> CustomFields
-      => Set<CustomField>();
-  public DbSet<TicketFieldMaster> TicketFieldMasters
-      => Set<TicketFieldMaster>();
-  public DbSet<TicketCustomFieldValue>
-      TicketCustomFieldValues
-      => Set<TicketCustomFieldValue>();
-  public DbSet<TicketViewer> TicketViewers
-      => Set<TicketViewer>();
-  public DbSet<TicketWatcher> TicketWatchers
-      => Set<TicketWatcher>();
-  public DbSet<EmailNotificationSetting>
-      EmailNotificationSettings
-      => Set<EmailNotificationSetting>();
-  public DbSet<Contact> Contacts
-      => Set<Contact>();
-  public DbSet<TodoItem> TodoItems
-      => Set<TodoItem>();
-  public DbSet<ChatMessage> ChatMessages
-      => Set<ChatMessage>();
-  public DbSet<UserOnlineStatus>
-      UserOnlineStatuses
-      => Set<UserOnlineStatus>();
-  public DbSet<ChatGroup> ChatGroups
-      => Set<ChatGroup>();
-  public DbSet<ChatGroupMember>
-      ChatGroupMembers
-      => Set<ChatGroupMember>();
-
-  // ✅ NEW — Call Log
-  public DbSet<CallLog> CallLogs
-      => Set<CallLog>();
-
+  public DbSet<Organization> Organizations => Set<Organization>();
+  public DbSet<User> Users => Set<User>();
+  public DbSet<Lead> Leads => Set<Lead>();
+  public DbSet<Ticket> Tickets => Set<Ticket>();
+  public DbSet<TicketComment> TicketComments => Set<TicketComment>();
+  public DbSet<Notification> Notifications => Set<Notification>();
+  public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+  public DbSet<KbArticle> KbArticles => Set<KbArticle>();
+  public DbSet<KbReaction> KbReactions => Set<KbReaction>();
+  public DbSet<CommentReaction> CommentReactions => Set<CommentReaction>();
+  public DbSet<KbComment> KbComments => Set<KbComment>();
+  public DbSet<TicketTemplate> TicketTemplates => Set<TicketTemplate>();
+  public DbSet<EmailQueue> EmailQueues => Set<EmailQueue>();
+  public DbSet<EmailWebhookLog> EmailWebhookLogs => Set<EmailWebhookLog>();
+  public DbSet<AgentGroup> AgentGroups => Set<AgentGroup>();
+  public DbSet<AgentGroupMember> AgentGroupMembers => Set<AgentGroupMember>();
+  public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+  public DbSet<CustomField> CustomFields => Set<CustomField>();
+  public DbSet<TicketFieldMaster> TicketFieldMasters => Set<TicketFieldMaster>();
+  public DbSet<TicketCustomFieldValue> TicketCustomFieldValues => Set<TicketCustomFieldValue>();
+  public DbSet<TicketViewer> TicketViewers => Set<TicketViewer>();
+  public DbSet<TicketWatcher> TicketWatchers => Set<TicketWatcher>();
+  public DbSet<EmailNotificationSetting> EmailNotificationSettings => Set<EmailNotificationSetting>();
+  public DbSet<Contact> Contacts => Set<Contact>();
+  public DbSet<TodoItem> TodoItems => Set<TodoItem>();
+  public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+  public DbSet<UserOnlineStatus> UserOnlineStatuses => Set<UserOnlineStatus>();
+  public DbSet<ChatGroup> ChatGroups => Set<ChatGroup>();
+  public DbSet<ChatGroupMember> ChatGroupMembers => Set<ChatGroupMember>();
+  public DbSet<CallLog> CallLogs => Set<CallLog>();
   public DbSet<CalendarEvent> CalendarEvents { get; set; }
-
-  // ✅ NEW — Holidays
   public DbSet<Holiday> Holidays => Set<Holiday>();
-  public DbSet<HolidayYearSetup> HolidayYearSetups
-      => Set<HolidayYearSetup>();
-
-  // ✅ NEW — Role Rights matrix
+  public DbSet<HolidayYearSetup> HolidayYearSetups => Set<HolidayYearSetup>();
   public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
-
-  // ✅ NEW — Subscription / Billing
   public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
   public DbSet<OrganizationSubscription> OrganizationSubscriptions => Set<OrganizationSubscription>();
   public DbSet<PaymentRecord> PaymentRecords => Set<PaymentRecord>();
-
-  // ✅ NEW — Notes (OneNote-style per-user notebooks)
-  public DbSet<NoteBook>     NoteBooks     => Set<NoteBook>();
-  public DbSet<NoteSection>  NoteSections  => Set<NoteSection>();
-  public DbSet<NotePage>     NotePages     => Set<NotePage>();
-
-  // ✅ NEW — SLA Policies (Freshdesk-style)
-  public DbSet<SlaPolicy>     SlaPolicies     => Set<SlaPolicy>();
-  public DbSet<SlaTarget>     SlaTargets      => Set<SlaTarget>();
-  public DbSet<SlaReminder>   SlaReminders    => Set<SlaReminder>();
-  public DbSet<SlaEscalation> SlaEscalations  => Set<SlaEscalation>();
-  public DbSet<BusinessHours> BusinessHours   => Set<BusinessHours>();
+  public DbSet<NoteBook> NoteBooks => Set<NoteBook>();
+  public DbSet<NoteSection> NoteSections => Set<NoteSection>();
+  public DbSet<NotePage> NotePages => Set<NotePage>();
+  public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
+  public DbSet<SlaTarget> SlaTargets => Set<SlaTarget>();
+  public DbSet<SlaReminder> SlaReminders => Set<SlaReminder>();
+  public DbSet<SlaEscalation> SlaEscalations => Set<SlaEscalation>();
+  public DbSet<BusinessHours> BusinessHours => Set<BusinessHours>();
   public DbSet<BusinessHoursHoliday> BusinessHoursHolidays => Set<BusinessHoursHoliday>();
-
-  // ✅ AI Smart Assign Agent
   public DbSet<AIAssignmentLog> AIAssignmentLogs => Set<AIAssignmentLog>();
   public DbSet<AIModelVersion> AIModelVersions => Set<AIModelVersion>();
   public DbSet<AIAgentSkillStat> AIAgentSkillStats => Set<AIAgentSkillStat>();
   public DbSet<AISmartAssignConfig> AISmartAssignConfigs => Set<AISmartAssignConfig>();
-
-  // ✅ Secure Long-Lived User Sessions
   public DbSet<UserSession> UserSessions => Set<UserSession>();
 
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
-  protected override void OnModelCreating(
-      ModelBuilder modelBuilder)
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     base.OnModelCreating(modelBuilder);
 
-    // ── Organization ──────────────
-    modelBuilder.Entity<Organization>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.HasIndex(x => x.Slug)
-          .IsUnique();
-      e.Property(x => x.Name)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.Property(x => x.Slug)
-          .HasMaxLength(100)
-          .IsRequired();
-      e.Property(x => x.SupportEmail)
-          .HasMaxLength(256);
-      e.Property(x => x.SmtpHost)
-          .HasMaxLength(200);
-      e.Property(x => x.SmtpFromEmail)
-          .HasMaxLength(256);
-      e.Property(x => x.SmtpFromName)
-          .HasMaxLength(200);
-      e.Property(x => x.SmtpUsername)
-          .HasMaxLength(256);
-      e.Property(x => x.SmtpPassword)
-          .HasMaxLength(500);
-      e.Property(x => x.ImapHost)
-          .HasMaxLength(200);
-    });
-
-    // ── User ──────────────────────
-    modelBuilder.Entity<User>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.HasIndex(x => x.Email)
-          .IsUnique();
-      e.Property(x => x.Email)
-          .HasMaxLength(256)
-          .IsRequired();
-      e.Property(x => x.FullName)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.Property(x => x.Department)
-          .HasMaxLength(120);
-      e.Property(x => x.Location)
-          .HasMaxLength(120);
-      e.Property(x => x.Designation)
-          .HasMaxLength(120);
-      e.Property(x => x.Gender)
-          .HasMaxLength(30);
-      e.Property(x => x.IsTwoFactorEnabled)
-          .HasDefaultValue(false);
-      e.HasQueryFilter(u =>
-          _isSuperAdmin ||
-          u.OrganizationId ==
-              _currentTenantId);
-      e.HasOne(u => u.Organization)
-          .WithMany(o => o.Users)
-          .HasForeignKey(u =>
-              u.OrganizationId);
-
-      // ── Seed: Super Admin (permanent — survives migration resets)
-      e.HasData(new User
-      {
-          Id = new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
-          FullName = "Super Admin",
-          Email = "aadil080399@gmail.com",
-          PasswordHash = "$2a$11$pzZz3SNnU1NbLPnjJMrVKeeY4IH7CEESwbsvvmdXOChHAu6LptEkG",
-          PhoneNumber = "9579818081",
-          IsEmailVerified = true,
-          Role = UserRole.SuperAdmin,
-          OrganizationId = null,
-          CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-          FailedLoginAttempts = 0
-      });
-    });
-
-    // ── Lead ──────────────────────
-    modelBuilder.Entity<Lead>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.OrganizationName)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.Property(x => x.OwnerName)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.Property(x => x.WorkEmail)
-          .HasMaxLength(256)
-          .IsRequired();
-      e.Property(x => x.Phone)
-          .HasMaxLength(30);
-      e.Property(x => x.Notes)
-          .HasColumnType("nvarchar(max)");
-      e.Property(x => x.RejectionReason)
-          .HasMaxLength(500);
-      e.Property(x => x.Status)
-          .HasConversion<int>();
-      e.HasIndex(x => x.WorkEmail);
-      e.HasIndex(x => x.Status);
-      e.HasIndex(x => x.CreatedAt);
-      e.HasIndex(x => x.RegistrationToken)
-          .IsUnique()
-          .HasFilter("[RegistrationToken] IS NOT NULL");
-    });
-
-    // ── Ticket ────────────────────
-    modelBuilder.Entity<Ticket>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Title)
-          .HasMaxLength(500)
-          .IsRequired();
-      e.Property(x => x.Category)
-          .HasMaxLength(100);
-
-      // ✅ CRITICAL: No IDENTITY
-      // ValueGeneratedNever = no IDENTITY
-      e.Property(x => x.TicketNumber)
-          .ValueGeneratedNever()
-          .HasDefaultValue(0);
-
-      e.Property(x => x.Description)
-          .HasColumnType("nvarchar(max)");
-      e.Property(x => x.Tags)
-          .HasColumnType("nvarchar(max)");
-
-      // Tenant isolation + recycle-bin filter: hide soft-deleted tickets
-      // from every regular query. The RecycleBinController calls
-      // IgnoreQueryFilters() to surface deleted rows.
-      e.HasQueryFilter(t =>
-          (_isSuperAdmin ||
-           t.OrganizationId ==
-              _currentTenantId)
-          && !t.IsDeleted);
-
-      e.HasIndex(t => t.IsDeleted);
-
-      e.HasOne(t => t.CreatedBy)
-          .WithMany()
-          .HasForeignKey(t =>
-              t.CreatedByUserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      e.HasOne(t => t.AssignedTo)
-          .WithMany()
-          .HasForeignKey(t =>
-              t.AssignedToUserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      e.HasOne(t => t.Organization)
-          .WithMany()
-          .HasForeignKey(t =>
-              t.OrganizationId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-
-      e.HasIndex(t => t.OrganizationId);
-      e.HasIndex(t => t.CreatedAt);
-      e.HasIndex(t => t.Status);
-      e.HasIndex(t => new
-      {
-        t.OrganizationId,
-        t.Status
-      });
-    });
-
-    // ── TicketComment ─────────────
-    modelBuilder.Entity<TicketComment>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Comment)
-          .HasColumnType("nvarchar(max)")
-          .IsRequired();
-      e.Property(x => x.IsInternal)
-          .HasDefaultValue(false);
-      e.HasQueryFilter(c =>
-          _isSuperAdmin ||
-          c.OrganizationId ==
-              _currentTenantId);
-      e.HasOne(c => c.User)
-          .WithMany()
-          .HasForeignKey(c => c.UserId)
-          .IsRequired(false)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      e.HasOne(c => c.EditedBy)
-          .WithMany()
-          .HasForeignKey(c => c.EditedById)
-          .IsRequired(false)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      e.HasIndex(c => c.EmailMessageId);
-    });
-
-    // ── Notification ──────────────
-    modelBuilder.Entity<Notification>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Title)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.Property(x => x.Message)
-          .HasMaxLength(500)
-          .IsRequired();
-      e.HasQueryFilter(n =>
-          _isSuperAdmin ||
-          n.OrganizationId ==
-              _currentTenantId);
-      e.HasOne(n => n.User)
-          .WithMany()
-          .HasForeignKey(n => n.UserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      e.HasOne(n => n.Ticket)
-          .WithMany()
-          .HasForeignKey(n => n.TicketId)
-          .OnDelete(
-              DeleteBehavior.SetNull);
-      e.HasIndex(n => new
-      {
-        n.UserId,
-        n.IsRead
-      });
-    });
-
-    // ── ActivityLog ───────────────
-    modelBuilder.Entity<ActivityLog>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Action)
-          .HasMaxLength(100)
-          .IsRequired();
-      e.Property(x => x.Description)
-          .HasColumnType("nvarchar(max)");
-      e.HasQueryFilter(a =>
-          _isSuperAdmin ||
-          a.OrganizationId ==
-              _currentTenantId);
-      e.HasOne(a => a.User)
-          .WithMany()
-          .HasForeignKey(a => a.UserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      e.HasIndex(a =>
-          a.OrganizationId);
-    });
-
-    // ── KbArticle ─────────────────
-    modelBuilder.Entity<KbArticle>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Title)
-          .HasMaxLength(300)
-          .IsRequired();
-      e.Property(x => x.Content)
-          .IsRequired();
-      e.Property(x => x.Category)
-          .HasMaxLength(100);
-      e.HasQueryFilter(a =>
-          _isSuperAdmin ||
-          a.OrganizationId ==
-              _currentTenantId);
-      e.Property(x => x.MediaUrl)
-          .HasMaxLength(500)
-          .HasDefaultValue("");
-      e.Property(x => x.MediaType)
-          .HasMaxLength(20)
-          .HasDefaultValue("none");
-      e.HasOne(a => a.CreatedBy)
-          .WithMany()
-          .HasForeignKey(a =>
-              a.CreatedByUserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-    });
-
-    // ── CommentReaction ─────────────
-    modelBuilder.Entity<CommentReaction>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.HasIndex(x => new { x.CommentId, x.UserId })
-          .IsUnique();
-      e.Property(x => x.ReactionType)
-          .HasMaxLength(20)
-          .HasDefaultValue("like");
-      e.HasQueryFilter(r =>
-          _isSuperAdmin ||
-          r.OrganizationId == _currentTenantId);
-      e.HasOne(r => r.Comment)
-          .WithMany()
-          .HasForeignKey(r => r.CommentId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasOne(r => r.User)
-          .WithMany()
-          .HasForeignKey(r => r.UserId)
-          .OnDelete(DeleteBehavior.Restrict);
-    });
-
-    // ── KbReaction ────────────────
-    modelBuilder.Entity<KbReaction>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.HasIndex(x => new { x.ArticleId, x.UserId })
-          .IsUnique();
-      e.Property(x => x.ReactionType)
-          .HasMaxLength(20)
-          .HasDefaultValue("like");
-      e.HasQueryFilter(r =>
-          _isSuperAdmin ||
-          r.OrganizationId == _currentTenantId);
-      e.HasOne(r => r.Article)
-          .WithMany(a => a.Reactions)
-          .HasForeignKey(r => r.ArticleId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasOne(r => r.User)
-          .WithMany()
-          .HasForeignKey(r => r.UserId)
-          .OnDelete(DeleteBehavior.Restrict);
-    });
-
-    // ── KbComment ─────────────────
-    modelBuilder.Entity<KbComment>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Text)
-          .HasColumnType("nvarchar(max)")
-          .IsRequired();
-      e.HasQueryFilter(c =>
-          _isSuperAdmin ||
-          c.OrganizationId == _currentTenantId);
-      e.HasOne(c => c.Article)
-          .WithMany(a => a.Comments)
-          .HasForeignKey(c => c.ArticleId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasOne(c => c.User)
-          .WithMany()
-          .HasForeignKey(c => c.UserId)
-          .OnDelete(DeleteBehavior.Restrict);
-    });
-
-    // ── TicketTemplate ────────────
-    modelBuilder.Entity<TicketTemplate>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name)
-          .HasMaxLength(100)
-          .IsRequired();
-      e.HasQueryFilter(t =>
-          _isSuperAdmin ||
-          t.OrganizationId ==
-              _currentTenantId);
-    });
-
-    // ── EmailQueue ────────────────
-    modelBuilder.Entity<EmailQueue>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.ToEmail)
-          .HasMaxLength(256)
-          .IsRequired();
-      e.Property(x => x.Subject)
-          .HasMaxLength(500)
-          .IsRequired();
-      e.Property(x => x.Status)
-          .HasMaxLength(40)
-          .IsRequired();
-      e.Property(x => x.MessageId)
-          .HasMaxLength(320);
-      e.Property(x => x.ProviderMessageId)
-          .HasMaxLength(500);
-      e.Property(x => x.HangfireJobId)
-          .HasMaxLength(128);
-      e.Property(x => x.LastWebhookEvent)
-          .HasMaxLength(80);
-      e.HasIndex(x => x.Status);
-      e.HasIndex(x => x.NextRetryAt);
-      e.HasIndex(x => x.MessageId);
-      e.HasIndex(x => x.ProviderMessageId);
-      e.HasIndex(x => x.CreatedAt);
-    });
-
-    modelBuilder.Entity<EmailWebhookLog>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Provider)
-          .HasMaxLength(60)
-          .IsRequired();
-      e.Property(x => x.EventType)
-          .HasMaxLength(80)
-          .IsRequired();
-      e.Property(x => x.Recipient)
-          .HasMaxLength(256);
-      e.Property(x => x.ProviderMessageId)
-          .HasMaxLength(500);
-      e.Property(x => x.PayloadJson)
-          .HasColumnType("nvarchar(max)")
-          .IsRequired();
-      e.HasIndex(x => x.ReceivedAt);
-      e.HasIndex(x => x.ProviderMessageId);
-      e.HasIndex(x => x.EmailQueueId);
-    });
-
-    // ── AgentGroup ────────────────
-    modelBuilder.Entity<AgentGroup>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name)
-          .HasMaxLength(100)
-          .IsRequired();
-      e.HasIndex(x => x.BusinessHoursId);
-      e.HasQueryFilter(g =>
-          _isSuperAdmin ||
-          g.OrganizationId ==
-              _currentTenantId);
-    });
-
-    // ── AgentGroupMember ──────────
-    modelBuilder.Entity<AgentGroupMember>(
-        e =>
-        {
-          e.HasKey(x => x.Id);
-          e.HasOne(m => m.Group)
-                  .WithMany(g => g.Members)
-                  .HasForeignKey(m =>
-                      m.AgentGroupId)
-                  .OnDelete(
-                      DeleteBehavior.Cascade)
-                  .IsRequired(false);
-          e.HasOne(m => m.User)
-                  .WithMany()
-                  .HasForeignKey(m => m.UserId)
-                  .OnDelete(
-                      DeleteBehavior.Restrict);
-          // ✅ NEW — tenant filter via Group
-          e.HasQueryFilter(m =>
-                  _isSuperAdmin ||
-                  (m.Group != null &&
-                   m.Group.OrganizationId ==
-                      _currentTenantId));
-        });
-
-    // ── TicketAttachment ──────────
-    modelBuilder.Entity<TicketAttachment>(
-        e =>
-        {
-          e.HasKey(x => x.Id);
-          e.Property(x => x.FileName)
-                  .HasMaxLength(300)
-                  .IsRequired();
-          e.HasQueryFilter(a =>
-                  _isSuperAdmin ||
-                  a.OrganizationId ==
-                      _currentTenantId);
-          e.HasOne(a => a.Ticket)
-                  .WithMany()
-                  .HasForeignKey(a => a.TicketId)
-                  .OnDelete(
-                      DeleteBehavior.Cascade);
-          e.HasOne(a => a.UploadedBy)
-                  .WithMany()
-                  .HasForeignKey(a =>
-                      a.UploadedByUserId)
-                  .OnDelete(
-                      DeleteBehavior.Restrict);
-        });
-
-    // ── CustomField ───────────────
-    modelBuilder.Entity<CustomField>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Label)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.Property(x => x.FieldType)
-          .HasMaxLength(50);
-      e.HasQueryFilter(f =>
-          _isSuperAdmin ||
-          f.OrganizationId ==
-              _currentTenantId);
-    });
-
-        // ── TicketFieldMaster ────────
-        modelBuilder.Entity<TicketFieldMaster>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Field)
-                    .HasMaxLength(30)
-                    .IsRequired();
-            e.Property(x => x.Value)
-                    .HasMaxLength(120)
-                    .IsRequired();
-            e.Property(x => x.Label)
-                    .HasMaxLength(120)
-                    .IsRequired();
-            e.HasIndex(x => new
-            {
-                x.OrganizationId,
-                x.Field,
-                x.Value
-            }).IsUnique();
-            e.HasIndex(x => new
-            {
-                x.OrganizationId,
-                x.Field,
-                x.IsActive,
-                x.SortOrder
-            });
-            e.HasQueryFilter(m =>
-                    _isSuperAdmin ||
-                    m.OrganizationId ==
-                            _currentTenantId);
-        });
-
-    // ── TicketCustomFieldValue ────
-    modelBuilder.Entity<
-        TicketCustomFieldValue>(e =>
-        {
-          e.HasKey(x => x.Id);
-          e.HasOne(v => v.Ticket)
-                  .WithMany()
-                  .HasForeignKey(v => v.TicketId)
-                  .OnDelete(
-                      DeleteBehavior.Cascade);
-          e.HasOne(v => v.CustomField)
-                  .WithMany()
-                  .HasForeignKey(v =>
-                      v.CustomFieldId)
-                  .OnDelete(
-                      DeleteBehavior.Cascade);
-          e.HasQueryFilter(v =>
-                  _isSuperAdmin ||
-                  v.OrganizationId ==
-                      _currentTenantId);
-        });
-
-    // ── TicketViewer ──────────────
-    modelBuilder.Entity<TicketViewer>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.HasIndex(x => new
-      {
-        x.TicketId,
-        x.UserId
-      });
-    });
-
-        // ── TicketWatcher ─────────────
-        modelBuilder.Entity<TicketWatcher>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasIndex(x => new
-            {
-                x.TicketId,
-                x.UserId
-            }).IsUnique();
-            e.HasIndex(x => x.TicketId);
-            e.HasIndex(x => x.UserId);
-            e.HasQueryFilter(w =>
-                    _isSuperAdmin ||
-                    w.OrganizationId ==
-                            _currentTenantId);
-        });
-
-    // ── EmailNotificationSetting ──
-    modelBuilder.Entity<
-        EmailNotificationSetting>(e =>
-        {
-          e.HasKey(x => x.Id);
-          e.HasIndex(x => new
-          {
-            x.OrganizationId,
-            x.NotifKey
-          });
-          e.HasQueryFilter(s =>
-                  _isSuperAdmin ||
-                  s.OrganizationId ==
-                      _currentTenantId);
-        });
-
-    // ── Contact ───────────────────
-    modelBuilder.Entity<Contact>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.HasIndex(x => new
-      {
-        x.OrganizationId,
-        x.Email
-      }).IsUnique();
-      e.Property(x => x.FullName)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.Property(x => x.Email)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.HasQueryFilter(c =>
-          _isSuperAdmin ||
-          c.OrganizationId ==
-              _currentTenantId);
-    });
-
-    // ── NoteBook ──────────────────
-    modelBuilder.Entity<NoteBook>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name).HasMaxLength(200).IsRequired();
-      e.Property(x => x.Color).HasMaxLength(50);
-      e.HasMany(x => x.Sections)
-          .WithOne(s => s.NoteBook)
-          .HasForeignKey(s => s.NoteBookId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasQueryFilter(x =>
-          _isSuperAdmin || x.OrganizationId == _currentTenantId);
-    });
-
-    // ── NoteSection ───────────────
-    modelBuilder.Entity<NoteSection>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name).HasMaxLength(200).IsRequired();
-      e.Property(x => x.Color).HasMaxLength(50);
-      e.HasMany(x => x.Pages)
-          .WithOne(p => p.Section)
-          .HasForeignKey(p => p.NoteSectionId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasQueryFilter(x =>
-          _isSuperAdmin || x.OrganizationId == _currentTenantId);
-    });
-
-    // ── NotePage ──────────────────
-    modelBuilder.Entity<NotePage>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Title).HasMaxLength(500).IsRequired();
-      e.HasQueryFilter(x =>
-          _isSuperAdmin || x.OrganizationId == _currentTenantId);
-    });
-
-    // ── TodoItem ──────────────────
-    modelBuilder.Entity<TodoItem>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Title)
-          .HasMaxLength(500)
-          .IsRequired();
-      e.HasOne(x => x.User)
-          .WithMany()
-          .HasForeignKey(x => x.UserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-    });
-
-    // ════════════════════════════════
-    // CHAT
-    // ════════════════════════════════
-
-    // ── ChatMessage ───────────────
-    modelBuilder.Entity<ChatMessage>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Content)
-          .HasColumnType("nvarchar(max)")
-          .IsRequired();
-      e.Property(x => x.MessageType)
-          .HasMaxLength(50)
-          .HasDefaultValue("text");
-      e.HasOne(x => x.Sender)
-          .WithMany()
-          .HasForeignKey(x => x.SenderId)
-          .OnDelete(
-              DeleteBehavior.Restrict)
-          .IsRequired(false);
-      e.HasOne(x => x.Receiver)
-          .WithMany()
-          .HasForeignKey(x =>
-              x.ReceiverId)
-          .OnDelete(
-              DeleteBehavior.Restrict)
-          .IsRequired(false);
-      e.HasOne(x => x.Group)
-          .WithMany()
-          .HasForeignKey(x => x.GroupId)
-          .OnDelete(
-              DeleteBehavior.Cascade)
-          .IsRequired(false);
-      e.HasIndex(x =>
-          x.ConversationId);
-      e.HasIndex(x => new
-      {
-        x.SenderId,
-        x.ReceiverId
-      });
-      e.HasIndex(x => x.CreatedAt);
-    });
-
-    // ── UserOnlineStatus ──────────
-    // ✅ IsRequired(false) fixes warning
-    modelBuilder.Entity<
-        UserOnlineStatus>(e =>
-        {
-          e.HasKey(x => x.Id);
-          e.HasIndex(x => x.UserId)
-                  .IsUnique();
-          e.HasOne(x => x.User)
-                  .WithMany()
-                  .HasForeignKey(x => x.UserId)
-                  .OnDelete(
-                      DeleteBehavior.Cascade)
-                  .IsRequired(false);
-        });
-
-    // ── ChatGroup ─────────────────
-    modelBuilder.Entity<ChatGroup>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name)
-          .HasMaxLength(200)
-          .IsRequired();
-      e.HasQueryFilter(g =>
-          _isSuperAdmin ||
-          g.OrganizationId ==
-              _currentTenantId);
-      e.HasOne(x => x.CreatedBy)
-          .WithMany()
-          .HasForeignKey(x =>
-              x.CreatedByUserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-    });
-
-    // ── CalendarEvent ─────────────
-    modelBuilder.Entity<CalendarEvent>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Title)
-          .HasMaxLength(500)
-          .IsRequired();
-      e.Property(x => x.Type)
-          .HasMaxLength(50)
-          .HasDefaultValue("event");
-      e.Property(x => x.Priority)
-          .HasMaxLength(20)
-          .HasDefaultValue("medium");
-      e.Property(x => x.Color)
-          .HasMaxLength(20);
-      e.HasQueryFilter(c =>
-          _isSuperAdmin ||
-          c.OrganizationId == _currentTenantId);
-      e.HasIndex(x => new
-      {
-        x.OrganizationId,
-        x.CreatedByUserId,
-        x.StartDate
-      });
-    });
-
-    // ── Holiday ───────────────────
-    modelBuilder.Entity<Holiday>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Occasion)
-          .HasMaxLength(300)
-          .IsRequired();
-      e.Property(x => x.Day)
-          .HasMaxLength(60);
-      e.HasIndex(x => new
-      {
-        x.OrganizationId,
-        x.Year,
-        x.Date
-      });
-      e.HasQueryFilter(h =>
-          _isSuperAdmin ||
-          h.OrganizationId == _currentTenantId);
-    });
-
-    // ── HolidayYearSetup ──────────
-    modelBuilder.Entity<HolidayYearSetup>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.PdfFileUrl).HasMaxLength(500);
-      e.Property(x => x.PdfFileName).HasMaxLength(300);
-      e.Property(x => x.PolicyText)
-          .HasColumnType("nvarchar(max)");
-      e.HasIndex(x => new
-      {
-        x.OrganizationId,
-        x.Year
-      }).IsUnique();
-      e.HasQueryFilter(h =>
-          _isSuperAdmin ||
-          h.OrganizationId == _currentTenantId);
-    });
-
-    // ── RolePermission ────────────
-    modelBuilder.Entity<RolePermission>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Module).HasMaxLength(80).IsRequired();
-      e.HasIndex(x => new { x.OrganizationId, x.Role, x.Module }).IsUnique();
-      e.HasQueryFilter(rp =>
-          _isSuperAdmin ||
-          rp.OrganizationId == _currentTenantId);
-    });
-
-    // ── SubscriptionPlan ─────────── (global, no tenant filter)
-    modelBuilder.Entity<SubscriptionPlan>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.TierKey).HasMaxLength(40).IsRequired();
-      e.Property(x => x.Name).HasMaxLength(80).IsRequired();
-      e.Property(x => x.Tagline).HasMaxLength(300);
-      e.Property(x => x.Accent).HasMaxLength(20);
-      e.Property(x => x.Currency).HasMaxLength(10);
-      e.Property(x => x.FeatureKeysCsv).HasMaxLength(4000);
-      e.Property(x => x.MonthlyPricePerAgent).HasColumnType("decimal(12,2)");
-      e.Property(x => x.AnnualDiscountPct).HasColumnType("decimal(5,2)");
-      e.HasIndex(x => x.TierKey).IsUnique();
-    });
-
-    // ── OrganizationSubscription ─── (tenant scoped)
-    modelBuilder.Entity<OrganizationSubscription>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Currency).HasMaxLength(10);
-      e.Property(x => x.Amount).HasColumnType("decimal(12,2)");
-      e.HasIndex(x => x.OrganizationId);
-      e.HasIndex(x => new { x.OrganizationId, x.Status });
-      e.HasQueryFilter(s =>
-          _isSuperAdmin ||
-          s.OrganizationId == _currentTenantId);
-    });
-
-    // ── PaymentRecord ────────────── (tenant scoped)
-    modelBuilder.Entity<PaymentRecord>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Currency).HasMaxLength(10);
-      e.Property(x => x.Amount).HasColumnType("decimal(12,2)");
-      e.Property(x => x.BillingName).HasMaxLength(200);
-      e.Property(x => x.BillingEmail).HasMaxLength(320);
-      e.Property(x => x.BillingAddress).HasMaxLength(500);
-      e.Property(x => x.CardLast4).HasMaxLength(4);
-      e.Property(x => x.CardBrand).HasMaxLength(40);
-      e.Property(x => x.GatewayReference).HasMaxLength(200);
-      e.Property(x => x.Notes).HasMaxLength(1000);
-      e.Property(x => x.ReviewNotes).HasMaxLength(1000);
-      e.HasIndex(x => new { x.OrganizationId, x.Status });
-      e.HasIndex(x => x.Status);
-      e.HasQueryFilter(p =>
-          _isSuperAdmin ||
-          p.OrganizationId == _currentTenantId);
-    });
-
-    // ── SLA Policy ─────────────── (tenant scoped, Freshdesk-style)
-    modelBuilder.Entity<SlaPolicy>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name).HasMaxLength(120).IsRequired();
-      e.Property(x => x.Description).HasMaxLength(500);
-      e.HasIndex(x => x.OrganizationId);
-      e.HasIndex(x => new { x.OrganizationId, x.IsDefault });
-      e.HasMany(x => x.Targets)
-          .WithOne(t => t.Policy!)
-          .HasForeignKey(t => t.SlaPolicyId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasMany(x => x.Reminders)
-          .WithOne(r => r.Policy!)
-          .HasForeignKey(r => r.SlaPolicyId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasMany(x => x.Escalations)
-          .WithOne(es => es.Policy!)
-          .HasForeignKey(es => es.SlaPolicyId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasQueryFilter(p =>
-          _isSuperAdmin ||
-          p.OrganizationId == _currentTenantId);
-    });
-
-    modelBuilder.Entity<SlaTarget>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.OperationalHours).HasMaxLength(40);
-      e.HasIndex(x => new { x.SlaPolicyId, x.Priority }).IsUnique();
-      e.HasQueryFilter(t =>
-          _isSuperAdmin ||
-          t.OrganizationId == _currentTenantId);
-    });
-
-    modelBuilder.Entity<SlaReminder>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.TargetType).HasMaxLength(40);
-      e.Property(x => x.Recipients).HasMaxLength(500);
-      e.HasIndex(x => x.SlaPolicyId);
-      e.HasQueryFilter(r =>
-          _isSuperAdmin ||
-          r.OrganizationId == _currentTenantId);
-    });
-
-    modelBuilder.Entity<SlaEscalation>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.TargetType).HasMaxLength(40);
-      e.Property(x => x.Recipients).HasMaxLength(500);
-      e.HasIndex(x => x.SlaPolicyId);
-      e.HasQueryFilter(es =>
-          _isSuperAdmin ||
-          es.OrganizationId == _currentTenantId);
-    });
-
-    modelBuilder.Entity<BusinessHours>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name).HasMaxLength(120).IsRequired();
-      e.Property(x => x.Description).HasMaxLength(500);
-      e.Property(x => x.Mode).HasMaxLength(40);
-      e.Property(x => x.StartTime).HasMaxLength(5);
-      e.Property(x => x.EndTime).HasMaxLength(5);
-      e.Property(x => x.Timezone).HasMaxLength(80);
-      e.HasIndex(x => x.OrganizationId);
-      e.HasIndex(x => new { x.OrganizationId, x.IsDefault });
-      e.HasMany(x => x.Holidays)
-          .WithOne(h => h.BusinessHours!)
-          .HasForeignKey(h => h.BusinessHoursId)
-          .OnDelete(DeleteBehavior.Cascade);
-      e.HasQueryFilter(b =>
-          _isSuperAdmin ||
-          b.OrganizationId == _currentTenantId);
-    });
-
-    modelBuilder.Entity<BusinessHoursHoliday>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Name).HasMaxLength(120).IsRequired();
-      e.HasIndex(x => x.BusinessHoursId);
-      e.HasQueryFilter(h =>
-          _isSuperAdmin ||
-          h.OrganizationId == _currentTenantId);
-    });
-
-    // ── ChatGroupMember ───────────
-    // ✅ FIX WARNING: IsRequired(false)SS
-    // on Group fixes "ChatGroup required
-    // end" warning
-    modelBuilder.Entity<
-        ChatGroupMember>(e =>
-        {
-          e.HasKey(x => x.Id);
-          e.HasIndex(x => new
-          {
-            x.GroupId,
-            x.UserId
-          }).IsUnique();
-          e.HasOne(x => x.Group)
-                  .WithMany(g => g.Members)
-                  .HasForeignKey(x => x.GroupId)
-                  .OnDelete(
-                      DeleteBehavior.Cascade)
-                  .IsRequired(false); // ✅ KEY FIX
-          e.HasOne(x => x.User)
-                  .WithMany()
-                  .HasForeignKey(x => x.UserId)
-                  .OnDelete(
-                      DeleteBehavior.Restrict);
-        });
-
-    // ✅ NEW — CallLog ─────────────
-    modelBuilder.Entity<CallLog>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.CallType)
-          .HasMaxLength(10)
-          .HasDefaultValue("audio");
-      e.Property(x => x.Status)
-          .HasMaxLength(20)
-          .HasDefaultValue("missed");
-      // ✅ IsRead — for missed call badge tracking
-      e.Property(x => x.IsRead)
-          .HasDefaultValue(false);
-      // Caller FK
-      e.HasOne(x => x.Caller)
-          .WithMany()
-          .HasForeignKey(x => x.CallerId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      // Receiver FK
-      e.HasOne(x => x.Receiver)
-          .WithMany()
-          .HasForeignKey(x => x.ReceiverId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      // Indexes for fast history queries
-      e.HasIndex(x => x.CallerId);
-      e.HasIndex(x => x.ReceiverId);
-      e.HasIndex(x => x.StartedAt);
-      e.HasIndex(x => new
-      {
-        x.ReceiverId,
-        x.Status
-      });
-    });
-
-    // ── AI Smart Assign Entities ──────────
-    modelBuilder.Entity<AIAssignmentLog>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.ConfidenceScore).HasColumnType("float");
-      e.Property(x => x.MlScore).HasColumnType("float");
-      e.Property(x => x.WorkloadScore).HasColumnType("float");
-      e.Property(x => x.AvailabilityScore).HasColumnType("float");
-      e.Property(x => x.ReasonJson).HasColumnType("nvarchar(max)");
-      e.Property(x => x.Mode).HasMaxLength(50).HasDefaultValue("Suggest");
-      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
-
-      e.HasOne(x => x.Ticket)
-          .WithMany()
-          .HasForeignKey(x => x.TicketId)
-          .OnDelete(DeleteBehavior.Cascade);
-
-      e.HasOne(x => x.SuggestedAgent)
-          .WithMany()
-          .HasForeignKey(x => x.SuggestedAgentId)
-          .OnDelete(DeleteBehavior.Restrict);
-
-      e.HasOne(x => x.FinalAgent)
-          .WithMany()
-          .HasForeignKey(x => x.FinalAgentId)
-          .OnDelete(DeleteBehavior.Restrict);
-
-      e.HasOne(x => x.OverriddenByUser)
-          .WithMany()
-          .HasForeignKey(x => x.OverriddenByUserId)
-          .OnDelete(DeleteBehavior.Restrict);
-
-      e.HasIndex(x => x.TicketId);
-      e.HasIndex(x => x.OrganizationId);
-      e.HasIndex(x => x.CreatedAt);
-      e.HasIndex(x => new { x.OrganizationId, x.CreatedAt });
-    });
-
-    modelBuilder.Entity<AIModelVersion>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Version).HasMaxLength(100).IsRequired();
-      e.Property(x => x.Algorithm).HasMaxLength(100).HasDefaultValue("SdcaMaximumEntropy");
-      e.Property(x => x.ModelFilePath).HasMaxLength(500);
-      e.Property(x => x.MetricsJson).HasColumnType("nvarchar(max)");
-      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
-
-      e.HasIndex(x => new { x.OrganizationId, x.IsActive });
-      e.HasIndex(x => x.TrainedAt);
-    });
-
-    modelBuilder.Entity<AIAgentSkillStat>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Category).HasMaxLength(200).IsRequired();
-      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
-
-      e.HasOne(x => x.Agent)
-          .WithMany()
-          .HasForeignKey(x => x.AgentId)
-          .OnDelete(DeleteBehavior.Cascade);
-
-      e.HasIndex(x => new { x.OrganizationId, x.AgentId, x.Category }).IsUnique();
-    });
-
-    modelBuilder.Entity<AISmartAssignConfig>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.Mode).HasMaxLength(50).HasDefaultValue("Suggest");
-      e.Property(x => x.ConfidenceThreshold).HasDefaultValue(0.75);
-      e.Property(x => x.WeightMl).HasDefaultValue(0.60);
-      e.Property(x => x.WeightWorkload).HasDefaultValue(0.20);
-      e.Property(x => x.WeightAvailability).HasDefaultValue(0.20);
-      e.HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
-
-      e.HasIndex(x => x.OrganizationId).IsUnique();
-    });
-
-    // ── UserSession (Refresh Token Rotation & Invalidation) ──
-    modelBuilder.Entity<UserSession>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
-      e.Property(x => x.UserAgent).HasMaxLength(500);
-      e.Property(x => x.DeviceInfo).HasMaxLength(250);
-      e.Property(x => x.IpAddress).HasMaxLength(45);
-      e.Property(x => x.ReplacedByTokenHash).HasMaxLength(64);
-
-      e.HasIndex(x => x.TokenHash).IsUnique();
-      e.HasIndex(x => x.FamilyId);
-      e.HasIndex(x => new { x.UserId, x.IsRevoked });
-
-      e.HasOne(x => x.User)
-          .WithMany()
-          .HasForeignKey(x => x.UserId)
-          .OnDelete(DeleteBehavior.Cascade)
-          .IsRequired(false);
-    });
+    // Modular entity type configurations extracted into IEntityTypeConfiguration<T> classes
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+    // Dynamic Multi-Tenant & Soft-Delete Global Query Filters
+    ApplyTenantQueryFilters(modelBuilder);
+  }
+
+  /// <summary>
+  /// Configures global query filters for multi-tenant isolation and soft deletion.
+  /// Filters are evaluated dynamically per DbContext instance based on the calling tenant and SuperAdmin status.
+  /// </summary>
+  private void ApplyTenantQueryFilters(ModelBuilder modelBuilder)
+  {
+    // ── Organizations Domain ──
+    modelBuilder.Entity<OrganizationSubscription>()
+        .HasQueryFilter(s => _isSuperAdmin || s.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<PaymentRecord>()
+        .HasQueryFilter(p => _isSuperAdmin || p.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<Holiday>()
+        .HasQueryFilter(h => _isSuperAdmin || h.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<HolidayYearSetup>()
+        .HasQueryFilter(h => _isSuperAdmin || h.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<RolePermission>()
+        .HasQueryFilter(rp => _isSuperAdmin || rp.OrganizationId == _currentTenantId);
+
+    // ── Users Domain ──
+    modelBuilder.Entity<User>()
+        .HasQueryFilter(u => _isSuperAdmin || u.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<Contact>()
+        .HasQueryFilter(c => _isSuperAdmin || c.OrganizationId == _currentTenantId);
+
+    // ── Tickets Domain ──
+    modelBuilder.Entity<Ticket>()
+        .HasQueryFilter(t => (_isSuperAdmin || t.OrganizationId == _currentTenantId) && !t.IsDeleted);
+    modelBuilder.Entity<TicketComment>()
+        .HasQueryFilter(c => _isSuperAdmin || c.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<TicketTemplate>()
+        .HasQueryFilter(t => _isSuperAdmin || t.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<TicketAttachment>()
+        .HasQueryFilter(a => _isSuperAdmin || a.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<CustomField>()
+        .HasQueryFilter(f => _isSuperAdmin || f.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<TicketFieldMaster>()
+        .HasQueryFilter(m => _isSuperAdmin || m.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<TicketCustomFieldValue>()
+        .HasQueryFilter(v => _isSuperAdmin || v.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<TicketWatcher>()
+        .HasQueryFilter(w => _isSuperAdmin || w.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<CommentReaction>()
+        .HasQueryFilter(r => _isSuperAdmin || r.OrganizationId == _currentTenantId);
+
+    // ── KnowledgeBase Domain ──
+    modelBuilder.Entity<KbArticle>()
+        .HasQueryFilter(a => _isSuperAdmin || a.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<KbReaction>()
+        .HasQueryFilter(r => _isSuperAdmin || r.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<KbComment>()
+        .HasQueryFilter(c => _isSuperAdmin || c.OrganizationId == _currentTenantId);
+
+    // ── Communication Domain ──
+    modelBuilder.Entity<Notification>()
+        .HasQueryFilter(n => _isSuperAdmin || n.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<AgentGroup>()
+        .HasQueryFilter(g => _isSuperAdmin || g.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<AgentGroupMember>()
+        .HasQueryFilter(m => _isSuperAdmin || (m.Group != null && m.Group.OrganizationId == _currentTenantId));
+    modelBuilder.Entity<EmailNotificationSetting>()
+        .HasQueryFilter(s => _isSuperAdmin || s.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<ChatGroup>()
+        .HasQueryFilter(g => _isSuperAdmin || g.OrganizationId == _currentTenantId);
+
+    // ── SLA Domain ──
+    modelBuilder.Entity<SlaPolicy>()
+        .HasQueryFilter(p => _isSuperAdmin || p.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<SlaTarget>()
+        .HasQueryFilter(t => _isSuperAdmin || t.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<SlaReminder>()
+        .HasQueryFilter(r => _isSuperAdmin || r.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<SlaEscalation>()
+        .HasQueryFilter(es => _isSuperAdmin || es.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<BusinessHours>()
+        .HasQueryFilter(b => _isSuperAdmin || b.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<BusinessHoursHoliday>()
+        .HasQueryFilter(h => _isSuperAdmin || h.OrganizationId == _currentTenantId);
+
+    // ── Work / Productivity Domain ──
+    modelBuilder.Entity<ActivityLog>()
+        .HasQueryFilter(a => _isSuperAdmin || a.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<NoteBook>()
+        .HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<NoteSection>()
+        .HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<NotePage>()
+        .HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<CalendarEvent>()
+        .HasQueryFilter(c => _isSuperAdmin || c.OrganizationId == _currentTenantId);
+
+    // ── AI Domain ──
+    modelBuilder.Entity<AIAssignmentLog>()
+        .HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<AIModelVersion>()
+        .HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<AIAgentSkillStat>()
+        .HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
+    modelBuilder.Entity<AISmartAssignConfig>()
+        .HasQueryFilter(x => _isSuperAdmin || x.OrganizationId == _currentTenantId);
   }
 }

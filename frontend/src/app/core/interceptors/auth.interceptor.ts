@@ -17,7 +17,7 @@ import {
   throwError
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthService } from '../../features/auth/auth.service';
+import { AuthService } from '../services/auth.service';
 import {
   AUTH_EXCLUDED_URLS
 } from '../constants/auth.constants';

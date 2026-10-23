@@ -31,13 +31,15 @@ public class TenantMiddleware
           ?? context.User.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
 
       var isSuperAdmin = role == "SuperAdmin";
-      ((CurrentTenantService)tenantService).IsSuperAdmin = isSuperAdmin;
+      Guid? tenantId = null;
 
       if (!isSuperAdmin && !string.IsNullOrEmpty(orgId)
-          && Guid.TryParse(orgId, out var tenantId))
+          && Guid.TryParse(orgId, out var parsedTenantId))
       {
-        ((CurrentTenantService)tenantService).OrganizationId = tenantId;
+        tenantId = parsedTenantId;
       }
+
+      tenantService.SetTenant(tenantId, isSuperAdmin);
     }
     else
     {
@@ -61,13 +63,15 @@ public class TenantMiddleware
                 ?? jwt.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
 
             var isSuperAdmin = role == "SuperAdmin";
-            ((CurrentTenantService)tenantService).IsSuperAdmin = isSuperAdmin;
+            Guid? tenantId = null;
 
             if (!isSuperAdmin && !string.IsNullOrEmpty(orgId)
-                && Guid.TryParse(orgId, out var tenantId))
+                && Guid.TryParse(orgId, out var parsedTenantId))
             {
-              ((CurrentTenantService)tenantService).OrganizationId = tenantId;
+              tenantId = parsedTenantId;
             }
+
+            tenantService.SetTenant(tenantId, isSuperAdmin);
           }
         }
         catch (SecurityTokenException ex)

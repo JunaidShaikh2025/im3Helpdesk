@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { map, of, switchMap } from 'rxjs';
-import { SubscriptionService } from '../services/subscription';
+import { SubscriptionService } from '../services/subscription.service';
 
 /**
  * Route guard factory. Blocks navigation unless the org's active subscription

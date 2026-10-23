@@ -452,6 +452,127 @@ public class TicketRepository : GenericRepository<Ticket>, ITicketRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Ticket>> GetHistoricalTicketsAsync(Guid organizationId, DateTime cutoff, bool includeAssignedTo = false, CancellationToken ct = default)
+    {
+        var query = _context.Tickets
+            .AsNoTracking()
+            .Where(t => t.OrganizationId == organizationId && t.CreatedAt >= cutoff);
+
+        if (includeAssignedTo)
+        {
+            query = query.Include(t => t.AssignedTo);
+        }
+
+        return await query.ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Ticket>> GetOpenTicketsAsync(Guid organizationId, DateTime cutoff, CancellationToken ct = default)
+    {
+        return await _context.Tickets
+            .AsNoTracking()
+            .Where(t => t.OrganizationId == organizationId && t.Status != TicketStatus.Closed && t.CreatedAt >= cutoff)
+            .ToListAsync(ct);
+    }
+
+    public async Task<Ticket?> GetTicketSummaryDataAsync(Guid ticketId, CancellationToken ct = default)
+    {
+        return await _context.Tickets
+            .AsNoTracking()
+            .Include(t => t.CreatedBy)
+            .Include(t => t.AssignedTo)
+            .Include(t => t.Comments)
+            .FirstOrDefaultAsync(t => t.Id == ticketId, ct);
+    }
+
+    public async Task<int> MergeDuplicateTicketsAsync(Guid originalTicketId, IEnumerable<Guid> ticketIdsToClose, Guid userId, Guid organizationId, CancellationToken ct = default)
+    {
+        var original = await _context.Tickets
+            .FirstOrDefaultAsync(t => t.Id == originalTicketId && t.OrganizationId == organizationId, ct);
+
+        if (original == null)
+            return -1;
+
+        var merged = 0;
+        foreach (var tId in ticketIdsToClose)
+        {
+            var dup = await _context.Tickets
+                .FirstOrDefaultAsync(t => t.Id == tId && t.OrganizationId == organizationId && t.Id != originalTicketId, ct);
+
+            if (dup == null) continue;
+
+            dup.Status = TicketStatus.Closed;
+            dup.ResolvedAt = DateTime.UtcNow;
+            dup.UpdatedAt = DateTime.UtcNow;
+
+            _context.TicketComments.Add(new TicketComment
+            {
+                TicketId = dup.Id,
+                UserId = userId,
+                Comment = $"🔀 This ticket was merged into #TN{original.TicketNumber}. Please follow up on the original ticket.",
+                IsInternal = false,
+                Source = "system",
+                OrganizationId = organizationId
+            });
+
+            _context.TicketComments.Add(new TicketComment
+            {
+                TicketId = original.Id,
+                UserId = userId,
+                Comment = $"🔀 Ticket #TN{dup.TicketNumber} was merged into this ticket.",
+                IsInternal = true,
+                Source = "system",
+                OrganizationId = organizationId
+            });
+
+            merged++;
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return merged;
+    }
+
+    public async Task<IReadOnlyList<string>> GetCommentMessageIdsAsync(Guid ticketId, CancellationToken ct = default)
+    {
+        return await _context.TicketComments
+            .Where(c => c.TicketId == ticketId && !string.IsNullOrEmpty(c.EmailMessageId))
+            .OrderBy(c => c.CreatedAt)
+            .Select(c => c.EmailMessageId!)
+            .ToListAsync(ct);
+    }
+
+    public async Task<TicketComment?> GetCommentWithTicketAsync(Guid commentId, Guid ticketId, CancellationToken ct = default)
+    {
+        return await _context.TicketComments
+            .Include(c => c.Ticket)
+            .FirstOrDefaultAsync(c => c.Id == commentId && c.TicketId == ticketId, ct);
+    }
+
+    public async Task<IReadOnlyList<TicketAttachment>> GetCommentAttachmentsAsync(Guid commentId, CancellationToken ct = default)
+    {
+        return await _context.TicketAttachments
+            .Where(a => a.CommentId == commentId)
+            .ToListAsync(ct);
+    }
+
+    public Task RemoveCommentAsync(TicketComment comment, CancellationToken ct = default)
+    {
+        _context.TicketComments.Remove(comment);
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveAttachmentsAsync(IEnumerable<TicketAttachment> attachments, CancellationToken ct = default)
+    {
+        _context.TicketAttachments.RemoveRange(attachments);
+        return Task.CompletedTask;
+    }
+
+    public async Task<Ticket?> GetTicketWithCreatedByAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.Tickets
+            .Include(t => t.CreatedBy)
+            .FirstOrDefaultAsync(t => t.Id == id, ct);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _context.SaveChangesAsync(ct);

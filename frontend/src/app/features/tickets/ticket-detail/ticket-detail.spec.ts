@@ -5,7 +5,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 
-import { TicketDetailComponent } from './ticket-detail';
+import { TicketDetailComponent } from './ticket-detail.component';
 
 describe('TicketDetailComponent', () => {
   let component: TicketDetailComponent;

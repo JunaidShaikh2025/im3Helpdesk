@@ -1,5 +1,5 @@
 import { Directive, Input, TemplateRef, ViewContainerRef, effect, inject } from '@angular/core';
-import { SubscriptionService } from '../services/subscription';
+import { SubscriptionService } from '../services/subscription.service';
 
 /**
  * Structural directive that only renders the template if the current

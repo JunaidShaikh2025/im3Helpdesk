@@ -1,9 +1,10 @@
 using iM3Helpdesk.API.Middleware;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Application.DTOs.Tickets;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -418,30 +419,4 @@ public class TicketMastersController : ControllerBase
 
     return sb.ToString();
   }
-}
-
-public class TicketMasterOptionDto
-{
-  public Guid Id { get; set; }
-  public string Field { get; set; } = string.Empty;
-  public string Value { get; set; } = string.Empty;
-  public string Label { get; set; } = string.Empty;
-  public int SortOrder { get; set; }
-  public bool IsActive { get; set; }
-}
-
-public class CreateTicketMasterOptionDto
-{
-  public string Field { get; set; } = string.Empty;
-  public string Value { get; set; } = string.Empty;
-  public string? Label { get; set; }
-  public int SortOrder { get; set; } = 0;
-}
-
-public class UpdateTicketMasterOptionDto
-{
-  public string? Value { get; set; }
-  public string? Label { get; set; }
-  public int? SortOrder { get; set; }
-  public bool? IsActive { get; set; }
 }

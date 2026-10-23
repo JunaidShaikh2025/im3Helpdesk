@@ -20,10 +20,10 @@
 |---|---|---|---|---|---|
 | **Security & Vulnerabilities (SEC)** | 16 | 16 | 0 | 0 | 0 |
 | **Concurrency & Scalability (CONC)** | 9 | 9 | 0 | 0 | 0 |
-| **Architecture & SOLID (ARCH)** | 10 | 9 | 0 | 1 | 0 |
+| **Architecture & SOLID (ARCH)** | 10 | 0 | 0 | 10 | 0 |
 | **Optimization & Leaks (PERF)** | 6 | 6 | 0 | 0 | 0 |
-| **Structure & Hygiene (CLN)** | 15 | 15 | 0 | 0 | 0 |
-| **TOTAL** | **56** | **55** | **0** | **1** | **0** |
+| **Structure & Hygiene (CLN)** | 15 | 0 | 0 | 15 | 0 |
+| **TOTAL** | **56** | **31** | **0** | **25** | **0** |
 
 ---
 
@@ -305,7 +305,7 @@
   6. Refactored `TicketsController` and `AuditController` to inherit from `ControllerBase`, inject only Application service interfaces, and completely remove `ApplicationDbContext` and `using iM3Helpdesk.Infrastructure.Persistence`.
   7. Added architecture boundary unit tests verifying zero `ApplicationDbContext` constructor dependencies.
 
-### [TODO] ARCH-02: God Controllers Violating Single Responsibility Principle
+### [DONE] ARCH-02: God Controllers Violating Single Responsibility Principle
 - **Severity:** HIGH
 - **Agent Source:** Agent 4: SOLID Principles Checker
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/TicketsController.cs`, `backend/iM3Helpdesk.API/Controllers/AIFeaturesController.cs`, `backend/iM3Helpdesk.API/Controllers/AuthController.cs`, `backend/iM3Helpdesk.API/Controllers/AgentsController.cs`
@@ -313,56 +313,97 @@
 - **Acceptance Criteria:**
   1. Split monolithic controllers into cohesive, feature-scoped endpoints or MediatR command/query handlers.
   2. Delegate business logic, sequence management, and notifications to domain/application services.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:**
+  1. **TicketsController.cs** (reduced from 1,529 to 305 lines): Delegated all sequence generation, SLA calculations, duplicate checking, activity logs, and email notifications to `ITicketService`. Removed `ApplicationDbContext` dependency.
+  2. **AuthController.cs** (reduced from 852 to 317 lines): Delegated authentication, credential hashing, OTP generation/verification, and refresh token rotation to `IAuthService` and `IOtpService`. Removed `ApplicationDbContext` dependency.
+  3. **AgentsController.cs** (reduced from 739 to 166 lines): Extracted agent retrieval, role parsing, temporary password generation, BCrypt hashing, ClosedXML/CSV bulk parsing, and invitation dispatch to `IAgentService` and `AgentService`. Removed `ApplicationDbContext` dependency.
+  4. **AIFeaturesController.cs** (reduced from 1,270 to 105 lines): Extracted 90-day ticket volume tide forecasting, multi-factor natural language analytics insights, title similarity duplicate clustering, ticket merge transactions, and 60-day hot topic trend analysis to `IAIFeaturesService` and `AIFeaturesService`. Removed `ApplicationDbContext` dependency.
+  5. **Persistence Decoupling**: Extended `ITicketRepository` and `IUserRepository` via `IUnitOfWork` to encapsulate all persistence queries and multi-tenant constraints.
+  6. **Architecture Tests**: Added reflection-based dependency inversion tests (`TicketsControllerDependencyInversionTests`, `AuthControllerDependencyInversionTests`, `AgentsControllerDependencyInversionTests`, `AIFeaturesControllerDependencyInversionTests`) asserting that zero controllers depend on `ApplicationDbContext`. All 9 tests passing.
 
-### [TODO] ARCH-03: Monolithic DbContext (1,243 Lines Managing 47 Tables in Single Class)
+### [DONE] ARCH-03: Monolithic DbContext (1,243 Lines Managing 47 Tables in Single Class)
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 5: Architecture Reviewer
-- **Target File(s):** `backend/iM3Helpdesk.Infrastructure/Persistence/ApplicationDbContext.cs`
+- **Target File(s):** `backend/iM3Helpdesk.Infrastructure/Persistence/ApplicationDbContext.cs`, `backend/iM3Helpdesk.Infrastructure/Persistence/Configurations/**/*.cs`
 - **Problem Summary:** `ApplicationDbContext.OnModelCreating` contains 1,243 lines of fluent entity mappings, relationship cascades, index definitions, and query filters in one massive class.
 - **Acceptance Criteria:**
   1. Extract entity configurations into dedicated classes implementing `IEntityTypeConfiguration<T>` in `iM3Helpdesk.Infrastructure/Persistence/Configurations/`.
   2. Use `modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly)`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Extracted and modularized all 51 entity configurations from `ApplicationDbContext`:
+  1. **Domain-Bounded Extraction**: Created 51 dedicated `IEntityTypeConfiguration<T>` classes located under `backend/iM3Helpdesk.Infrastructure/Persistence/Configurations/` partitioned across 8 cohesive subdomains:
+     - `Organizations/`: `OrganizationConfiguration`, `OrganizationSubscriptionConfiguration`, `SubscriptionPlanConfiguration`, `PaymentRecordConfiguration`, `HolidayConfiguration`, `HolidayYearSetupConfiguration`, `RolePermissionConfiguration`.
+     - `Users/`: `UserConfiguration` (with permanent SuperAdmin seed), `UserSessionConfiguration`, `UserOnlineStatusConfiguration`, `LeadConfiguration`, `ContactConfiguration`.
+     - `Tickets/`: `TicketConfiguration`, `TicketCommentConfiguration`, `TicketAttachmentConfiguration`, `TicketTemplateConfiguration`, `TicketViewerConfiguration`, `TicketWatcherConfiguration`, `CustomFieldConfiguration`, `TicketFieldMasterConfiguration`, `TicketCustomFieldValueConfiguration`, `CommentReactionConfiguration`.
+     - `KnowledgeBase/`: `KbArticleConfiguration`, `KbCommentConfiguration`, `KbReactionConfiguration`.
+     - `Sla/`: `SlaPolicyConfiguration`, `SlaTargetConfiguration`, `SlaReminderConfiguration`, `SlaEscalationConfiguration`, `BusinessHoursConfiguration`, `BusinessHoursHolidayConfiguration`.
+     - `Communication/`: `AgentGroupConfiguration`, `AgentGroupMemberConfiguration`, `ChatMessageConfiguration`, `ChatGroupConfiguration`, `ChatGroupMemberConfiguration`, `CallLogConfiguration`, `EmailQueueConfiguration`, `EmailWebhookLogConfiguration`, `EmailNotificationSettingConfiguration`, `NotificationConfiguration`.
+     - `AI/`: `AIAssignmentLogConfiguration`, `AIModelVersionConfiguration`, `AIAgentSkillStatConfiguration`, `AISmartAssignConfigConfiguration`.
+     - `Work/`: `ActivityLogConfiguration`, `CalendarEventConfiguration`, `TodoItemConfiguration`, `NoteBookConfiguration`, `NoteSectionConfiguration`, `NotePageConfiguration`.
+  2. **Lean OnModelCreating**: Reduced `ApplicationDbContext.cs` from 1,243 lines to 195 lines (~84% reduction). Replaced inline mappings with `modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly)`.
+  3. **Zero Schema Drift**: Preserved 100% of column definitions, string lengths, unique constraints, cascade deletion behaviors, database default values, and SuperAdmin seed records.
+  4. **Multi-Tenant Filter Preservation**: Consolidated dynamic multi-tenant filters (`_isSuperAdmin || x.OrganizationId == _currentTenantId`), soft-delete filters (`!t.IsDeleted`), and cross-entity boundary filters into `ApplyTenantQueryFilters`, ensuring runtime tenant context remains cleanly evaluated without EF Core model caching bugs.
+  5. **Verification**: Added `ApplicationDbContextConfigurationTests` covering modular discovery, schema constraints, tenant isolation, super admin bypass, soft delete filtering, and architecture reflection rules. All 15 unit and integration tests passing.
 
-### [TODO] ARCH-04: Brittle Interface Downcasting in Tenant Resolution Violating LSP
+
+### [DONE] ARCH-04: Brittle Interface Downcasting in Tenant Resolution Violating LSP
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 4: SOLID Principles Checker
-- **Target File(s):** `backend/iM3Helpdesk.API/Middleware/TenantMiddleware.cs`, `backend/iM3Helpdesk.Infrastructure/Services/ICurrentTenantService.cs`
-- **Problem Summary:** `TenantMiddleware` injects `ICurrentTenantService` but explicitly downcasts to `((CurrentTenantService)tenantService).OrganizationId = ...` because the interface contract defines only getters, violating Liskov Substitution and causing runtime crashes if mocked.
+- **Target File(s):** `backend/iM3Helpdesk.API/Middleware/TenantMiddleware.cs`, `backend/iM3Helpdesk.Infrastructure/Services/ICurrentTenantService.cs`, `backend/iM3Helpdesk.Infrastructure/Services/ITenantSetter.cs`, `backend/iM3Helpdesk.Infrastructure/Services/CurrentTenantService.cs`
+- **Problem Summary:** `TenantMiddleware` injected `ICurrentTenantService` but explicitly downcasted to `((CurrentTenantService)tenantService).OrganizationId = ...` and `((CurrentTenantService)tenantService).IsSuperAdmin = ...` because the interface contract defined only getters, violating Liskov Substitution and causing runtime crashes if mocked.
 - **Acceptance Criteria:**
   1. Refactor `ICurrentTenantService` to provide setter methods or define a dedicated `ITenantSetter` abstraction.
   2. Eliminate all downcasting in `TenantMiddleware`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Refactored tenant resolution to strictly adhere to the Liskov Substitution Principle (LSP):
+  1. **Defined `ITenantSetter` Contract**: Created `backend/iM3Helpdesk.Infrastructure/Services/ITenantSetter.cs` providing `SetTenant(Guid? organizationId, bool isSuperAdmin)`, `SetOrganizationId(Guid? organizationId)`, and `SetSuperAdmin(bool isSuperAdmin)`.
+  2. **Extended `ICurrentTenantService`**: Composed `ICurrentTenantService` with both `ITenantService` (read-only query) and `ITenantSetter` (mutation command).
+  3. **Implemented in `CurrentTenantService` & Registered in DI**: Added `SetTenant` implementations to `CurrentTenantService` and registered `ITenantSetter` in `DependencyInjection.cs`.
+  4. **Eliminated All Downcasting in `TenantMiddleware`**: Replaced all 4 instances of `((CurrentTenantService)tenantService)` with atomic calls to `tenantService.SetTenant(tenantId, isSuperAdmin)`.
+  5. **LSP Automated Verification**: Added `TenantMiddlewareTests.cs` verifying that `TenantMiddleware` seamlessly executes against a mocked `Mock<ICurrentTenantService>` without throwing `InvalidCastException`. All 18 tests passing.
 
-### [TODO] ARCH-05: Fat Monolithic Interface Violating Interface Segregation Principle (`IEmailService`)
+
+### [DONE] ARCH-05: Fat Monolithic Interface Violating Interface Segregation Principle (`IEmailService`)
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 4: SOLID Principles Checker
-- **Target File(s):** `backend/iM3Helpdesk.Application/Contracts/Services/IEmailService.cs`
+- **Target File(s):** `backend/iM3Helpdesk.Application/Contracts/Services/IEmailService.cs`, `backend/iM3Helpdesk.Application/Contracts/Services/IEmailDispatcher.cs`, `backend/iM3Helpdesk.Application/Contracts/Services/ITicketNotificationService.cs`, `backend/iM3Helpdesk.Application/Contracts/Services/IAuthEmailService.cs`, `backend/iM3Helpdesk.Application/Contracts/Services/ICalendarEmailService.cs`
 - **Problem Summary:** `IEmailService` defines 16 disparate methods mixing authentication emails, calendar invites, ticket lifecycle notifications, and raw SMTP sending. Callers requiring simple invite emails are forced to depend on the entire 16-method surface.
 - **Acceptance Criteria:**
-  1. Segregate `IEmailService` into focused interfaces: `IAuthEmailService`, `ITicketNotificationService`, `ICalendarEmailService`, and `IEmailDispatcher`.
-- **Resolution Notes:** [Unassigned]
+-   1. Segregate `IEmailService` into focused interfaces: `IAuthEmailService`, `ITicketNotificationService`, `ICalendarEmailService`, and `IEmailDispatcher`.
+- **Resolution Notes:** Segregated the monolithic 16-method `IEmailService` into cohesive, role-specific contracts adhering strictly to the Interface Segregation Principle (ISP):
+-   1. **Extracted `IEmailDispatcher`**: Encapsulates low-level sending primitives (`SendAsync`, `SendReplyAsync`, `SendForwardAsync`).
+-   2. **Extracted `ITicketNotificationService`**: Encapsulates ticket domain notifications (`SendTicketCreatedAsync`, `SendTicketStatusChangedAsync`, `SendTicketAssignedAsync`, `SendTicketMergedAsync`).
+-   3. **Extracted `IAuthEmailService`**: Encapsulates authentication & access lifecycle communications (`SendEmailVerificationAsync`, `SendWelcomeEmailAsync`, `SendForgotPasswordAsync`, `SendAgentInviteAsync`, `SendOtpEmailAsync`).
+-   4. **Extracted `ICalendarEmailService`**: Encapsulates calendar alerts (`SendCalendarReminderAsync`, `SendCalendarInviteAsync`, `SendCalendarEventUpdatedAsync`).
+-   5. **Composite `IEmailService`**: Composed `IEmailService` from the 4 segregated contracts for seamless backward compatibility.
+-   6. **Targeted Consumer Refactoring & DI**: Refactored `AuthService` and `AgentService` to depend directly on `IAuthEmailService`, and `CalendarEventsController` to depend on `ICalendarEmailService`. Registered all segregated contracts in `Program.cs`.
+-   7. **Architecture Tests**: Added `EmailServiceSegregationTests` validating interface segregation and contract boundaries. All 20 tests passing.
 
-### [TODO] ARCH-06: Widespread Open/Closed Principle Violations via Rigid Switch Statements
+### [DONE] ARCH-06: Widespread Open/Closed Principle Violations via Rigid Switch Statements
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 4: SOLID Principles Checker
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/EmailWebhookController.cs`, `backend/iM3Helpdesk.API/Controllers/SubscriptionController.cs`, `backend/iM3Helpdesk.API/Services/SlaService.cs`
 - **Problem Summary:** Hardcoded `switch` statements dispatch logic based on string event types, tier ranks, and priority levels. Adding new webhook events or tiers requires modifying existing classes.
 - **Acceptance Criteria:**
-  1. Introduce Strategy patterns (`IEmailWebhookEventHandler`, `ISubscriptionTierPolicy`) registered in dependency injection to handle event-specific actions polymorphically.
-- **Resolution Notes:** [Unassigned]
+-   1. Introduce Strategy patterns (`IEmailWebhookEventHandler`, `ISubscriptionTierPolicy`) registered in dependency injection to handle event-specific actions polymorphically.
+- **Resolution Notes:** Eliminated hardcoded switch statements across webhook processing, subscription tier ranking, and SLA deadline calculations via extensible Strategy patterns:
+-   1. **Email Webhook Strategies (`IEmailWebhookEventHandler`)**: Created `IEmailWebhookEventHandler` with dedicated polymorphic strategy implementations: `DeliveredWebhookEventHandler`, `BouncedWebhookEventHandler`, `OpenedWebhookEventHandler`, `SentWebhookEventHandler`, `DeferredWebhookEventHandler`, and `ClickedWebhookEventHandler`. Refactored `EmailWebhookController` to inject `IEnumerable<IEmailWebhookEventHandler>` and dispatch polymorphically.
+-   2. **Subscription Tier Strategies (`ISubscriptionTierPolicy`)**: Defined `ISubscriptionTierPolicy` and `ISubscriptionTierPolicyProvider` with concrete policies (`GrowthTierPolicy`, `ProTierPolicy`, `EnterpriseTierPolicy`). Refactored `SubscriptionController` to inject `ISubscriptionTierPolicyProvider` and compute relative tier ranking without rigid switches.
+-   3. **SLA Priority Strategies (`ISlaPriorityDeadlineStrategy`)**: Defined `ISlaPriorityDeadlineStrategy` with polymorphic strategies (`CriticalPrioritySlaStrategy`, `HighPrioritySlaStrategy`, `MediumPrioritySlaStrategy`, `LowPrioritySlaStrategy`). Refactored `SlaService` to dispatch deadlines via strategy resolution.
+-   4. **Automated Verification**: Added `OpenClosedPrincipleStrategyTests` asserting polymorphic dispatch and extensibility without modifying existing classes. All 29 tests passing.
 
-### [TODO] ARCH-07: Inverted Layering Coupling in Frontend (Core Interceptor Imports Feature Service)
+### [DONE] ARCH-07: Inverted Layering Coupling in Frontend (Core Interceptor Imports Feature Service)
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 1: Structure Analyst
-- **Target File(s):** `frontend/src/app/core/interceptors/auth.interceptor.ts`
+- **Target File(s):** `frontend/src/app/core/interceptors/auth.interceptor.ts`, `frontend/src/app/core/services/auth.service.ts`, `frontend/src/app/core/guards/*.ts`
 - **Problem Summary:** `auth.interceptor.ts` in `core/interceptors` directly imports `AuthService` from `features/auth/auth.service`, violating clean modular layering where core must never depend upward on features.
 - **Acceptance Criteria:**
-  1. Move `AuthService` (or an abstract `AuthTokenProvider` interface) into `core/services/` so `core/interceptors` depends strictly within its own boundary.
-- **Resolution Notes:** [Unassigned]
+-   1. Move `AuthService` (or an abstract `AuthTokenProvider` interface) into `core/services/` so `core/interceptors` depends strictly within its own boundary.
+- **Resolution Notes:** Eliminated upward feature dependency from core architectural primitives to enforce clean layered boundary (`Core <- Features`):
+-   1. **Relocated `AuthService`**: Moved `AuthService` implementation and its `CurrentUser` model into `frontend/src/app/core/services/auth.service.ts`.
+-   2. **Refactored Core Consumers**: Updated `auth.interceptor.ts`, `auth.interceptor.spec.ts`, `auth.guard.ts`, `company-admin.guard.ts`, `customer-guard.ts`, and `super-admin-guard.ts` to import strictly from `../services/auth.service`.
+-   3. **Backwards Compatibility Re-export**: Maintained a barrel re-export in `frontend/src/app/features/auth/auth.service.ts` so feature components preserve seamless resolution.
+-   4. **Automated Architectural Verification**: Created `frontend/src/app/core/services/layering.spec.ts` asserting that zero interceptors or guards in `core/` contain upward dependencies on `features/`. Verified with Angular production build and Vitest suite passing.
 
-### [TODO] ARCH-08: Dependency Inversion Violation in Controllers via `TicketsControllerBase`
+### [DONE] ARCH-08: Dependency Inversion Violation in Controllers via `TicketsControllerBase`
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 4: SOLID Principles Checker
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/TicketsControllerBase.cs`
@@ -370,25 +411,40 @@
 - **Acceptance Criteria:**
   1. Refactor base controller to remove direct DbContext access.
   2. Inject repository or service abstractions into ticket sub-controllers.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Eliminated `ApplicationDbContext` from `TicketsControllerBase` and its derived controllers, achieving full compliance with the Dependency Inversion Principle (DIP):
+  1. **Decoupled `TicketsControllerBase`**: Removed `ApplicationDbContext _context` and replaced it with `IUnitOfWork _uow` and user ID retrieval helpers.
+  2. **Extended Persistence Contracts**: Extended `ITicketRepository` and `TicketRepository` to encapsulate comment message ID querying, comment retrieval with ticket, comment attachment management, and ticket owner checks.
+  3. **Refactored Derived Controllers**: Refactored `TicketAssignmentsController`, `TicketCommentsController`, and `TicketStatusController` to inject `IUnitOfWork` and repository abstractions instead of `ApplicationDbContext`.
+  4. **Automated Verification**: Added `TicketsControllerDependencyInversionTests` verifying that `TicketsControllerBase`, `TicketAssignmentsController`, `TicketCommentsController`, `TicketStatusController`, and `TicketsController` have zero constructor parameters or fields referencing `ApplicationDbContext`. All 33 test suite cases passing.
 
-### [TODO] ARCH-09: Anemic Domain Entities Lacking Domain Validation and Invariant Logic
+### [DONE] ARCH-09: Anemic Domain Entities Lacking Domain Validation and Invariant Logic
 - **Severity:** LOW
 - **Agent Source:** Agent 5: Architecture Reviewer
 - **Target File(s):** `backend/iM3Helpdesk.Domain/Entities/*.cs`
 - **Problem Summary:** Entities (`Ticket`, `User`, `Lead`) are anemic property bags. State transitions, status checks, and business invariant validations are duplicated across controllers rather than encapsulated inside domain models.
 - **Acceptance Criteria:**
   1. Encapsulate business state changes inside entity methods (e.g., `ticket.Resolve(...)`, `ticket.AssignTo(...)`, `ticket.Close(...)`).
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Enforced Rich Domain Models by encapsulating state transitions, invariant validations, and domain logic inside core domain entities:
+  1. **Defined `DomainException`**: Created `iM3Helpdesk.Domain.Exceptions.DomainException` for invariant enforcement.
+  2. **Encapsulated `Ticket` Entity Logic**: Implemented domain methods `AssignTo(agentId)`, `Unassign()`, `Resolve(resolvedAt)`, `Close()`, `Reopen()`, `ChangePriority(priority)`, `ChangeStatus(newStatus)`, `LogTime(minutes)`, `SoftDelete(actorId)`, and `Restore()` with validation rules guarding deleted states, valid statuses, and positive time logging.
+  3. **Encapsulated `User` Entity Logic**: Implemented `RecordFailedLogin(maxAttempts, lockoutDuration)`, `RecordSuccessfulLogin()`, `IsLockedOut()`, `Unlock()`, `SetRefreshToken(token, expiry)`, `RevokeRefreshToken()`, `VerifyEmail()`, and `UpdateProfile(...)`.
+  4. **Encapsulated `Lead` Entity Logic**: Implemented `Approve(adminId, token, validity)`, `Reject(reason)`, `MarkTokenUsed()`, and `IsTokenValid()`, preventing invalid transition states on non-pending or completed leads.
+  5. **Consumer Refactoring**: Refactored `TicketAssignmentsController`, `TicketStatusController`, `AuthService`, `AdminLeadsController`, and `OnboardingController` to invoke rich domain methods instead of manipulating raw properties.
+  6. **Automated Verification**: Added comprehensive unit test suite `DomainEntityInvariantTests` covering invariant enforcement, state transitions, and exception boundaries across `Ticket`, `User`, and `Lead`. All 30 domain tests and 63 solution tests passing.
 
-### [TODO] ARCH-10: Systemic Silent Exception Swallowing (`catch { }`) Across Controllers and Services
+### [DONE] ARCH-10: Systemic Silent Exception Swallowing (`catch { }`) Across Controllers and Services
 - **Severity:** LOW
 - **Agent Source:** Agent 5: Architecture Reviewer
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/AgentsController.cs`, `backend/iM3Helpdesk.API/Controllers/CalendarEventsController.cs`, `backend/iM3Helpdesk.API/Controllers/CustomerController.cs`, `backend/iM3Helpdesk.API/Controllers/TicketsController.cs`, `backend/iM3Helpdesk.API/Hubs/ChatHub.cs`
 - **Problem Summary:** Over 15 catch blocks throughout the codebase swallow exceptions silently with `catch { }` or empty bodies, preventing failure visibility, audit logging, and automated alerting.
 - **Acceptance Criteria:**
   1. Remove empty catch blocks or log all caught exceptions via `_logger.LogError(ex, ...)`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Eliminated silent exception swallowing across controllers, hubs, and background services by introducing structured `ILogger` telemetry:
+  1. **CalendarEventsController**: Injected `ILogger<CalendarEventsController>` and replaced all 5 empty `catch { }` blocks in event update, cancellation, reminder, and invite routines with `_logger.LogError(ex, ...)`.
+  2. **CustomerController**: Injected `ILogger<CustomerController>` and replaced silent catch block in customer ticket creation email notification with `_logger.LogError(ex, ...)`.
+  3. **ChatHub**: Injected `ILogger<ChatHub>` and replaced silent `catch { /* don't crash the hub */ }` block in user presence updates with structured `_logger.LogError(ex, ...)`.
+  4. **EmailPollingService**: Replaced silent catch block during IMAP client disconnect with structured warning log.
+  5. **Automated Verification**: Added `ExceptionHandlingArchitectureTests` scanning all controllers and SignalR hubs to guarantee zero silent catch block violations remain. All 64 solution tests passing.
 
 ---
 
@@ -453,7 +509,7 @@
 
 ## 5. Structure, Dead Code & Hygiene Ledger (CLN)
 
-### [TODO] CLN-01: Misplaced Core Backend Services and Hosted Workers in Presentation Layer
+### [DONE] CLN-01: Misplaced Core Backend Services and Hosted Workers in Presentation Layer
 - **Severity:** HIGH
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `backend/iM3Helpdesk.API/Services/`
@@ -461,18 +517,18 @@
 - **Acceptance Criteria:**
   1. Relocate background workers and infrastructure implementations into `iM3Helpdesk.Infrastructure/Services/`.
   2. Relocate domain logic and service handlers into `iM3Helpdesk.Application/Services/`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Relocated all 25 misplaced backend services and hosted background workers from `iM3Helpdesk.API/Services/` into `iM3Helpdesk.Infrastructure/Services/`. Moved `SmartAssignHub` to `iM3Helpdesk.Infrastructure/Hubs/`. Extracted `ISubscriptionService`, `IPermissionService`, and `IBackgroundTaskService` interfaces into `iM3Helpdesk.Application/Contracts/Services/`. Added Microsoft.AspNetCore.App FrameworkReference and required packages (MailKit, MimeKit, PdfPig, HtmlSanitizer, Hangfire.AspNetCore) to `iM3Helpdesk.Infrastructure.csproj`. Purged `backend/iM3Helpdesk.API/Services/`. Updated all using statements and DI container bindings across controllers and Program.cs. Verified with `dotnet build` (0 errors) and `dotnet test` (64/64 tests passed).
 
-### [TODO] CLN-02: Deprecated Legacy SignalR NuGet Packages in Modern .NET 8 Projects
+### [DONE] CLN-02: Deprecated Legacy SignalR NuGet Packages in Modern .NET 8 Projects
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 6: Future-Proofing Analyst
 - **Target File(s):** `backend/iM3Helpdesk.API/iM3Helpdesk.API.csproj`, `backend/iM3Helpdesk.Infrastructure/iM3Helpdesk.Infrastructure.csproj`
 - **Problem Summary:** Projects reference legacy `Microsoft.AspNetCore.SignalR` (1.2.9) and `Microsoft.AspNetCore.SignalR.Core` (1.2.9) packages dating back to .NET Core 2.2, which are redundant and conflicting in .NET 8.
 - **Acceptance Criteria:**
   1. Remove legacy package references from both `.csproj` files, relying on the modern ASP.NET Core shared framework.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Removed deprecated legacy NuGet packages `Microsoft.AspNetCore.SignalR` (1.2.9) from `backend/iM3Helpdesk.API/iM3Helpdesk.API.csproj` and `Microsoft.AspNetCore.SignalR` (1.2.9) + `Microsoft.AspNetCore.SignalR.Core` (1.2.9) from `backend/iM3Helpdesk.Infrastructure/iM3Helpdesk.Infrastructure.csproj`. Modern .NET 8 ASP.NET Core shared framework provides native SignalR capabilities. Verified with `dotnet build` (0 errors) and `dotnet test` (64/64 tests passed).
 
-### [TODO] CLN-03: Fractured Dual Superadmin Feature Directories in Frontend
+### [DONE] CLN-03: Fractured Dual Superadmin Feature Directories in Frontend
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `frontend/src/app/features/super-admin/`, `frontend/src/app/features/superadmin/`
@@ -480,18 +536,18 @@
 - **Acceptance Criteria:**
   1. Consolidate all superadmin features into `frontend/src/app/features/super-admin/` and delete the redundant folder.
   2. Update all route imports in `app.routes.ts`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Moved `pending-payments` and `pricing-management` feature directories from `frontend/src/app/features/superadmin/` into `frontend/src/app/features/super-admin/`. Deleted the redundant `frontend/src/app/features/superadmin/` directory. Updated lazy route imports in `frontend/src/app/app.routes.ts` to reference the consolidated paths. Verified with `npm run build` and test runners.
 
-### [TODO] CLN-04: Inverted Interface Architectural Placement (`ICurrentTenantService` in Infrastructure)
+### [DONE] CLN-04: Inverted Interface Architectural Placement (`ICurrentTenantService` in Infrastructure)
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `backend/iM3Helpdesk.Infrastructure/Services/ICurrentTenantService.cs`
 - **Problem Summary:** `ICurrentTenantService` is defined in `Infrastructure`, preventing Domain and Application layers from referencing tenant context without creating circular dependencies.
 - **Acceptance Criteria:**
   1. Move `ICurrentTenantService` to `iM3Helpdesk.Domain/Interfaces/` or `iM3Helpdesk.Application/Contracts/Services/`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Relocated `ICurrentTenantService` and `ITenantSetter` from `iM3Helpdesk.Infrastructure/Services/` into `iM3Helpdesk.Application/Contracts/Services/`. Added global using in `iM3Helpdesk.Infrastructure.csproj` and `iM3Helpdesk.API.csproj`. Preserved concrete implementation in `CurrentTenantService` implementing the application contract. Verified with `dotnet build` (0 errors) and `dotnet test` (64/64 tests passed).
 
-### [TODO] CLN-05: Orphaned Build Output Directories at Workspace Root
+### [DONE] CLN-05: Orphaned Build Output Directories at Workspace Root
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `iM3Helpdesk.API/bin`, `iM3Helpdesk.API/obj`, `iM3Helpdesk.Domain/bin`, `iM3Helpdesk.Domain/obj`, `iM3Helpdesk.Infrastructure/bin`, `iM3Helpdesk.Infrastructure/obj`, `backend/_tmp_hash/obj`
@@ -499,18 +555,18 @@
 - **Acceptance Criteria:**
   1. Delete root-level `iM3Helpdesk.*` artifact folders and `backend/_tmp_hash`.
   2. Ensure `.gitignore` ignores all `bin/` and `obj/` patterns at all directory depths.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Purged root-level `iM3Helpdesk.API/`, `iM3Helpdesk.Domain/`, `iM3Helpdesk.Infrastructure/`, and `backend/_tmp_hash/` folders containing orphaned bin/obj artifacts. Updated `.gitignore` to explicitly ignore `**/bin/`, `**/obj/`, `**/_tmp_hash/`, and `_tmp_hash/` at all directory depths. Verified builds and tests.
 
-### [TODO] CLN-06: Dead Backend Boilerplate Scaffold File
+### [DONE] CLN-06: Dead Backend Boilerplate Scaffold File
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `backend/iM3Helpdesk.API/WeatherForecast.cs`
 - **Problem Summary:** `WeatherForecast.cs` is an unused boilerplate class leftover from initial CLI project scaffolding.
 - **Acceptance Criteria:**
   1. Delete `WeatherForecast.cs`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Deleted unused boilerplate class `WeatherForecast.cs` from `backend/iM3Helpdesk.API/`. Verified with `dotnet build` (0 errors) and `dotnet test` (64/64 tests passed).
 
-### [TODO] CLN-07: Dead Frontend State, Module, and Service Scaffolding Stubs
+### [DONE] CLN-07: Dead Frontend State, Module, and Service Scaffolding Stubs
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `frontend/src/app/state/app.state.ts`, `frontend/src/app/state/app.reducer.ts`, `frontend/src/app/state/app.effects.ts`, `frontend/src/app/core/core.module.ts`, `frontend/src/app/app.component.scss`, `frontend/src/app/core/models/error.model.ts`, `frontend/src/app/core/services/token.ts`, `frontend/src/app/core/services/api.service.ts`, `frontend/src/app/core/guards/role.guard.ts`, `frontend/src/app/core/guards/auth-guard.ts`
@@ -518,9 +574,9 @@
 - **Acceptance Criteria:**
   1. Delete all listed dead scaffold stubs.
   2. Remove unused imports across the frontend.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Deleted dead NgRx scaffold files (`app.state.ts`, `app.reducer.ts`, `app.effects.ts`) and removed the empty `state/` directory. Deleted dead `core.module.ts`, empty `app.component.scss` (and removed `styleUrls` from `AppComponent`), `error.model.ts`, `token.ts` (and `token.spec.ts`), `api.service.ts`, `role.guard.ts`, and redundant `auth-guard.ts` re-export stub. Verified with `npm run build` and vitest.
 
-### [TODO] CLN-08: Non-Standard Frontend Component File Suffixes (Over 65 Components Missing `.component.ts`)
+### [DONE] CLN-08: Non-Standard Frontend Component File Suffixes (Over 65 Components Missing `.component.ts`)
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `frontend/src/app/features/**/*.ts`
@@ -528,67 +584,67 @@
 - **Acceptance Criteria:**
   1. Rename non-standard component files to follow the `<name>.component.ts` convention.
   2. Update corresponding template, style, and route imports.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Renamed 70 non-standard component files across `frontend/src/app` to follow the Angular `<name>.component.ts` naming convention. Updated all relative imports and lazy route loader paths across all TypeScript files. Verified with `npm run build` (all lazy chunks successfully generated) and vitest test suite.
 
-### [TODO] CLN-09: Inconsistent Service File Suffixes & Duplicate Service Declarations in Frontend
+### [DONE] CLN-09: Inconsistent Service File Suffixes & Duplicate Service Declarations in Frontend
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `frontend/src/app/core/services/*.ts`
 - **Problem Summary:** In `frontend/src/app/core/services/`, 14 services omit `.service.ts` while others retain it.
 - **Acceptance Criteria:**
   1. Rename all services in `core/services/` to consistently end with `.service.ts`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Standardized all 13 core services by appending `.service.ts` suffix (`agent-group`, `agent`, `custom-field`, `customer`, `knowledge-base`, `notification`, `profile`, `subscription`, `super-admin`, `ticket-master`, `ticket-template`, `ticket`, `translation`). Deleted redundant duplicate `chat.ts` (retaining modern `chat.service.ts`). Renamed `auth.spec.ts` to `auth.service.spec.ts`. Updated all service imports across the frontend application. Verified with `npm run build` and vitest.
 
-### [TODO] CLN-10: Guard Naming Collisions & Mixed Kebab-Case vs Dot-Notation
+### [DONE] CLN-10: Guard Naming Collisions & Mixed Kebab-Case vs Dot-Notation
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `frontend/src/app/core/guards/*.ts`
 - **Problem Summary:** Guards mix kebab-case (`customer-guard.ts`, `super-admin-guard.ts`) with dot-notation (`company-admin.guard.ts`, `auth.guard.ts`), and feature duplicate stubs (`auth-guard.ts` vs `auth.guard.ts`).
 - **Acceptance Criteria:**
   1. Standardize all guards on `<name>.guard.ts` and delete duplicate re-export stubs.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Renamed `customer-guard.ts` to `customer.guard.ts`, `super-admin-guard.ts` to `super-admin.guard.ts`, and `auth-guard.spec.ts` to `auth.guard.spec.ts`. All guards in `frontend/src/app/core/guards/` consistently adhere to the `<name>.guard.ts` dot-notation format. Updated guard imports in `app.routes.ts`. Verified with `npm run build` and vitest.
 
-### [TODO] CLN-11: Backend Controller Naming & Pluralization Inconsistencies
+### [DONE] CLN-11: Backend Controller Naming & Pluralization Inconsistencies
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/*.cs`
 - **Problem Summary:** Controllers mix singular and plural naming (`CallLogController`, `CustomerController` vs `ContactsController`, `TicketsController`), and feature overlapping controllers (`LeadsController` vs `AdminLeadsController`).
 - **Acceptance Criteria:**
   1. Standardize controller naming conventions across the API.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Standardized backend controller naming and pluralization conventions across API controllers: renamed `CallLogController` to `CallLogsController` (with dual route `api/[controller]` and `api/CallLog`), `CustomerController` to `CustomersController` (with dual route `api/[controller]` and `api/Customer`), `TodoController` to `TodosController` (with dual route `api/[controller]` and `api/Todo`), `TicketStatusController` to `TicketStatusesController`, `AuditController` to `AuditLogsController` (with dual route `api/[controller]` and `api/Audit`), and `AdminLeadsController` to `SuperAdminLeadsController` (with dual route `api/admin/leads` and `api/superadmin/leads`). Updated dependency inversion test suites in `backend/iM3Helpdesk.API.Tests/`. Verified with `dotnet build` (0 errors), `dotnet test` (64/64 passed), and `npm run build`.
 
-### [TODO] CLN-12: Untyped Inline DTO Declarations Embedded Within Controller Source Files
+### [DONE] CLN-12: Untyped Inline DTO Declarations Embedded Within Controller Source Files
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/*.cs`
 - **Problem Summary:** Multiple DTOs (`CreateTodoDto`, `WhatsAppWebhookDto`, `SlackNotifyDto`) are declared at the bottom of controller files rather than in `iM3Helpdesk.Application/DTOs/`.
 - **Acceptance Criteria:**
   1. Extract inline DTOs into dedicated files in `iM3Helpdesk.Application/DTOs/`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Extracted inline untyped DTOs from controller source files into dedicated classes in `iM3Helpdesk.Application/DTOs/`: created `CreateTodoDto.cs` in `DTOs/Todos/`, `WhatsAppDtos.cs` (`WhatsAppWebhookDto`, `SendWhatsAppDto`) and `SlackDtos.cs` (`SlackWebhookDto`, `SlackNotifyDto`) in `DTOs/Integrations/`, `TicketTemplateDto.cs` and `TicketMasterDtos.cs` (`TicketMasterOptionDto`, `CreateTicketMasterOptionDto`, `UpdateTicketMasterOptionDto`) in `DTOs/Tickets/`, `UpdateOrgDto.cs` in `DTOs/Organizations/`, and `KnowledgeBaseDtos.cs` (`CreateArticleDto`, `ReactDto`, `KbAddCommentDto`) in `DTOs/KnowledgeBase/`. Updated all controller using directives and purged inline DTO declarations. Verified with `dotnet build` (0 errors) and `dotnet test` (64/64 passed).
 
-### [TODO] CLN-13: Dead Injected Fields and Unused Local Variables in Controllers
+### [DONE] CLN-13: Dead Injected Fields and Unused Local Variables in Controllers
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/SuperAdminController.cs`, `backend/iM3Helpdesk.API/Controllers/TicketsController.cs`
 - **Problem Summary:** Injected fields (e.g., `_emailQueueService` in `SuperAdminController`) and extracted claims (`roleClaim` in `TicketsController.GetAll`) are never read or used.
 - **Acceptance Criteria:**
   1. Remove unused injected fields from constructors and delete dead local variables.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Removed unused injected constructor parameter and private field `_emailQueueService` from `SuperAdminController.cs` and cleaned up unused service using directives. Verified `TicketsController.cs` uses all injected dependencies with zero dead variables. Verified with `dotnet build` (0 errors) and `dotnet test` (64/64 passed).
 
-### [TODO] CLN-14: Raw `Console.WriteLine` Usage in Place of Structured `ILogger`
+### [DONE] CLN-14: Raw `Console.WriteLine` Usage in Place of Structured `ILogger`
 - **Severity:** LOW
 - **Agent Source:** Agent 2: Security Auditor
 - **Target File(s):** `backend/iM3Helpdesk.API/Controllers/AuthController.cs`
 - **Problem Summary:** Lines 413, 475, and 728 write directly to `Console.WriteLine` on email dispatch errors rather than logging through `ILogger<AuthController>`.
 - **Acceptance Criteria:**
   1. Replace all `Console.WriteLine` statements with `_logger.LogError(...)` or `_logger.LogWarning(...)`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Replaced all raw `Console.WriteLine` invocations with structured `ILogger` calls (`_logger.LogError(...)` / `_logger.LogWarning(...)`) across auth and email dispatch flows in `AuthService.cs` (registration, customer registration, resend verification, forgot password) and ticket controllers. Verified zero instances of `Console.WriteLine` remain in the codebase. Verified with `dotnet build` (0 errors, 0 warnings) and `dotnet test` (64/64 passed).
 
-### [TODO] CLN-15: Committed Browser Test Runner Artifact Folders (`__screenshots__`) in Source Tree
+### [DONE] CLN-15: Committed Browser Test Runner Artifact Folders (`__screenshots__`) in Source Tree
 - **Severity:** LOW
 - **Agent Source:** Agent 1: Structure Analyst
 - **Target File(s):** `frontend/src/app/**/__screenshots__/`
 - **Problem Summary:** Automated Vitest test runner screenshot directories (`__screenshots__`) are scattered throughout feature folders in source control.
 - **Acceptance Criteria:**
   1. Add `**/__screenshots__/` to `.gitignore` and delete committed screenshot directories from the source tree.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Added `**/__screenshots__/` to root `.gitignore` and purged all 12 committed Vitest test runner `__screenshots__` directories across the frontend source tree (`core/interceptors`, `core/services`, `features/auth/*`, `features/dashboard`, `features/onboarding/*`, `features/tickets/*`, `shared`). Verified with `dotnet build` (0 errors, 0 warnings), `dotnet test` (64/64 passed), and `npm run build`.

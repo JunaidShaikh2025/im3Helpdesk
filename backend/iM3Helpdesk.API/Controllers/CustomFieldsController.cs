@@ -1,8 +1,8 @@
 using iM3Helpdesk.API.Middleware;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

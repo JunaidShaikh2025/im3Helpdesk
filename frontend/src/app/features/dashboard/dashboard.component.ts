@@ -7,11 +7,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth/auth.service';
-import { SubscriptionService } from '../../core/services/subscription';
+import { SubscriptionService } from '../../core/services/subscription.service';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { LayoutComponent } from '../../layouts/main-layout/layout';
+import { LayoutComponent } from '../../layouts/main-layout/layout.component';
 import { environment } from '../../../environments/environment';
 
 const API_BASE = environment.apiUrl;

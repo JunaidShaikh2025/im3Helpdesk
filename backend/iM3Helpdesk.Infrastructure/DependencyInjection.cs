@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<CurrentTenantService>();
         services.AddScoped<ITenantService>(sp => sp.GetRequiredService<CurrentTenantService>());
         services.AddScoped<ICurrentTenantService>(sp => sp.GetRequiredService<CurrentTenantService>());
+        services.AddScoped<ITenantSetter>(sp => sp.GetRequiredService<CurrentTenantService>());
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<ITicketRepository, TicketRepository>();
         services.AddScoped<IUserRepository, UserRepository>();

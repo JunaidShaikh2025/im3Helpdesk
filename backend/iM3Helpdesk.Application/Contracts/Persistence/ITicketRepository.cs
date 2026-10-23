@@ -33,5 +33,15 @@ public interface ITicketRepository : IGenericRepository<Ticket>
     Task<IReadOnlyList<TicketSearchResultDto>> SearchAsync(
         string? query, TicketStatus? status, TicketPriority? priority, string? category, CancellationToken ct = default);
     Task<IReadOnlyList<TicketByTagItemDto>> GetByTagAsync(string tag, CancellationToken ct = default);
+    Task<IReadOnlyList<Ticket>> GetHistoricalTicketsAsync(Guid organizationId, DateTime cutoff, bool includeAssignedTo = false, CancellationToken ct = default);
+    Task<IReadOnlyList<Ticket>> GetOpenTicketsAsync(Guid organizationId, DateTime cutoff, CancellationToken ct = default);
+    Task<Ticket?> GetTicketSummaryDataAsync(Guid ticketId, CancellationToken ct = default);
+    Task<IReadOnlyList<string>> GetCommentMessageIdsAsync(Guid ticketId, CancellationToken ct = default);
+    Task<TicketComment?> GetCommentWithTicketAsync(Guid commentId, Guid ticketId, CancellationToken ct = default);
+    Task<IReadOnlyList<TicketAttachment>> GetCommentAttachmentsAsync(Guid commentId, CancellationToken ct = default);
+    Task RemoveCommentAsync(TicketComment comment, CancellationToken ct = default);
+    Task RemoveAttachmentsAsync(IEnumerable<TicketAttachment> attachments, CancellationToken ct = default);
+    Task<Ticket?> GetTicketWithCreatedByAsync(Guid id, CancellationToken ct = default);
+    Task<int> MergeDuplicateTicketsAsync(Guid originalTicketId, IEnumerable<Guid> ticketIdsToClose, Guid userId, Guid organizationId, CancellationToken ct = default);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

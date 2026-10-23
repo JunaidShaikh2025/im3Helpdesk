@@ -1,9 +1,9 @@
 using System.Security.Claims;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -36,9 +36,9 @@ public class RoleRightsController : ControllerBase
     _perms = perms;
   }
 
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // DTOs
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   public sealed record ModuleDef(string Key, string Label, string Category, string Icon);
 
   public sealed record PermissionRow(
@@ -64,50 +64,50 @@ public class RoleRightsController : ControllerBase
     public List<PermissionRow> Rows { get; set; } = new();
   }
 
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Module catalog (single source of truth)
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   private static readonly List<ModuleDef> Modules = new()
   {
     // Operations
-    new("dashboard",            "Dashboard",             "Operations",   "📊"),
-    new("tickets",              "Tickets",               "Operations",   "🎫"),
-    new("contacts",             "Contacts",              "Operations",   "👥"),
-    new("knowledge-base",       "Knowledge Base",        "Operations",   "📚"),
-    new("chat",                 "Team Chat",             "Operations",   "💬"),
-    new("calendar",             "Calendar",              "Operations",   "📅"),
-    new("notifications",        "Notifications",         "Operations",   "🔔"),
-    new("todo",                 "To-Do",                 "Operations",   "✅"),    new("notes",                "Notes",                 "Operations",   "📝"),    new("call-logs",            "Call Logs",             "Operations",   "📞"),
+    new("dashboard",            "Dashboard",             "Operations",   "ðŸ“Š"),
+    new("tickets",              "Tickets",               "Operations",   "ðŸŽ«"),
+    new("contacts",             "Contacts",              "Operations",   "ðŸ‘¥"),
+    new("knowledge-base",       "Knowledge Base",        "Operations",   "ðŸ“š"),
+    new("chat",                 "Team Chat",             "Operations",   "ðŸ’¬"),
+    new("calendar",             "Calendar",              "Operations",   "ðŸ“…"),
+    new("notifications",        "Notifications",         "Operations",   "ðŸ””"),
+    new("todo",                 "To-Do",                 "Operations",   "âœ…"),    new("notes",                "Notes",                 "Operations",   "ðŸ“"),    new("call-logs",            "Call Logs",             "Operations",   "ðŸ“ž"),
 
     // Insights
-    new("reports",              "Reports",               "Insights",     "📈"),
-    new("analytics-heatmap",    "Ticket Heatmap",        "Insights",     "🔥"),
-    new("ai-insights",          "AI Insights",           "Insights",     "🤖"),
-    new("audit-log",            "Audit Log",             "Insights",     "🧾"),
+    new("reports",              "Reports",               "Insights",     "ðŸ“ˆ"),
+    new("analytics-heatmap",    "Ticket Heatmap",        "Insights",     "ðŸ”¥"),
+    new("ai-insights",          "AI Insights",           "Insights",     "ðŸ¤–"),
+    new("audit-log",            "Audit Log",             "Insights",     "ðŸ§¾"),
 
     // People
-    new("agents",               "Agents / Team",         "People",       "🧑‍💼"),
-    new("agent-groups",         "Agent Groups",          "People",       "👥"),
-    new("customers",            "Customers",             "People",       "🙋"),
-    new("leads",                "Leads",                 "People",       "🎯"),
+    new("agents",               "Agents / Team",         "People",       "ðŸ§‘â€ðŸ’¼"),
+    new("agent-groups",         "Agent Groups",          "People",       "ðŸ‘¥"),
+    new("customers",            "Customers",             "People",       "ðŸ™‹"),
+    new("leads",                "Leads",                 "People",       "ðŸŽ¯"),
 
     // Configuration
-    new("ticket-templates",     "Ticket Templates",      "Configuration","📝"),
-    new("custom-fields",        "Custom Fields",         "Configuration","🧩"),
-    new("ticket-masters",       "Ticket Configuration",  "Configuration","🏷️"),
-    new("settings",             "Workspace Settings",    "Configuration","⚙️"),
-    new("organization-profile", "Organization Profile",  "Configuration","🏢"),
-    new("holiday-setup",        "Holiday Setup",         "Configuration","🎉"),
-    new("recycle-bin",          "Recycle Bin",           "Configuration","🗑️"),
-    new("role-rights",          "Role Rights",           "Configuration","🛡️"),
+    new("ticket-templates",     "Ticket Templates",      "Configuration","ðŸ“"),
+    new("custom-fields",        "Custom Fields",         "Configuration","ðŸ§©"),
+    new("ticket-masters",       "Ticket Configuration",  "Configuration","ðŸ·ï¸"),
+    new("settings",             "Workspace Settings",    "Configuration","âš™ï¸"),
+    new("organization-profile", "Organization Profile",  "Configuration","ðŸ¢"),
+    new("holiday-setup",        "Holiday Setup",         "Configuration","ðŸŽ‰"),
+    new("recycle-bin",          "Recycle Bin",           "Configuration","ðŸ—‘ï¸"),
+    new("role-rights",          "Role Rights",           "Configuration","ðŸ›¡ï¸"),
 
     // Integrations
-    new("integrations-email",   "Email Integration",     "Integrations", "✉️"),
-    new("integrations-slack",   "Slack Integration",     "Integrations", "💼"),
-    new("integrations-whatsapp","WhatsApp Integration",  "Integrations", "📱"),
+    new("integrations-email",   "Email Integration",     "Integrations", "âœ‰ï¸"),
+    new("integrations-slack",   "Slack Integration",     "Integrations", "ðŸ’¼"),
+    new("integrations-whatsapp","WhatsApp Integration",  "Integrations", "ðŸ“±"),
   };
 
-  // Roles editable in the UI. SuperAdmin is intentionally excluded — they
+  // Roles editable in the UI. SuperAdmin is intentionally excluded â€” they
   // always have full access (enforced via [Authorize] roles + the /me endpoint
   // returning an all-true matrix for SuperAdmin callers).
   private static readonly UserRole[] OrderedRoles = new[]
@@ -153,11 +153,11 @@ public class RoleRightsController : ControllerBase
     return new PermissionRow(module, true, canAdd, canEdit, canDelete, canExport);
   }
 
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/RoleRights/catalog
   // Returns modules + roles + default matrix. Frontend uses this to draw
   // the empty grid before applying overrides.
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("catalog")]
   public IActionResult GetCatalog()
   {
@@ -171,10 +171,10 @@ public class RoleRightsController : ControllerBase
         Defaults: defaults));
   }
 
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/RoleRights
   // Returns the merged (default + saved overrides) matrix for the org.
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet]
   public async Task<IActionResult> GetMatrix()
   {
@@ -203,11 +203,11 @@ public class RoleRightsController : ControllerBase
     return Ok(result);
   }
 
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // PUT /api/RoleRights
   // Bulk-save the matrix for a single role. Rows missing from the payload
   // are left untouched.
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpPut]
   public async Task<IActionResult> Save([FromBody] SaveRequest body)
   {
@@ -265,10 +265,10 @@ public class RoleRightsController : ControllerBase
     return Ok(new { role = role.ToString(), saved = byKey.Count });
   }
 
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // POST /api/RoleRights/reset?role={role}
   // Wipes overrides for a role (or all roles if omitted) so defaults apply.
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpPost("reset")]
   public async Task<IActionResult> Reset([FromQuery] string? role)
   {
@@ -291,12 +291,12 @@ public class RoleRightsController : ControllerBase
     return Ok(new { reset = rows.Count });
   }
 
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/RoleRights/me
   // Returns the effective permission map for the CURRENT user.
   // Lightweight + open to any authenticated user (overrides admin-only attr).
   // The frontend calls this on login and after the admin saves changes.
-  // ──────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("me")]
   [AllowAnonymous]
   public async Task<IActionResult> GetMine()

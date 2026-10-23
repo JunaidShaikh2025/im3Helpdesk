@@ -1,3 +1,4 @@
+using iM3Helpdesk.Application.DTOs.KnowledgeBase;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
@@ -737,30 +738,6 @@ public class KnowledgeBaseController : ControllerBase
 }
 
 // ─────────────────────────────────────
-// DTOs
-// ─────────────────────────────────────
-public class CreateArticleDto
-{
-  public string Title { get; set; } = string.Empty;
-  public string Content { get; set; } = string.Empty;
-  public string Category { get; set; } = string.Empty;
-  public string Tags { get; set; } = string.Empty;
-  public bool IsPublished { get; set; } = true;
-  public string? MediaUrl { get; set; }
-  public string? MediaType { get; set; }
-}
-
-public class ReactDto
-{
-  // "like" or "dislike"
-  public string ReactionType { get; set; } = "like";
-}
-
-public class KbAddCommentDto
-{
-  public string Text { get; set; } = string.Empty;
-}
-
 public class KbUploadMediaDto
 {
   public IFormFile File { get; set; } = default!;

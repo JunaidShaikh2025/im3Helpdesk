@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using iM3Helpdesk.API.Middleware;
-using iM3Helpdesk.API.Services;
-using iM3Helpdesk.Application.Common;
+using iM3Helpdesk.Infrastructure.Services;
 using iM3Helpdesk.Application.Contracts.Services;
+using iM3Helpdesk.Application.Common;
 using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;

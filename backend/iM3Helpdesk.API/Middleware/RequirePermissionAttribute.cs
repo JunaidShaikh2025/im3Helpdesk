@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using iM3Helpdesk.API.Services;
-using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
+using iM3Helpdesk.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -11,7 +11,7 @@ namespace iM3Helpdesk.API.Middleware;
 /// Enforces the per-organization Role Rights matrix at the API boundary.
 /// Returns 403 if the caller's role lacks the requested action on the
 /// module. SuperAdmin bypasses. Compose with [Authorize] (auth) and
-/// [RequireFeature] (subscription) — this attribute handles role rights only.
+/// [RequireFeature] (subscription) â€” this attribute handles role rights only.
 ///
 ///   [RequirePermission("contacts", PermissionAction.Delete)]
 /// </summary>

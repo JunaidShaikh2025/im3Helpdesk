@@ -17,16 +17,19 @@ public class CalendarEventsController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenant;
-  private readonly IEmailService _emailService;
+  private readonly ICalendarEmailService _emailService;
+  private readonly ILogger<CalendarEventsController> _logger;
 
   public CalendarEventsController(
       ApplicationDbContext context,
       ICurrentTenantService tenant,
-      IEmailService emailService)
+      ICalendarEmailService emailService,
+      ILogger<CalendarEventsController> logger)
   {
     _context = context;
     _tenant = tenant;
     _emailService = emailService;
+    _logger = logger;
   }
 
   // ── Helper ───────────────────────────────────────────
@@ -232,7 +235,10 @@ public class CalendarEventsController : ControllerBase
                 email, name, ev.Title, ev.StartDate,
                 "updated", org?.Name ?? "DeskMate", organizationId);
           }
-          catch { }
+          catch (Exception ex)
+          {
+            _logger.LogError(ex, "Failed to send calendar event update email to {Email} for event {EventId}", email, ev.Id);
+          }
         });
       }
     }
@@ -286,7 +292,10 @@ public class CalendarEventsController : ControllerBase
                 email, name, ev.Title, ev.StartDate,
                 "cancelled", org?.Name ?? "DeskMate", organizationId);
           }
-          catch { }
+          catch (Exception ex)
+          {
+            _logger.LogError(ex, "Failed to send calendar event cancellation email to {Email} for event {EventId}", email, ev.Id);
+          }
         });
       }
     }
@@ -379,7 +388,10 @@ public class CalendarEventsController : ControllerBase
             orgName, 
             organizationId);
       }
-      catch { }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Failed to send calendar reminder email to creator {Email} for event {EventId}", creator.Email, ev.Id);
+      }
     }
 
     // Send to all attendees
@@ -401,7 +413,10 @@ public class CalendarEventsController : ControllerBase
               orgName,
               organizationId);
         }
-        catch { }
+        catch (Exception ex)
+        {
+          _logger.LogError(ex, "Failed to send calendar reminder email to attendee {Email} for event {EventId}", email, ev.Id);
+        }
       });
     }
 
@@ -445,7 +460,10 @@ public class CalendarEventsController : ControllerBase
               orgName,
               organizationId);
         }
-        catch { }
+        catch (Exception ex)
+        {
+          _logger.LogError(ex, "Failed to send calendar invite email to {Email} for event {EventId}", email, ev.Id);
+        }
       });
     }
   }

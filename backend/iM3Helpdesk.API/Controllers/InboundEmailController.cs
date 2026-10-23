@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using System.Text;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Services;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -82,7 +82,7 @@ public class InboundEmailController : ControllerBase
     return count > RateLimitCount;
   }
 
-  // Main endpoint — called by email service (SendGrid, Mailgun, etc.)
+  // Main endpoint â€” called by email service (SendGrid, Mailgun, etc.)
   [HttpPost]
   public async Task<IActionResult> ReceiveEmail(
       [FromForm] InboundEmailFormDto dto)
@@ -114,7 +114,7 @@ public class InboundEmailController : ControllerBase
         dto.Body, dto.Body, null);
   }
 
-  // Test endpoint — create ticket from support email manually
+  // Test endpoint â€” create ticket from support email manually
   [HttpPost("simulate")]
   public async Task<IActionResult> SimulateEmail(
       [FromBody] SimulateEmailDto dto)

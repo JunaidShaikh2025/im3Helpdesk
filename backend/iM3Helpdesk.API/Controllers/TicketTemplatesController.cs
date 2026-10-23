@@ -1,9 +1,10 @@
 using iM3Helpdesk.API.Middleware;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Application.DTOs.Tickets;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -187,16 +188,4 @@ public class TicketTemplatesController : ControllerBase
     await _context.SaveChangesAsync();
     return Ok(new { message = "Template deleted" });
   }
-}
-
-public class TicketTemplateDto
-{
-  public string Name { get; set; } = string.Empty;
-  public string Title { get; set; } = string.Empty;
-  public string Description { get; set; } = string.Empty;
-  public string Category { get; set; } = "General";
-  public string Priority { get; set; } = "Medium";
-  public string TicketType { get; set; } = "Support";
-  public string Status { get; set; } = "Open";
-  public string? Tags { get; set; }
 }

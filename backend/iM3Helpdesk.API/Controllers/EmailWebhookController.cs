@@ -1,4 +1,5 @@
 using System.Text.Json;
+using iM3Helpdesk.Application.Contracts.Webhooks;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -13,13 +14,16 @@ public class EmailWebhookController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
   private readonly IConfiguration _configuration;
+  private readonly IEnumerable<IEmailWebhookEventHandler> _eventHandlers;
 
   public EmailWebhookController(
       ApplicationDbContext context,
-      IConfiguration configuration)
+      IConfiguration configuration,
+      IEnumerable<IEmailWebhookEventHandler> eventHandlers)
   {
     _context = context;
     _configuration = configuration;
+    _eventHandlers = eventHandlers;
   }
 
   [HttpPost("events")]
@@ -107,41 +111,10 @@ public class EmailWebhookController : ControllerBase
     return Ok(new { message = "Webhook events processed" });
   }
 
-  private static void ApplyStatusUpdate(EmailQueue queueRecord, string eventType)
+  private void ApplyStatusUpdate(EmailQueue queueRecord, string eventType)
   {
-    switch (eventType)
-    {
-      case "delivered":
-        queueRecord.Status = "Delivered";
-        queueRecord.DeliveredAt = DateTime.UtcNow;
-        queueRecord.IsSent = true;
-        break;
-
-      case "bounce":
-      case "bounced":
-      case "dropped":
-      case "blocked":
-      case "spamreport":
-        queueRecord.Status = "Bounced";
-        queueRecord.FailedAt = DateTime.UtcNow;
-        break;
-
-      case "open":
-      case "opened":
-        queueRecord.Status = "Opened";
-        break;
-
-      case "processed":
-      case "sent":
-        queueRecord.Status = "Sent";
-        queueRecord.IsSent = true;
-        queueRecord.SentAt ??= DateTime.UtcNow;
-        break;
-
-      case "deferred":
-        queueRecord.Status = "Queued";
-        break;
-    }
+    var handler = _eventHandlers.FirstOrDefault(h => h.CanHandle(eventType));
+    handler?.Handle(queueRecord, eventType);
   }
 
   private static string? ExtractString(JsonElement source, params string[] paths)

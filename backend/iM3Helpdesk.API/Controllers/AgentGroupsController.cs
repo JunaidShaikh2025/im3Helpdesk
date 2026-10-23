@@ -1,8 +1,8 @@
 using iM3Helpdesk.API.Middleware;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -109,7 +109,7 @@ public class AgentGroupsController : ControllerBase
     });
   }
 
-  // ✅ PUT — explicit route
+  // âœ… PUT â€” explicit route
   [HttpPut("{id}")]
   [RequirePermission("agent-groups", PermissionAction.Edit)]
   public async Task<IActionResult> Update(
@@ -174,7 +174,7 @@ public class AgentGroupsController : ControllerBase
     return Ok(new { message = "Group updated" });
   }
 
-  // ✅ DELETE — with cascade
+  // âœ… DELETE â€” with cascade
   [HttpDelete("{id}")]
   [RequirePermission("agent-groups", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)

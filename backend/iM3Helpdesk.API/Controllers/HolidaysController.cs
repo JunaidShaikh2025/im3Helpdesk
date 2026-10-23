@@ -1,8 +1,8 @@
 using System.Security.Claims;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +16,7 @@ namespace iM3Helpdesk.API.Controllers;
 /// number of holiday rows underneath it.
 ///
 /// All endpoints except <c>/calendar</c> and <c>/reminders</c> are admin-only
-/// — every authenticated user needs to *see* the holidays so the org calendar
+/// â€” every authenticated user needs to *see* the holidays so the org calendar
 /// and topbar Events badge work correctly, but only Company Admins (or the
 /// Super Admin) can mutate the list.
 /// </summary>
@@ -39,9 +39,9 @@ public class HolidaysController : ControllerBase
     _env = env;
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Helpers
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   private Guid? GetUserId()
   {
     var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -128,10 +128,10 @@ public class HolidaysController : ControllerBase
     public string? PolicyText { get; set; }
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/Holidays/years
   // Returns one card per year that has been set up (or has holidays).
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("years")]
   public async Task<IActionResult> GetYears()
   {
@@ -172,9 +172,9 @@ public class HolidaysController : ControllerBase
     return Ok(result);
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/Holidays/years/{year}
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("years/{year:int}")]
   public async Task<IActionResult> GetYearDetail(int year)
   {
@@ -206,9 +206,9 @@ public class HolidaysController : ControllerBase
     return Ok(dto);
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // PUT /api/Holidays/years/{year}  (upsert setup row)
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpPut("years/{year:int}")]
   [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
   public async Task<IActionResult> UpsertYearSetup(int year, [FromBody] YearSetupUpsertRequest body)
@@ -239,13 +239,13 @@ public class HolidaysController : ControllerBase
     return Ok(new { setup.Id, setup.Year });
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // POST /api/Holidays/years/{year}/upload-pdf  (multipart)
   // Saves the PDF AND tries to auto-extract holiday rows from it.
-  // Query: ?replace=true   → wipe existing rows for that year first
-  //        ?replace=false  → only append rows that don't already exist
+  // Query: ?replace=true   â†’ wipe existing rows for that year first
+  //        ?replace=false  â†’ only append rows that don't already exist
   //                          (matched on Date + occasion, case-insensitive)
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpPost("years/{year:int}/upload-pdf")]
   [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
   [RequestSizeLimit(10 * 1024 * 1024)]
@@ -285,7 +285,7 @@ public class HolidaysController : ControllerBase
     setup.PdfFileName = file.FileName;
     setup.UpdatedAt = DateTime.UtcNow;
 
-    // ── Auto-extract holidays from the PDF content. ───────────────────
+    // â”€â”€ Auto-extract holidays from the PDF content. â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     int extracted = 0, added = 0, skipped = 0;
     var warnings = new List<string>();
     try
@@ -346,7 +346,7 @@ public class HolidaysController : ControllerBase
     }
     catch (Exception ex)
     {
-      // Don't fail the upload itself — the PDF is still saved as reference.
+      // Don't fail the upload itself â€” the PDF is still saved as reference.
       warnings.Add($"PDF parsed with errors: {ex.Message}");
     }
 
@@ -363,9 +363,9 @@ public class HolidaysController : ControllerBase
     });
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // DELETE /api/Holidays/years/{year}  (deletes setup + holidays)
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpDelete("years/{year:int}")]
   [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
   public async Task<IActionResult> DeleteYear(int year)
@@ -386,9 +386,9 @@ public class HolidaysController : ControllerBase
     return Ok(new { deleted = holidays.Count });
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // POST /api/Holidays  (create a single holiday)
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpPost]
   [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
   public async Task<IActionResult> Create([FromBody] HolidayUpsertRequest body)
@@ -437,9 +437,9 @@ public class HolidaysController : ControllerBase
         holiday.Occasion, holiday.Day, holiday.IsFloating));
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // PUT /api/Holidays/{id}
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpPut("{id:guid}")]
   [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
   public async Task<IActionResult> Update(Guid id, [FromBody] HolidayUpsertRequest body)
@@ -466,9 +466,9 @@ public class HolidaysController : ControllerBase
         h.Occasion, h.Day, h.IsFloating));
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // DELETE /api/Holidays/{id}
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpDelete("{id:guid}")]
   [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
   public async Task<IActionResult> Delete(Guid id)
@@ -484,9 +484,9 @@ public class HolidaysController : ControllerBase
     return NoContent();
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/Holidays/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("calendar")]
   public async Task<IActionResult> GetCalendar(
       [FromQuery] DateOnly start, [FromQuery] DateOnly end)
@@ -509,7 +509,7 @@ public class HolidaysController : ControllerBase
           h.Date.Year, h.Date.Month, h.Date.Day, 0, 0, 0, DateTimeKind.Utc);
       return new CalendarItemDto(
           Id: $"holiday:{h.Id}",
-          Title: $"🎉 {h.Occasion}",
+          Title: $"ðŸŽ‰ {h.Occasion}",
           Description: h.IsFloating ? "Holiday (Floating)" : "Holiday",
           StartDate: startUtc,
           EndDate: null,
@@ -529,9 +529,9 @@ public class HolidaysController : ControllerBase
     return Ok(items);
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/Holidays/reminders   (today + tomorrow IST)
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("reminders")]
   public async Task<IActionResult> GetReminders()
   {

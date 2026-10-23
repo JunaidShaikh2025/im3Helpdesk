@@ -1,3 +1,4 @@
+using iM3Helpdesk.Application.DTOs.Integrations;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -107,19 +108,4 @@ public class WhatsAppController : ControllerBase
       message = "WhatsApp configured (Twilio credentials needed)"
     });
   }
-}
-
-public class WhatsAppWebhookDto
-{
-  public string? From { get; set; }
-  public string? To { get; set; }
-  public string? Body { get; set; }
-  public string? ProfileName { get; set; }
-  public string? MediaUrl0 { get; set; }
-}
-
-public class SendWhatsAppDto
-{
-  public string To { get; set; } = string.Empty;
-  public string Message { get; set; } = string.Empty;
 }

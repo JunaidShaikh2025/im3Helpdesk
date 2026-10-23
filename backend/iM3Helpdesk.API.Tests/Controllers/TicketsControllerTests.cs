@@ -1,12 +1,11 @@
 using System.Security.Claims;
 using iM3Helpdesk.API.Controllers;
-using iM3Helpdesk.API.Services;
+using iM3Helpdesk.Infrastructure.Services;
 using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
-using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -62,8 +61,13 @@ public class TicketsControllerTests
     var emailMock = new Mock<IEmailService>();
     var envMock = new Mock<IWebHostEnvironment>();
 
+    var ticketRepo = new iM3Helpdesk.Infrastructure.Repositories.TicketRepository(context);
+    var userRepo = new iM3Helpdesk.Infrastructure.Repositories.UserRepository(context, tenantService);
+    var auditRepo = new iM3Helpdesk.Infrastructure.Repositories.AuditRepository(context);
+    var uow = new iM3Helpdesk.Infrastructure.Persistence.UnitOfWork(context, tenantService, ticketRepo, userRepo, auditRepo);
+
     var controller = new TicketCommentsController(
-        context,
+        uow,
         tenantService,
         notificationMock.Object,
         emailMock.Object,

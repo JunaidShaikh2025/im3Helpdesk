@@ -7,7 +7,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
 import { vi } from 'vitest';
 
-import { OnboardingWizardComponent } from './onboarding-wizard';
+import { OnboardingWizardComponent } from './onboarding-wizard.component';
 import { environment } from '../../../../environments/environment';
 
 describe('OnboardingWizardComponent', () => {

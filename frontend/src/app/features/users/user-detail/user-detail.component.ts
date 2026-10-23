@@ -3,9 +3,9 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angula
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
-import { AgentService } from '../../../core/services/agent';
-import { TicketService } from '../../../core/services/ticket';
-import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { AgentService } from '../../../core/services/agent.service';
+import { TicketService } from '../../../core/services/ticket.service';
+import { LayoutComponent } from '../../../layouts/main-layout/layout.component';
 import { environment } from '../../../../environments/environment';
 
 @Component({

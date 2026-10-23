@@ -111,17 +111,14 @@ public class OnboardingController : ControllerBase
         CreatedAt = DateTime.UtcNow
       };
 
-      lead.Status = LeadStatus.Completed;
-      lead.TokenUsedAt = DateTime.UtcNow;
-      lead.UpdatedAt = DateTime.UtcNow;
+      lead.MarkTokenUsed();
 
       var token = GenerateJwtToken(adminUser);
       var refreshToken = GenerateRefreshToken();
 
       SetAuthCookies(token, refreshToken);
 
-      adminUser.RefreshToken = HashRefreshToken(refreshToken);
-      adminUser.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+      adminUser.SetRefreshToken(HashRefreshToken(refreshToken), DateTime.UtcNow.AddDays(7));
 
       _context.Organizations.Add(organization);
       _context.Users.Add(adminUser);

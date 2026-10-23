@@ -14,4 +14,9 @@ public interface IUserRepository : IGenericRepository<User>
     Task<IReadOnlyList<UserSession>> GetFamilySessionsAsync(Guid familyId, CancellationToken ct = default);
     Task<IReadOnlyList<UserSession>> GetActiveSessionsByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task AddSessionAsync(UserSession session, CancellationToken ct = default);
+    Task<IReadOnlyList<User>> GetAgentsAsync(Guid? organizationId, bool isSuperAdmin, CancellationToken ct = default);
+    Task<User?> GetAgentByIdAsync(Guid id, Guid? organizationId, bool isSuperAdmin, CancellationToken ct = default);
+    Task<Guid?> GetOrganizationIdByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<IReadOnlyList<string>> GetExistingEmailsAsync(IEnumerable<string> emails, CancellationToken ct = default);
+    Task AddAgentGroupMembersAsync(IEnumerable<AgentGroupMember> members, CancellationToken ct = default);
 }

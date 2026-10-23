@@ -1,11 +1,10 @@
+using iM3Helpdesk.Application.Contracts.Persistence;
 using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Entities;
-using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -21,13 +20,13 @@ public class TicketAssignmentsController : TicketsControllerBase
     private readonly ILogger<TicketAssignmentsController> _logger;
 
     public TicketAssignmentsController(
-        ApplicationDbContext context,
+        IUnitOfWork uow,
         ICurrentTenantService tenantService,
         INotificationService notificationService,
         IEmailService emailService,
         ISlaService slaService,
         ILogger<TicketAssignmentsController> logger)
-        : base(context)
+        : base(uow)
     {
         _tenantService = tenantService;
         _notificationService = notificationService;
@@ -40,13 +39,15 @@ public class TicketAssignmentsController : TicketsControllerBase
     public async Task<IActionResult> AssignTicket(
         Guid id, [FromBody] AssignTicketDto dto)
     {
-        var ticket = await _context.Tickets
-            .FindAsync(id);
+        var ticket = await _uow.Tickets.GetByIdAsync(id, false);
         if (ticket == null) return NotFound();
 
-        ticket.AssignedToUserId = dto.AgentId;
-        ticket.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        if (dto.AgentId.HasValue && dto.AgentId.Value != Guid.Empty)
+            ticket.AssignTo(dto.AgentId.Value);
+        else
+            ticket.Unassign();
+
+        await _uow.SaveChangesAsync();
 
         var userId = GetUserId();
         if (userId != Guid.Empty)
@@ -67,10 +68,7 @@ public class TicketAssignmentsController : TicketsControllerBase
                     "info", ticket.Id);
 
                 // Send email to agent
-                var agent = await _context.Users
-                    .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(u =>
-                        u.Id == dto.AgentId.Value);
+                var agent = await _uow.Tickets.GetUserByIdAsync(dto.AgentId.Value);
 
                 if (agent?.Email != null)
                 {
@@ -114,8 +112,7 @@ public class TicketAssignmentsController : TicketsControllerBase
     public async Task<IActionResult> UpdateGroup(
         Guid id, [FromBody] UpdateGroupDto dto)
     {
-        var ticket = await _context.Tickets
-            .FindAsync(id);
+        var ticket = await _uow.Tickets.GetByIdAsync(id, false);
         if (ticket == null) return NotFound();
 
         ticket.AgentGroupId =
@@ -132,7 +129,7 @@ public class TicketAssignmentsController : TicketsControllerBase
         ticket.SlaStatus = _slaService
             .GetSlaStatus(ticket.SlaDeadline, ticket.Status);
 
-        await _context.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
 
         var userId = GetUserId();
         if (userId != Guid.Empty)
@@ -159,8 +156,7 @@ public class TicketAssignmentsController : TicketsControllerBase
         Guid id,
         [FromBody] ForwardTicketDto dto)
     {
-        var ticket = await _context.Tickets
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var ticket = await _uow.Tickets.GetByIdAsync(id, false);
         if (ticket == null) return NotFound();
 
         if (string.IsNullOrEmpty(dto.ToEmail))
@@ -174,10 +170,7 @@ public class TicketAssignmentsController : TicketsControllerBase
             // Identify the forwarding agent for both the From header
             // (display name) and a visible attribution line in the body.
             var agentId = GetUserId();
-            var agent = await _context.Users
-                .Where(u => u.Id == agentId)
-                .Select(u => new { u.FullName, u.Email })
-                .FirstOrDefaultAsync();
+            var agent = await _uow.Tickets.GetUserByIdAsync(agentId);
             var agentName = agent?.FullName ?? "Support";
 
             var html = $@"
@@ -194,12 +187,7 @@ public class TicketAssignmentsController : TicketsControllerBase
 </div>";
 
             // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
-            var commentMsgIds = await _context.TicketComments
-                .Where(c => c.TicketId == id &&
-                            !string.IsNullOrEmpty(c.EmailMessageId))
-                .OrderBy(c => c.CreatedAt)
-                .Select(c => c.EmailMessageId!)
-                .ToListAsync();
+            var commentMsgIds = await _uow.Tickets.GetCommentMessageIdsAsync(id);
 
             var referenceChain = new List<string>();
             if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
@@ -247,11 +235,11 @@ public class TicketAssignmentsController : TicketsControllerBase
                 References = referenceChain.Count > 0
                     ? string.Join(" ", referenceChain) : null
             };
-            _context.TicketComments.Add(forwardComment);
+            await _uow.Tickets.AddCommentAsync(forwardComment);
 
             ticket.LastActivityAt = DateTime.UtcNow;
             ticket.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _uow.SaveChangesAsync();
 
             return Ok(new
             {
@@ -279,10 +267,7 @@ public class TicketAssignmentsController : TicketsControllerBase
         if (ticket.AssignedToUserId.HasValue)
             recipients.Add(ticket.AssignedToUserId.Value);
 
-        var watcherIds = await _context.TicketWatchers
-            .Where(w => w.TicketId == ticket.Id)
-            .Select(w => w.UserId)
-            .ToListAsync();
+        var watcherIds = await _uow.Tickets.GetWatcherUserIdsAsync(ticket.Id);
 
         foreach (var watcherId in watcherIds)
             recipients.Add(watcherId);
@@ -308,18 +293,16 @@ public class TicketAssignmentsController : TicketsControllerBase
             }
         }
 
-        var emailRecipients = await _context.Users
-            .IgnoreQueryFilters()
-            .Where(u => recipients.Contains(u.Id) && !string.IsNullOrWhiteSpace(u.Email))
-            .Select(u => new { u.Email })
-            .ToListAsync();
+        var emailRecipients = await _uow.Tickets.GetUsersByIdsAsync(recipients);
 
         foreach (var recipient in emailRecipients)
         {
+            if (string.IsNullOrWhiteSpace(recipient.Email)) continue;
+
             try
             {
                 await _emailService.SendAsync(
-                    recipient.Email!,
+                    recipient.Email,
                     title,
                     $"<p>{System.Net.WebUtility.HtmlEncode(message)}</p>",
                     organizationId: ticket.OrganizationId,

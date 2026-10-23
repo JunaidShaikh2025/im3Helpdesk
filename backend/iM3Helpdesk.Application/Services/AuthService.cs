@@ -18,14 +18,14 @@ public class AuthService : IAuthService
 {
     private readonly IUnitOfWork _uow;
     private readonly IConfiguration _configuration;
-    private readonly IEmailService _emailService;
+    private readonly IAuthEmailService _emailService;
     private readonly IOtpService _otpService;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUnitOfWork uow,
         IConfiguration configuration,
-        IEmailService emailService,
+        IAuthEmailService emailService,
         IOtpService otpService,
         ILogger<AuthService> logger)
     {
@@ -56,15 +56,12 @@ public class AuthService : IAuthService
 
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
         {
-            user.FailedLoginAttempts++;
-            if (user.FailedLoginAttempts >= 5)
+            user.RecordFailedLogin(5, TimeSpan.FromMinutes(30));
+            await _uow.SaveChangesAsync(ct);
+            if (user.IsLockedOut())
             {
-                user.LockedUntil = DateTime.UtcNow.AddMinutes(30);
-                user.FailedLoginAttempts = 0;
-                await _uow.SaveChangesAsync(ct);
                 return ServiceResult<LoginResultDto>.Unauthorized("Account locked for 30 minutes due to multiple failed attempts.");
             }
-            await _uow.SaveChangesAsync(ct);
             return ServiceResult<LoginResultDto>.Unauthorized($"Invalid email or password. {5 - user.FailedLoginAttempts} attempts remaining.");
         }
 
@@ -78,8 +75,7 @@ public class AuthService : IAuthService
                 return ServiceResult<LoginResultDto>.Unauthorized("Your organization has been deactivated. Please contact support.");
         }
 
-        user.FailedLoginAttempts = 0;
-        user.LockedUntil = null;
+        user.RecordSuccessfulLogin();
 
         if (dto.LoginWithOtp || user.IsTwoFactorEnabled)
         {
@@ -235,8 +231,7 @@ public class AuthService : IAuthService
         if (user == null)
             return ServiceResult<string>.BadRequest("Invalid or expired token");
 
-        user.IsEmailVerified = true;
-        user.EmailVerificationToken = null;
+        user.VerifyEmail();
         await _uow.SaveChangesAsync(ct);
         return ServiceResult<string>.Success("Email verified successfully");
     }

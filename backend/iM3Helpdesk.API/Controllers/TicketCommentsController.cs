@@ -1,11 +1,10 @@
+using iM3Helpdesk.Application.Contracts.Persistence;
 using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Entities;
-using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace iM3Helpdesk.API.Controllers;
@@ -22,13 +21,13 @@ public class TicketCommentsController : TicketsControllerBase
     private readonly ILogger<TicketCommentsController> _logger;
 
     public TicketCommentsController(
-        ApplicationDbContext context,
+        IUnitOfWork uow,
         ICurrentTenantService tenantService,
         INotificationService notificationService,
         IEmailService emailService,
         IWebHostEnvironment env,
         ILogger<TicketCommentsController> logger)
-        : base(context)
+        : base(uow)
     {
         _tenantService = tenantService;
         _notificationService = notificationService;
@@ -51,9 +50,7 @@ public class TicketCommentsController : TicketsControllerBase
         var isAgent = roleClaim is "Agent" or "CompanyAdmin" or "SuperAdmin";
         if (!isAgent) return Forbid();
 
-        var comment = await _context.TicketComments
-            .Include(c => c.Ticket)
-            .FirstOrDefaultAsync(c => c.Id == commentId && c.TicketId == id);
+        var comment = await _uow.Tickets.GetCommentWithTicketAsync(commentId, id);
 
         if (comment == null) return NotFound();
         if (!comment.IsInternal || comment.Source == "system")
@@ -82,7 +79,7 @@ public class TicketCommentsController : TicketsControllerBase
             comment.Ticket.LastActivityAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
 
         if (comment.Ticket != null)
         {
@@ -117,9 +114,7 @@ public class TicketCommentsController : TicketsControllerBase
         var isAgent = roleClaim is "Agent" or "CompanyAdmin" or "SuperAdmin";
         if (!isAgent) return Forbid();
 
-        var comment = await _context.TicketComments
-            .Include(c => c.Ticket)
-            .FirstOrDefaultAsync(c => c.Id == commentId && c.TicketId == id);
+        var comment = await _uow.Tickets.GetCommentWithTicketAsync(commentId, id);
 
         if (comment == null) return NotFound();
         if (!comment.IsInternal || comment.Source == "system")
@@ -128,9 +123,7 @@ public class TicketCommentsController : TicketsControllerBase
         if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromHours(1))
             return BadRequest(new { message = "Note can only be deleted within 1 hour" });
 
-        var attachments = await _context.TicketAttachments
-            .Where(a => a.CommentId == commentId)
-            .ToListAsync();
+        var attachments = await _uow.Tickets.GetCommentAttachmentsAsync(commentId);
 
         foreach (var attachment in attachments)
         {
@@ -143,9 +136,9 @@ public class TicketCommentsController : TicketsControllerBase
         }
 
         if (attachments.Count > 0)
-            _context.TicketAttachments.RemoveRange(attachments);
+            await _uow.Tickets.RemoveAttachmentsAsync(attachments);
 
-        _context.TicketComments.Remove(comment);
+        await _uow.Tickets.RemoveCommentAsync(comment);
 
         if (comment.Ticket != null)
         {
@@ -153,7 +146,7 @@ public class TicketCommentsController : TicketsControllerBase
             comment.Ticket.LastActivityAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
 
         if (comment.Ticket != null)
         {
@@ -180,26 +173,17 @@ public class TicketCommentsController : TicketsControllerBase
         Guid id,
         [FromBody] AddCommentDto dto)
     {
-        var ticket = await _context.Tickets
-            .Include(t => t.CreatedBy)
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var ticket = await _uow.Tickets.GetTicketWithCreatedByAsync(id);
 
         if (ticket == null) return NotFound();
 
         var userId = GetUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var agent = await _context.Users
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.Id == userId);
+        var agent = await _uow.Tickets.GetUserByIdAsync(userId);
 
         // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
-        var commentMsgIds = await _context.TicketComments
-            .Where(c => c.TicketId == id &&
-                        !string.IsNullOrEmpty(c.EmailMessageId))
-            .OrderBy(c => c.CreatedAt)
-            .Select(c => c.EmailMessageId!)
-            .ToListAsync();
+        var commentMsgIds = await _uow.Tickets.GetCommentMessageIdsAsync(id);
 
         var referenceChain = new List<string>();
         if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
@@ -215,11 +199,8 @@ public class TicketCommentsController : TicketsControllerBase
         var notifyUserIds = new List<Guid>();
         if (dto.NotifyUserIds is { Count: > 0 })
         {
-            var users = await _context.Users
-                .Where(u => dto.NotifyUserIds.Contains(u.Id))
-                .Select(u => new { u.Id, u.Email })
-                .ToListAsync();
-            notifyMailList.AddRange(users.Select(u => u.Email));
+            var users = await _uow.Tickets.GetUsersByIdsAsync(dto.NotifyUserIds);
+            notifyMailList.AddRange(users.Where(u => !string.IsNullOrWhiteSpace(u.Email)).Select(u => u.Email));
             notifyUserIds.AddRange(users.Select(u => u.Id));
         }
         if (dto.NotifyEmails is { Count: > 0 })
@@ -239,11 +220,17 @@ public class TicketCommentsController : TicketsControllerBase
             .Where(e => !string.IsNullOrWhiteSpace(e))
             .Select(e => e.Trim()).ToList();
 
+        var sanitizedComment = System.Text.RegularExpressions.Regex.Replace(
+            dto.Comment ?? string.Empty,
+            @"<script\b[^<]*(?:(?!</script>)<[^<]*)*</script>",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
         var comment = new TicketComment
         {
             TicketId = id,
             UserId = userId,
-            Comment = dto.Comment,
+            Comment = sanitizedComment,
             IsInternal = dto.IsInternal,
             Source = "web",
             OrganizationId =
@@ -256,15 +243,15 @@ public class TicketCommentsController : TicketsControllerBase
                 ? string.Join(" ", referenceChain) : null
         };
 
-        _context.TicketComments.Add(comment);
+        await _uow.Tickets.AddCommentAsync(comment);
 
         // Update ticket activity time
         ticket.LastActivityAt = DateTime.UtcNow;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
 
-        // ✅ Send email if public reply
+        // Send email if public reply
         if (!dto.IsInternal)
         {
             var replyTo = !string.IsNullOrWhiteSpace(ticket.FromEmail)
@@ -290,7 +277,7 @@ public class TicketCommentsController : TicketsControllerBase
                     if (!string.IsNullOrEmpty(outboundMsgId))
                     {
                         comment.EmailMessageId = outboundMsgId;
-                        await _context.SaveChangesAsync();
+                        await _uow.SaveChangesAsync();
                     }
                 }
                 catch (Exception ex)
@@ -301,7 +288,7 @@ public class TicketCommentsController : TicketsControllerBase
             }
         }
 
-        // ✅ Notify mentioned agents for private notes
+        // Notify mentioned agents for private notes
         if (dto.IsInternal && notifyMailList.Count > 0)
         {
             foreach (var em in notifyMailList)
@@ -323,7 +310,7 @@ public class TicketCommentsController : TicketsControllerBase
             }
         }
 
-        // ✅ In-app notification for every mentioned user (note or reply)
+        // In-app notification for every mentioned user (note or reply)
         if (notifyUserIds.Count > 0)
         {
             var actorName = agent?.FullName ?? "An agent";
@@ -381,10 +368,7 @@ public class TicketCommentsController : TicketsControllerBase
         if (ticket.AssignedToUserId.HasValue)
             recipients.Add(ticket.AssignedToUserId.Value);
 
-        var watcherIds = await _context.TicketWatchers
-            .Where(w => w.TicketId == ticket.Id)
-            .Select(w => w.UserId)
-            .ToListAsync();
+        var watcherIds = await _uow.Tickets.GetWatcherUserIdsAsync(ticket.Id);
 
         foreach (var watcherId in watcherIds)
             recipients.Add(watcherId);
@@ -410,18 +394,16 @@ public class TicketCommentsController : TicketsControllerBase
             }
         }
 
-        var emailRecipients = await _context.Users
-            .IgnoreQueryFilters()
-            .Where(u => recipients.Contains(u.Id) && !string.IsNullOrWhiteSpace(u.Email))
-            .Select(u => new { u.Email })
-            .ToListAsync();
+        var emailRecipients = await _uow.Tickets.GetUsersByIdsAsync(recipients);
 
         foreach (var recipient in emailRecipients)
         {
+            if (string.IsNullOrWhiteSpace(recipient.Email)) continue;
+
             try
             {
                 await _emailService.SendAsync(
-                    recipient.Email!,
+                    recipient.Email,
                     title,
                     $"<p>{System.Net.WebUtility.HtmlEncode(message)}</p>",
                     organizationId: ticket.OrganizationId,

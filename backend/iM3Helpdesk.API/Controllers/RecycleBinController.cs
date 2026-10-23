@@ -1,11 +1,10 @@
-using iM3Helpdesk.API.Services;
-using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.Application.Contracts.Services;
+using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using iM3Helpdesk.Application.Contracts.Services;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -48,7 +47,7 @@ public class RecycleBinController : ControllerBase
     /// Lists every ticket currently in the recycle bin for the caller's
     /// organization, plus a "purgeAfter" timestamp computed from the
     /// org's configured retention window so the UI can show "will be
-    /// permanently deleted on …".
+    /// permanently deleted on â€¦".
     /// </summary>
     [HttpGet("tickets")]
     public async Task<IActionResult> ListDeletedTickets(
@@ -224,7 +223,7 @@ public class RecycleBinController : ControllerBase
 
     /// <summary>
     /// Permanently delete a ticket and all its comments. There is no
-    /// undo after this — the row is removed from the database.
+    /// undo after this â€” the row is removed from the database.
     /// </summary>
     [HttpDelete("tickets/{id}/purge")]
     public async Task<IActionResult> PurgeTicket(Guid id)

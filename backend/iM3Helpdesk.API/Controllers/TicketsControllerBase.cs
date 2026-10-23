@@ -1,22 +1,21 @@
-using iM3Helpdesk.Infrastructure.Persistence;
+using iM3Helpdesk.Application.Contracts.Persistence;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace iM3Helpdesk.API.Controllers;
 
 /// <summary>
-/// Shared base for the split Tickets controllers (issue #9).
-/// Holds the common DbContext access and tenant-aware helpers
-/// that don't fit cleanly in a static helper class.
+/// Shared base for the split Tickets controllers.
+/// Injects persistence abstraction (IUnitOfWork) adhering to the
+/// Dependency Inversion Principle (DIP), with zero direct DbContext references.
 /// </summary>
 public abstract class TicketsControllerBase : ControllerBase
 {
-    protected readonly ApplicationDbContext _context;
+    protected readonly IUnitOfWork _uow;
 
-    protected TicketsControllerBase(ApplicationDbContext context)
+    protected TicketsControllerBase(IUnitOfWork uow)
     {
-        _context = context;
+        _uow = uow;
     }
 
     protected Guid GetUserId()
@@ -32,16 +31,6 @@ public abstract class TicketsControllerBase : ControllerBase
         string field,
         string value)
     {
-        var hasRows = await _context.TicketFieldMasters
-            .AnyAsync(x => x.Field == field);
-
-        if (!hasRows)
-            return true;
-
-        return await _context.TicketFieldMasters
-            .AnyAsync(x =>
-                x.Field == field &&
-                x.IsActive &&
-                x.Value == value);
+        return await _uow.Tickets.IsMasterValueAllowedAsync(field, value);
     }
 }
