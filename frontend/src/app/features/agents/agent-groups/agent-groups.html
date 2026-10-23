@@ -56,7 +56,7 @@
     </div>
 
     <mat-expansion-panel
-      *ngFor="let group of groups"
+      *ngFor="let group of groups; trackBy: trackById"
       class="group-panel">
 
       <mat-expansion-panel-header>
@@ -74,7 +74,7 @@
         <h4>Members</h4>
         <div class="member-list">
           <div class="member-item"
-            *ngFor="let m of group.members">
+            *ngFor="let m of group.members; trackBy: trackById">
             <div class="member-info">
               <span class="member-name">{{ m.fullName }}</span>
               <span class="member-email">{{ m.email }}</span>
@@ -95,7 +95,7 @@
           <mat-form-field appearance="outline" class="flex-input">
             <mat-label>Add Agent</mat-label>
             <mat-select [(ngModel)]="selectedAgentToAdd">
-              <mat-option *ngFor="let a of getAvailableAgents(group)"
+              <mat-option *ngFor="let a of getAvailableAgents(group); trackBy: trackById"
                 [value]="a.id">
                 {{ a.fullName }}
               </mat-option>

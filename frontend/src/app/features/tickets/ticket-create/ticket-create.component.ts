@@ -24,6 +24,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: ['./ticket-create.scss']
 })
 export class TicketCreateComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private ticketService = inject(TicketService);
   private agentService = inject(AgentService);

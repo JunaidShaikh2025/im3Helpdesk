@@ -46,6 +46,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: ['./settings-page.scss']
 })
 export class SettingsPageComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   public router = inject(Router);

@@ -79,7 +79,7 @@
 				</div>
 
 				<div class="up-ticket-list" *ngIf="!ticketsLoading && assignedTickets.length > 0">
-					<div class="up-ticket-item" *ngFor="let t of assignedTickets" [routerLink]="['/tickets', t.id]">
+					<div class="up-ticket-item" *ngFor="let t of assignedTickets; trackBy: trackById" [routerLink]="['/tickets', t.id]">
 						<div class="up-ticket-top">
 							<span class="up-ticket-id">#{{ t.ticketNumber || t.id?.slice(0,8) }}</span>
 							<span class="up-status" [ngClass]="'s-' + (t.status | lowercase)">{{ t.status }}</span>

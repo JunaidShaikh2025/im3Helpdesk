@@ -21,5 +21,8 @@ type InsightsModel = {
   styleUrls: ['./heatmap-insights.scss']
 })
 export class HeatmapInsightsComponent {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   @Input() insights!: InsightsModel;
 }

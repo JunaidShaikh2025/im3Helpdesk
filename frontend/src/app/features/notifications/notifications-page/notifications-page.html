@@ -31,7 +31,7 @@
         </div>
 
         <div class="notif-item"
-          *ngFor="let n of notifications"
+          *ngFor="let n of notifications; trackBy: trackById"
           [class.unread]="!n.isRead"
           (click)="navigateToTicket(n)">
 
@@ -64,7 +64,7 @@
           <p>No activity yet!</p>
         </div>
 
-        <div class="activity-item" *ngFor="let log of activityLogs">
+        <div class="activity-item" *ngFor="let log of activityLogs; trackBy: trackById">
           <div class="activity-icon">{{ getActionIcon(log.action) }}</div>
           <div class="activity-content">
             <div class="activity-desc">{{ log.description }}</div>

@@ -16,6 +16,9 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./user-detail.component.scss']
 })
 export class UserDetailComponent implements OnInit, OnDestroy {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);

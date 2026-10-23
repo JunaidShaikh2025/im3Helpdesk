@@ -50,7 +50,7 @@
       <!-- User List -->
       <div class="users-scroll">
         <div class="user-item"
-          *ngFor="let u of usersWithPosts"
+          *ngFor="let u of usersWithPosts; trackBy: trackById"
           [class.active]="selectedUserId === u.userId"
           (click)="selectUser(u)">
           <div class="user-av"
@@ -110,7 +110,7 @@
             </div>
             <select class="cat-select" formControlName="category">
               <option value="">All Categories</option>
-              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+              <option *ngFor="let c of categories; trackBy: trackById" [value]="c">{{ c }}</option>
             </select>
           </form>
         </div>
@@ -141,7 +141,7 @@
 
       <!-- ── Posts Feed ── -->
       <div class="feed-list" *ngIf="!loading && articles.length > 0">
-        <div class="post-card" *ngFor="let a of articles">
+        <div class="post-card" *ngFor="let a of articles; trackBy: trackById">
 
           <!-- Post Header -->
           <div class="post-header">
@@ -193,7 +193,7 @@
 
             <div class="post-tags" *ngIf="a.tags">
               <span class="tag-pill"
-                *ngFor="let tag of a.tags?.split(',')?.slice(0,4)">
+                *ngFor="let tag of a.tags?.split(',')?.slice(0,4); trackBy: trackById">
                 #{{ tag.trim() }}
               </span>
             </div>
@@ -259,7 +259,7 @@
             *ngIf="openCommentBoxId === a.id">
 
             <div class="comment-list" *ngIf="a.commentList?.length > 0">
-              <div class="comment-item" *ngFor="let c of a.commentList">
+              <div class="comment-item" *ngFor="let c of a.commentList; trackBy: trackById">
                 <div class="comment-av"
                   [style.background]="getAvatarColor(c.userName)">
                   {{ getInitials(c.userName) }}

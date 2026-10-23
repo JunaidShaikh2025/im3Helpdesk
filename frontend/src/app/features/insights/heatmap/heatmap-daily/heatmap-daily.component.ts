@@ -21,6 +21,9 @@ type HourlyPoint = {
   styleUrls: ['./heatmap-daily.scss']
 })
 export class HeatmapDailyComponent {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   @Input() data: DailyPoint[] = [];
   @Input() hourly: HourlyPoint[] = [];
 

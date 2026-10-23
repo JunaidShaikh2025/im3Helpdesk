@@ -33,6 +33,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: ['./kb-create.scss']
 })
 export class KbCreateComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private kbService = inject(KnowledgeBaseService);
   public  router    = inject(Router);

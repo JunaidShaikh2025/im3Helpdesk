@@ -4,7 +4,7 @@
     <div class="sub">Shows ticket volume per day for the selected range.</div>
 
     <div class="rows">
-      <div class="row" *ngFor="let d of data">
+      <div class="row" *ngFor="let d of data; trackBy: trackById">
         <div class="label">
           <div class="day">{{ d.dayName }}</div>
           <div class="date">{{ d.date }}</div>

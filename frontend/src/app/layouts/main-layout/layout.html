@@ -395,7 +395,7 @@
                   <button type="button" class="sd-clear" *ngIf="recentSearches.length > 0" (click)="clearRecentSearches()">Clear</button>
                 </div>
                 <div class="sd-list">
-                  <button type="button" class="sd-row" *ngFor="let s of recentSearches" (click)="applyRecentSearch(s)">
+                  <button type="button" class="sd-row" *ngFor="let s of recentSearches; trackBy: trackById" (click)="applyRecentSearch(s)">
                     <span class="sd-row-icon">🔎</span>
                     <span class="sd-row-text">{{ s }}</span>
                   </button>
@@ -411,7 +411,7 @@
                   <button type="button" class="sd-clear" *ngIf="recentViewed.length > 0" (click)="clearRecentViewed()">Clear</button>
                 </div>
                 <div class="sd-list">
-                  <button type="button" class="sd-item" *ngFor="let r of recentViewed" (click)="goToGlobalResult(r)">
+                  <button type="button" class="sd-item" *ngFor="let r of recentViewed; trackBy: trackById" (click)="goToGlobalResult(r)">
                     <span class="sd-icon">
                       <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
                       <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
@@ -434,7 +434,7 @@
               <div class="sd-loading" *ngIf="searchLoading">Searching...</div>
               <div class="sd-empty" *ngIf="!searchLoading && filteredSearchResults.length === 0">No results found</div>
 
-              <button type="button" class="sd-item" *ngFor="let r of filteredSearchResults" (click)="goToGlobalResult(r)">
+              <button type="button" class="sd-item" *ngFor="let r of filteredSearchResults; trackBy: trackById" (click)="goToGlobalResult(r)">
                 <span class="sd-icon">
                   <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
                   <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
@@ -505,7 +505,7 @@
 
             <div class="nd-scroll-area" *ngIf="holidayItems.length > 0 || birthdayItems.length > 0">
               <!-- Holidays first -->
-              <div class="nd-item" *ngFor="let h of holidayItems" (click)="goToCalendarFromBirthday()">
+              <div class="nd-item" *ngFor="let h of holidayItems; trackBy: trackById" (click)="goToCalendarFromBirthday()">
                 <div class="bd-av bd-av-holiday">
                   <span>🎉</span>
                 </div>
@@ -519,7 +519,7 @@
               </div>
 
               <!-- Birthdays -->
-              <div class="nd-item" *ngFor="let b of birthdayItems" (click)="goToCalendarFromBirthday()">
+              <div class="nd-item" *ngFor="let b of birthdayItems; trackBy: trackById" (click)="goToCalendarFromBirthday()">
                 <div class="bd-av" [style.background]="b.photoUrl ? 'var(--ui-color-bg-surface)' : getAvatarColor(b.fullName)">
                   <img *ngIf="b.photoUrl" [src]="getBirthdayPhotoUrl(b.photoUrl)" [alt]="b.fullName" (error)="b.photoUrl = ''" class="bd-avatar-img"/>
                   <span *ngIf="!b.photoUrl">{{ getInitials(b.fullName) }}</span>
@@ -551,7 +551,7 @@
             </div>
             <div class="nd-empty" *ngIf="kbUnreadArticles.length === 0">No unread repository docs.</div>
             <div class="nd-scroll-area">
-              <div class="nd-item" *ngFor="let a of kbUnreadArticles" (click)="goToKbArticle(a.id)">
+              <div class="nd-item" *ngFor="let a of kbUnreadArticles; trackBy: trackById" (click)="goToKbArticle(a.id)">
                 <div class="nd-content">
                   <div class="nd-title">{{ a.title }}</div>
                   <div class="nd-msg">{{ a.category }}</div>
@@ -582,7 +582,7 @@
             <div class="nd-empty" *ngIf="notifications.length === 0">Clear transmission pipeline.</div>
             <div class="nd-scroll-area">
               <div class="nd-item"
-                *ngFor="let n of notifications.slice(0,8)"
+                *ngFor="let n of notifications.slice(0,8); trackBy: trackById"
                 [class.unread]="!n.isRead"
                 (click)="goToNotification(n)">
                 <div class="nd-dot" *ngIf="!n.isRead"></div>

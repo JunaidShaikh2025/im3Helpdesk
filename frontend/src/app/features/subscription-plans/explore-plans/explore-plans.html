@@ -12,7 +12,7 @@
 
       <div class="ep-tabs" role="tablist">
         <button
-          *ngFor="let p of plans"
+          *ngFor="let p of plans; trackBy: trackById"
           type="button"
           role="tab"
           class="ep-tab"
@@ -64,7 +64,7 @@
   <div class="ep-body">
     <!-- Left: categories + features list -->
     <aside class="ep-side">
-      <ng-container *ngFor="let cat of currentPlan().categories">
+      <ng-container *ngFor="let cat of currentPlan().categories; trackBy: trackById">
         <div class="ep-cat" [class.open]="expandedCats()[cat.key]">
           <button
             type="button"
@@ -80,7 +80,7 @@
 
           <ul class="ep-feat-list" *ngIf="expandedCats()[cat.key]">
             <li
-              *ngFor="let f of cat.features"
+              *ngFor="let f of cat.features; trackBy: trackById"
               class="ep-feat-item"
               [class.active]="selectedKey() === f.key"
               (click)="selectFeature(cat, f)">
@@ -188,7 +188,7 @@
 
           <svg *ngSwitchCase="'todo'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
             <rect x="80" y="30" width="160" height="110" rx="12" fill="var(--illust-accent)" opacity=".1"/>
-            <g *ngFor="let i of [0,1,2]">
+            <g *ngFor="let i of [0,1,2]; trackBy: trackById">
               <rect [attr.x]="100" [attr.y]="50 + i*24" width="16" height="16" rx="4" fill="var(--illust-accent)"/>
               <path [attr.d]="'M104 '+(58 + i*24) +' l4 4 l8 -8'" stroke="#fff" stroke-width="2" fill="none"/>
               <rect [attr.x]="124" [attr.y]="54 + i*24" width="100" height="6" rx="3" fill="var(--illust-accent)" opacity=".4"/>
@@ -198,8 +198,8 @@
           <svg *ngSwitchCase="'calendar'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
             <rect x="80" y="30" width="160" height="110" rx="10" fill="var(--illust-accent)" opacity=".12"/>
             <rect x="80" y="30" width="160" height="22" rx="10" fill="var(--illust-accent)"/>
-            <g *ngFor="let r of [0,1,2]; let i = index">
-              <g *ngFor="let c of [0,1,2,3,4]; let j = index">
+            <g *ngFor="let r of [0,1,2]; let i = index; trackBy: trackById">
+              <g *ngFor="let c of [0,1,2,3,4]; let j = index; trackBy: trackById">
                 <rect [attr.x]="92 + j*28" [attr.y]="62 + r*22" width="22" height="16" rx="3" fill="var(--illust-accent)" opacity=".22"/>
               </g>
             </g>
@@ -236,15 +236,15 @@
           </svg>
 
           <svg *ngSwitchCase="'groups'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
-            <g *ngFor="let i of [0,1,2,3]">
+            <g *ngFor="let i of [0,1,2,3]; trackBy: trackById">
               <circle [attr.cx]="80 + i*48" cy="80" r="22" [attr.fill]="i % 2 ? 'var(--illust-accent)' : 'rgba(0,0,0,0)'" [attr.stroke]="'var(--illust-accent)'" stroke-width="2"/>
             </g>
           </svg>
 
           <svg *ngSwitchCase="'roles'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
             <rect x="60" y="40" width="200" height="80" rx="10" fill="var(--illust-accent)" opacity=".1" stroke="var(--illust-accent)" stroke-opacity=".4"/>
-            <g *ngFor="let r of [0,1,2]">
-              <g *ngFor="let c of [0,1,2,3,4]">
+            <g *ngFor="let r of [0,1,2]; trackBy: trackById">
+              <g *ngFor="let c of [0,1,2,3,4]; trackBy: trackById">
                 <rect [attr.x]="80 + c*36" [attr.y]="56 + r*22" width="24" height="14" rx="3" [attr.fill]="(r+c) % 2 ? 'var(--illust-accent)' : 'var(--illust-accent)'" [attr.opacity]="(r+c) % 2 ? '.9' : '.25'"/>
               </g>
             </g>
@@ -254,8 +254,8 @@
             <rect x="130" y="40" width="60" height="100" rx="6" fill="var(--illust-accent)"/>
             <rect x="80"  y="70" width="50" height="70" rx="6" fill="var(--illust-accent)" opacity=".55"/>
             <rect x="190" y="70" width="50" height="70" rx="6" fill="var(--illust-accent)" opacity=".55"/>
-            <g *ngFor="let r of [0,1,2]">
-              <g *ngFor="let c of [0,1]">
+            <g *ngFor="let r of [0,1,2]; trackBy: trackById">
+              <g *ngFor="let c of [0,1]; trackBy: trackById">
                 <rect [attr.x]="143 + c*16" [attr.y]="55 + r*26" width="10" height="14" fill="#fff" opacity=".6"/>
               </g>
             </g>
@@ -269,14 +269,14 @@
           </svg>
 
           <svg *ngSwitchCase="'reports'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
-            <g *ngFor="let i of [0,1,2,3,4]">
+            <g *ngFor="let i of [0,1,2,3,4]; trackBy: trackById">
               <rect [attr.x]="60 + i*40" [attr.y]="40 + (i%3)*20" [attr.width]="28" [attr.height]="100 - (i%3)*20" rx="4" fill="var(--illust-accent)" [attr.opacity]="0.3 + i*0.12"/>
             </g>
           </svg>
 
           <svg *ngSwitchCase="'heatmap'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
-            <g *ngFor="let r of [0,1,2,3,4]">
-              <g *ngFor="let c of [0,1,2,3,4,5,6]">
+            <g *ngFor="let r of [0,1,2,3,4]; trackBy: trackById">
+              <g *ngFor="let c of [0,1,2,3,4,5,6]; trackBy: trackById">
                 <rect [attr.x]="60 + c*28" [attr.y]="30 + r*22" width="22" height="16" rx="3" fill="var(--illust-accent)" [attr.opacity]="((r*7+c)%9)/9 * 0.9 + 0.1"/>
               </g>
             </g>
@@ -297,7 +297,7 @@
           </svg>
 
           <svg *ngSwitchCase="'multi-org'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
-            <g *ngFor="let i of [0,1,2]">
+            <g *ngFor="let i of [0,1,2]; trackBy: trackById">
               <rect [attr.x]="40 + i*100" y="50" width="80" height="80" rx="8" fill="var(--illust-accent)" [attr.opacity]="0.25 + i*0.25"/>
             </g>
           </svg>
@@ -321,7 +321,7 @@
 
           <svg *ngSwitchCase="'masters'" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
             <rect x="60" y="40" width="200" height="80" rx="8" fill="var(--illust-accent)" opacity=".12"/>
-            <g *ngFor="let i of [0,1,2,3]">
+            <g *ngFor="let i of [0,1,2,3]; trackBy: trackById">
               <rect [attr.x]="80" [attr.y]="52 + i*16" width="160" height="10" rx="2" fill="var(--illust-accent)" [attr.opacity]="0.7 - i*0.15"/>
             </g>
           </svg>
@@ -342,10 +342,10 @@
       </div>
 
       <div class="ep-detail-body">
-        <p *ngFor="let para of feat.paragraphs">{{ para }}</p>
+        <p *ngFor="let para of feat.paragraphs; trackBy: trackById">{{ para }}</p>
 
         <ul class="ep-detail-bullets" *ngIf="feat.bullets?.length">
-          <li *ngFor="let b of feat.bullets">
+          <li *ngFor="let b of feat.bullets; trackBy: trackById">
             <span class="ep-bullet-tick">✓</span>{{ b }}
           </li>
         </ul>

@@ -1,7 +1,7 @@
 <div class="rxn-bar" [class.rxn-bar--compact]="compact">
 
   <!-- Existing reaction chips -->
-  <button *ngFor="let r of summary"
+  <button *ngFor="let r of summary; trackBy: trackById"
           type="button"
           class="rxn-chip"
           [class.is-mine]="r.mine"
@@ -24,7 +24,7 @@
     </button>
 
     <div class="rxn-picker" *ngIf="pickerOpen" role="menu">
-      <button *ngFor="let r of reactions"
+      <button *ngFor="let r of reactions; trackBy: trackById"
               type="button"
               role="menuitem"
               class="rxn-picker-btn"

@@ -8,7 +8,7 @@
       <select class="type-filter" [(ngModel)]="selectedType"
         (change)="page=1; loadLogs()">
         <option value="">All Types</option>
-        <option *ngFor="let t of entityTypes.slice(1)" [value]="t">
+        <option *ngFor="let t of entityTypes.slice(1); trackBy: trackById" [value]="t">
           {{ t }}
         </option>
       </select>
@@ -26,7 +26,7 @@
     </div>
 
     <div class="audit-list">
-      <div class="audit-item" *ngFor="let log of logs">
+      <div class="audit-item" *ngFor="let log of logs; trackBy: trackById">
         <div class="audit-av"
           [style.background]="getActionColor(log.action) + '20'"
           [style.color]="getActionColor(log.action)">

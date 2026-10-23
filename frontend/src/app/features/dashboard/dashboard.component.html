@@ -6,7 +6,7 @@
         <p>{{ overview.totalTickets || 0 }} tickets this cycle · {{ overview.openTickets || 0 }} waiting for triage · Live data</p>
       </div>
       <div class="range-picker" aria-label="Dashboard date range">
-        <button *ngFor="let option of ranges" type="button" [class.active]="rangeDays === option.days" (click)="setRange(option.days)">{{ option.label }}</button>
+        <button *ngFor="let option of ranges; trackBy: trackById" type="button" [class.active]="rangeDays === option.days" (click)="setRange(option.days)">{{ option.label }}</button>
       </div>
     </header>
 
@@ -39,7 +39,7 @@
         <div class="panel-title"><div><h2>Created vs resolved</h2><p>Last {{ rangeDays }} {{ rangeDays === 1 ? 'day' : 'days' }}</p></div><div class="legend"><span class="created">Created</span><span class="resolved">Resolved</span></div></div>
         <div class="line-chart">
           <div class="chart-columns" *ngIf="overview.trend?.length">
-            <div class="chart-column" *ngFor="let day of overview.trend">
+            <div class="chart-column" *ngFor="let day of overview.trend; trackBy: trackById">
               <div class="bars"><i class="created" [style.height.%]="barHeight(day.created)"></i><i class="resolved" [style.height.%]="barHeight(day.resolved)"></i></div>
               <span>{{ day.date | date:'EEE' }}</span>
             </div>
@@ -50,16 +50,16 @@
       <article class="panel queue-panel">
         <div class="panel-title"><div><h2>Queue by status</h2><p>{{ overview.totalTickets || 0 }} tickets total</p></div></div>
         <div class="donut" [style.background]="statusDonut"><div><strong>{{ overview.totalTickets || 0 }}</strong><span>Tickets</span></div></div>
-        <div class="queue-legend"><div *ngFor="let item of statusItems"><span [style.background]="item.color"></span>{{ item.label }}<b>{{ item.count }}</b></div></div>
+        <div class="queue-legend"><div *ngFor="let item of statusItems; trackBy: trackById"><span [style.background]="item.color"></span>{{ item.label }}<b>{{ item.count }}</b></div></div>
       </article>
     </section>
 
     <section class="bottom-grid" *ngIf="!loading">
-      <article class="panel progress-panel"><div class="panel-title"><div><h2>Priority mix</h2><p>Volume by severity</p></div></div><div class="progress-row" *ngFor="let item of priorityItems"><label>{{ item.label }} <b>{{ item.count }}</b></label><span><i [style.width.%]="share(item.count)" [style.background]="item.color"></i></span></div></article>
-      <article class="panel progress-panel"><div class="panel-title"><div><h2>SLA met by team</h2><p>Target 90%</p></div></div><div class="progress-row" *ngFor="let team of overview.teams"><label>{{ team.team }} <b>{{ team.rate }}%</b></label><span><i [style.width.%]="team.rate" [class.below-target]="team.rate < 90"></i></span></div><p class="empty" *ngIf="!overview.teams?.length">No assigned team tickets in this range.</p></article>
+      <article class="panel progress-panel"><div class="panel-title"><div><h2>Priority mix</h2><p>Volume by severity</p></div></div><div class="progress-row" *ngFor="let item of priorityItems; trackBy: trackById"><label>{{ item.label }} <b>{{ item.count }}</b></label><span><i [style.width.%]="share(item.count)" [style.background]="item.color"></i></span></div></article>
+      <article class="panel progress-panel"><div class="panel-title"><div><h2>SLA met by team</h2><p>Target 90%</p></div></div><div class="progress-row" *ngFor="let team of overview.teams; trackBy: trackById"><label>{{ team.team }} <b>{{ team.rate }}%</b></label><span><i [style.width.%]="team.rate" [class.below-target]="team.rate < 90"></i></span></div><p class="empty" *ngIf="!overview.teams?.length">No assigned team tickets in this range.</p></article>
     </section>
 
-    <section class="panel live-queue" *ngIf="!loading"><div class="panel-title"><div><h2>Live queue</h2><p>Most recently updated tickets</p></div><a routerLink="/tickets">View all</a></div><div class="ticket-table"><div class="ticket-head"><span>Ticket</span><span>Requester</span><span>Team</span><span>Status</span><span>Priority</span><span>Updated</span></div><button type="button" class="ticket-row" *ngFor="let ticket of overview.recentTickets" (click)="router.navigate(['/tickets', ticket.id])"><span><b>{{ ticket.title }}</b><small>T-{{ ticket.ticketNumber }}</small></span><span>{{ ticket.requester }}</span><span>{{ ticket.team }}</span><span class="status" [class]="getStatusClass(ticket.status)">{{ getStatusLabel(ticket.status) }}</span><span class="priority" [class]="'p-' + (ticket.priority || '').toLowerCase()">{{ ticket.priority }}</span><span>{{ getTimeAgo(ticket.updatedAt) }}</span></button></div><p class="empty" *ngIf="!overview.recentTickets?.length">No tickets yet.</p></section>
+    <section class="panel live-queue" *ngIf="!loading"><div class="panel-title"><div><h2>Live queue</h2><p>Most recently updated tickets</p></div><a routerLink="/tickets">View all</a></div><div class="ticket-table"><div class="ticket-head"><span>Ticket</span><span>Requester</span><span>Team</span><span>Status</span><span>Priority</span><span>Updated</span></div><button type="button" class="ticket-row" *ngFor="let ticket of overview.recentTickets; trackBy: trackById" (click)="router.navigate(['/tickets', ticket.id])"><span><b>{{ ticket.title }}</b><small>T-{{ ticket.ticketNumber }}</small></span><span>{{ ticket.requester }}</span><span>{{ ticket.team }}</span><span class="status" [class]="getStatusClass(ticket.status)">{{ getStatusLabel(ticket.status) }}</span><span class="priority" [class]="'p-' + (ticket.priority || '').toLowerCase()">{{ ticket.priority }}</span><span>{{ getTimeAgo(ticket.updatedAt) }}</span></button></div><p class="empty" *ngIf="!overview.recentTickets?.length">No tickets yet.</p></section>
     <div class="dash-loading" *ngIf="loading"><mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner></div>
   </main>
 </app-layout>

@@ -61,7 +61,7 @@
               <div class="vd-empty" *ngIf="articleViewers.length === 0">
                 No views recorded yet
               </div>
-              <div class="viewer-row" *ngFor="let v of articleViewers">
+              <div class="viewer-row" *ngFor="let v of articleViewers; trackBy: trackById">
                 <div class="viewer-av" [style.background]="getAvatarColor(v.user)">
                   {{ getInitials(v.user) }}
                 </div>
@@ -90,7 +90,7 @@
         <!-- ── Tags ── -->
         <div class="post-tags" *ngIf="article.tags">
           <span class="tag-pill"
-            *ngFor="let tag of article.tags?.split(',')">
+            *ngFor="let tag of article.tags?.split(','); trackBy: trackById">
             #{{ tag.trim() }}
           </span>
         </div>
@@ -165,7 +165,7 @@
 
         <!-- Comment List -->
         <div class="comment-list">
-          <div class="comment-item" *ngFor="let c of comments">
+          <div class="comment-item" *ngFor="let c of comments; trackBy: trackById">
             <div class="comment-av"
               [style.background]="getAvatarColor(c.userName)">
               {{ getInitials(c.userName) }}

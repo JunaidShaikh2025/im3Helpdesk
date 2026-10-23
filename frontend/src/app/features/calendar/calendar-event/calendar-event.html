@@ -28,7 +28,7 @@
     <div class="sidebar-section" *ngIf="upcomingReminders.length > 0">
       <div class="ss-label">⏰ Upcoming</div>
       <div class="reminder-item"
-        *ngFor="let r of upcomingReminders"
+        *ngFor="let r of upcomingReminders; trackBy: trackById"
         (click)="editEvent(r)">
         <div class="ri-dot"
           [style.--calendar-color]="getEventColor(r)"></div>
@@ -43,7 +43,7 @@
     <div class="sidebar-section" *ngIf="overdueItems.length > 0">
       <div class="ss-label overdue-label">🔴 Overdue ({{ overdueItems.length }})</div>
       <div class="reminder-item overdue"
-        *ngFor="let r of overdueItems.slice(0, 5)"
+        *ngFor="let r of overdueItems.slice(0, 5); trackBy: trackById"
         (click)="editEvent(r)">
         <div class="ri-dot ri-dot-danger"></div>
         <div class="ri-info">
@@ -99,7 +99,7 @@
     <div class="sidebar-section">
       <div class="ss-label">Legend</div>
       <div class="legend-item"
-        *ngFor="let t of eventTypes">
+        *ngFor="let t of eventTypes; trackBy: trackById">
         <span class="leg-dot"
           [style.--calendar-color]="typeColors[t.value]"></span>
         {{ t.icon }} {{ t.label }}
@@ -145,12 +145,12 @@
     <div class="month-view" *ngIf="currentView === 'month'">
       <!-- Day headers -->
       <div class="month-header">
-        <div class="mh-cell" *ngFor="let d of dayNames">{{ d }}</div>
+        <div class="mh-cell" *ngFor="let d of dayNames; trackBy: trackById">{{ d }}</div>
       </div>
       <!-- Grid -->
       <div class="month-grid">
         <div class="day-cell"
-          *ngFor="let day of calendarDays"
+          *ngFor="let day of calendarDays; trackBy: trackById"
           [class.other-month]="!day.isCurrentMonth"
           [class.today]="day.isToday"
           [class.selected]="selectedDate && isSameDay(day.date, selectedDate)"
@@ -164,7 +164,7 @@
             <ng-container *ngIf="day.events.length > 0 && day.tickets.length > 0; else singleKind">
               <!-- Mixed: 1 event + 1 ticket -->
               <div class="day-event"
-                *ngFor="let e of day.events.slice(0, 1)"
+                *ngFor="let e of day.events.slice(0, 1); trackBy: trackById"
                 [style.--calendar-color]="getEventColor(e)"
                 [class.completed]="e.isCompleted"
                 [title]="e.title">
@@ -175,7 +175,7 @@
                 </span>
               </div>
               <div class="day-event ticket-ev"
-                *ngFor="let t of day.tickets.slice(0, 1)"
+                *ngFor="let t of day.tickets.slice(0, 1); trackBy: trackById"
                 [title]="t.title">
                 <span class="de-icon">🎫</span>
                 <span class="de-title">#TN{{ t.ticketNumber }}</span>
@@ -189,7 +189,7 @@
             <ng-template #singleKind>
               <!-- Only events -->
               <div class="day-event"
-                *ngFor="let e of day.events.slice(0, 2)"
+                *ngFor="let e of day.events.slice(0, 2); trackBy: trackById"
                 [style.--calendar-color]="getEventColor(e)"
                 [class.completed]="e.isCompleted"
                 [title]="e.title">
@@ -201,7 +201,7 @@
               </div>
               <!-- Only tickets -->
               <div class="day-event ticket-ev"
-                *ngFor="let t of day.tickets.slice(0, 2)"
+                *ngFor="let t of day.tickets.slice(0, 2); trackBy: trackById"
                 [title]="t.title">
                 <span class="de-icon">🎫</span>
                 <span class="de-title">#TN{{ t.ticketNumber }}</span>
@@ -228,7 +228,7 @@
       <div class="week-header">
         <div class="wh-time"></div>
         <div class="wh-day"
-          *ngFor="let d of weekDays"
+          *ngFor="let d of weekDays; trackBy: trackById"
           [class.today]="d.isToday"
           (click)="currentDate = d.date; setView('day')">
           <div class="wh-name">{{ d.date | date:'EEE' }}</div>
@@ -243,25 +243,25 @@
 
       <div class="week-body">
         <div class="time-col">
-          <div class="time-slot" *ngFor="let h of hours">
+          <div class="time-slot" *ngFor="let h of hours; trackBy: trackById">
             {{ formatHour(h) }}
           </div>
         </div>
         <div class="week-cols">
-          <div class="week-col" *ngFor="let d of weekDays">
+          <div class="week-col" *ngFor="let d of weekDays; trackBy: trackById">
             <!-- All day events -->
             <div class="allday-events" *ngIf="d.tickets.length > 0">
               <div class="day-event ticket-ev"
-                *ngFor="let t of d.tickets"
+                *ngFor="let t of d.tickets; trackBy: trackById"
                 (click)="navigateToTicket(t.id)">
                 🎫 #TN{{ t.ticketNumber }}
               </div>
             </div>
             <!-- Hourly slots -->
-            <div class="hour-row" *ngFor="let h of hours"
+            <div class="hour-row" *ngFor="let h of hours; trackBy: trackById"
               (click)="currentDate = d.date; openNewEventModal(d.date)">
               <div class="hour-event"
-                *ngFor="let e of d.events.slice(0,1)"
+                *ngFor="let e of d.events.slice(0,1); trackBy: trackById"
                 [style.--calendar-color]="getEventColor(e)"
                 (click)="$event.stopPropagation(); editEvent(e)"
                 [title]="e.title">
@@ -293,7 +293,7 @@
       <div class="dv-tickets" *ngIf="getTicketsForCurrentDay().length > 0">
         <div class="dv-section-label">🎫 Tickets Activity on This Day</div>
         <div class="ticket-row"
-          *ngFor="let t of getTicketsForCurrentDay()"
+          *ngFor="let t of getTicketsForCurrentDay(); trackBy: trackById"
           (click)="navigateToTicket(t.id)">
           <span class="tr-num">#TN{{ t.ticketNumber }}</span>
           <span class="tr-title">{{ t.title }}</span>
@@ -310,12 +310,12 @@
 
       <!-- Timeline -->
       <div class="dv-timeline">
-        <div class="hour-block" *ngFor="let h of hours">
+        <div class="hour-block" *ngFor="let h of hours; trackBy: trackById">
           <div class="hour-label">{{ formatHour(h) }}</div>
           <div class="hour-content"
             (click)="openNewEventModal(currentDate)">
             <div class="hour-ev"
-              *ngFor="let e of getHourEvents(h)"
+              *ngFor="let e of getHourEvents(h); trackBy: trackById"
               [style.--calendar-color]="getEventColor(e)"
               [class.completed]="e.isCompleted"
               (click)="$event.stopPropagation(); editEvent(e)">
@@ -352,7 +352,7 @@
             <!-- All-day events at top -->
             <div class="hour-ev allday-ev"
               *ngIf="h === 0 && getEventsForCurrentDay().filter(e => e.allDay).length > 0">
-              <div *ngFor="let e of getEventsForCurrentDay().filter(e => e.allDay)"
+              <div *ngFor="let e of getEventsForCurrentDay().filter(e => e.allDay); trackBy: trackById"
                 [style.--calendar-color]="getEventColor(e)"
                 class="allday-event-title">
                 {{ getTypeIcon(e.type) }} {{ e.title }} (All day)
@@ -373,7 +373,7 @@
         </button>
       </div>
 
-      <div class="ag-group" *ngFor="let group of agendaItems">
+      <div class="ag-group" *ngFor="let group of agendaItems; trackBy: trackById">
         <div class="ag-date-header"
           [class.ag-today]="isSameDay(group.date, today)">
           <span class="ag-weekday">{{ group.date | date:'EEE' }}</span>
@@ -384,7 +384,7 @@
         <div class="ag-items">
           <!-- Events -->
           <div class="ag-item"
-            *ngFor="let e of group.events"
+            *ngFor="let e of group.events; trackBy: trackById"
             [style.--calendar-color]="getEventColor(e)"
             [class.completed]="e.isCompleted"
             (click)="editEvent(e)">
@@ -425,7 +425,7 @@
 
           <!-- Tickets -->
           <div class="ag-item ticket-ag"
-            *ngFor="let t of group.tickets"
+            *ngFor="let t of group.tickets; trackBy: trackById"
             (click)="navigateToTicket(t.id)">
             <div class="ai-color-bar ticket-bar"></div>
             <div class="ai-icon">🎫</div>
@@ -482,7 +482,7 @@
         <div class="em-field half">
           <label>Type</label>
           <select [(ngModel)]="newEvent.type" class="em-select">
-            <option *ngFor="let t of eventTypes"
+            <option *ngFor="let t of eventTypes; trackBy: trackById"
               [value]="t.value">
               {{ t.icon }} {{ t.label }}
             </option>
@@ -528,7 +528,7 @@
         <label>🔔 Reminder</label>
         <select [(ngModel)]="newEvent.reminderMinutes"
           class="em-select">
-          <option *ngFor="let r of reminderOptions"
+          <option *ngFor="let r of reminderOptions; trackBy: trackById"
             [value]="r.value">
             {{ r.label }}
           </option>
@@ -540,7 +540,7 @@
         <label>🎫 Link to Ticket</label>
         <select [(ngModel)]="newEvent.ticketId" class="em-select">
           <option value="">No ticket linked</option>
-          <option *ngFor="let t of allTickets"
+          <option *ngFor="let t of allTickets; trackBy: trackById"
             [value]="t.id">
             #TN{{ t.ticketNumber }} — {{ t.title?.length > 40 ? t.title.substring(0,40) + '...' : t.title }}
           </option>
@@ -563,7 +563,7 @@
         <div class="attendees-box">
           <!-- Chips -->
           <div class="attendee-chips" *ngIf="getAttendeesArray().length > 0">
-            <span class="att-chip" *ngFor="let email of getAttendeesArray()">
+            <span class="att-chip" *ngFor="let email of getAttendeesArray(); trackBy: trackById">
               <span class="att-av">{{ email[0].toUpperCase() }}</span>
               {{ email }}
               <button type="button" class="att-remove"
@@ -591,7 +591,7 @@
         <label>Color</label>
         <div class="color-row">
           <button class="color-swatch"
-            *ngFor="let c of ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#f97316']"
+            *ngFor="let c of ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#f97316']; trackBy: trackById"
             [style.background]="c"
             [class.selected]="newEvent.color === c"
             (click)="newEvent.color = c">
@@ -639,7 +639,7 @@
       <div *ngIf="selectedDayEvents.events.length > 0">
         <div class="dm-section">Events</div>
         <div class="dm-item"
-          *ngFor="let e of selectedDayEvents.events"
+          *ngFor="let e of selectedDayEvents.events; trackBy: trackById"
           (click)="editEvent(e)">
           <div class="dmi-left">
             <span class="dmi-dot"
@@ -670,7 +670,7 @@
       <div *ngIf="selectedDayEvents.tickets.length > 0">
         <div class="dm-section">🎫 Tickets</div>
         <div class="dm-item ticket-dm"
-          *ngFor="let t of selectedDayEvents.tickets"
+          *ngFor="let t of selectedDayEvents.tickets; trackBy: trackById"
           (click)="navigateToTicket(t.id)">
           <div class="dmi-left">
             <span class="dmi-dot ticket-dot"></span>

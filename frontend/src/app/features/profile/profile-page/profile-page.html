@@ -110,7 +110,7 @@
                   <div class="select-row">
                     <select formControlName="gender" [disabled]="!isEditMode">
                       <option value="" disabled>Select Gender</option>
-                      <option *ngFor="let g of genderOptions" [value]="g">{{ g }}</option>
+                      <option *ngFor="let g of genderOptions; trackBy: trackById" [value]="g">{{ g }}</option>
                     </select>
                     <button type="button" class="clear-gender-btn"
                       *ngIf="isEditMode && profileForm.get('gender')?.value"

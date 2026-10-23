@@ -30,9 +30,9 @@
       
       <div class="view-panel-split" *ngIf="activeView === 'contacts'">
         <div class="scroll-list-frame">
-          <div class="alpha-group" *ngFor="let g of filteredContacts">
+          <div class="alpha-group" *ngFor="let g of filteredContacts; trackBy: trackById">
             <div class="alpha-letter">{{ g.letter }}</div>
-            <div class="contact-row" *ngFor="let c of g.contacts" [class.active]="selectedContact?.id === c.id" (click)="selectContact(c)">
+            <div class="contact-row" *ngFor="let c of g.contacts; trackBy: trackById" [class.active]="selectedContact?.id === c.id" (click)="selectContact(c)">
               <div class="c-avatar-node" [style.background]="getAvatarColor(c.fullName)">
                 {{ getInitials(c.fullName) }}
               </div>
@@ -79,7 +79,7 @@
 
       <div class="view-panel-split" *ngIf="activeView === 'companies'">
         <div class="scroll-list-frame" *ngIf="!selectedCompany">
-          <div class="company-row-item" *ngFor="let co of filteredCompanies" (click)="selectCompany(co)">
+          <div class="company-row-item" *ngFor="let co of filteredCompanies; trackBy: trackById" (click)="selectCompany(co)">
             <div class="co-icon-box">🏢</div>
             <div class="co-meta-box">
               <div class="co-main-title">{{ co.name }}</div>
@@ -107,7 +107,7 @@
             </div>
 
             <div class="co-contacts-scroll">
-              <div class="co-contact-row-node" *ngFor="let c of selectedCompany.contacts" (click)="selectContact(c)">
+              <div class="co-contact-row-node" *ngFor="let c of selectedCompany.contacts; trackBy: trackById" (click)="selectContact(c)">
                 <div class="co-c-av" [style.background]="getAvatarColor(c.fullName)">{{ getInitials(c.fullName) }}</div>
                 <div class="co-c-meta">
                   <div class="co-c-name">{{ c.fullName }}</div>

@@ -50,6 +50,9 @@ interface DraftHoliday {
   styleUrls: ['./holiday-setup.scss']
 })
 export class HolidaySetupComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private holidayService = inject(HolidayService);
   private toastr = inject(ToastrService);

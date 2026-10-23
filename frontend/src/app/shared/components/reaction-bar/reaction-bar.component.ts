@@ -29,6 +29,9 @@ interface ReactionDef {
   styleUrls: ['./reaction-bar.scss']
 })
 export class ReactionBarComponent implements OnInit, OnChanges {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private svc = inject(ReactionService);
   private cdr = inject(ChangeDetectorRef);

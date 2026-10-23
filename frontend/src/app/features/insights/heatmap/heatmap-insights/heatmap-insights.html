@@ -29,7 +29,7 @@
     <div class="st-title">💡 Staffing Recommendation</div>
     <div class="st-sub">Based on your ticket patterns:</div>
     <ul>
-      <li *ngFor="let b of insights.staffingBullets">• {{ b }}</li>
+      <li *ngFor="let b of insights.staffingBullets; trackBy: trackById">• {{ b }}</li>
     </ul>
   </div>
 </div>

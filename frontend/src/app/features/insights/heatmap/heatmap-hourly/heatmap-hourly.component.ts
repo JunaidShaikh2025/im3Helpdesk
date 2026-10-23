@@ -15,6 +15,9 @@ type HourlyPoint = {
   styleUrls: ['./heatmap-hourly.scss']
 })
 export class HeatmapHourlyComponent {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   @Input() data: HourlyPoint[] = [];
   @Input() startDate = '';
   @Input() endDate = '';

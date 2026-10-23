@@ -92,7 +92,7 @@
           <div class="field-wrap">
             <label class="field-label">Category *</label>
             <select class="field-select" formControlName="category">
-              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+              <option *ngFor="let c of categories; trackBy: trackById" [value]="c">{{ c }}</option>
             </select>
           </div>
 

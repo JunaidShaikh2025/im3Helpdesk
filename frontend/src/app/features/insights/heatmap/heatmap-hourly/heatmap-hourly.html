@@ -6,11 +6,11 @@
     <div class="hm-grid" [style.--cols]="hours.length">
 
       <div class="hm-corner"></div>
-      <div class="hm-hour" *ngFor="let h of hours">{{ hourLabel(h) }}</div>
+      <div class="hm-hour" *ngFor="let h of hours; trackBy: trackById">{{ hourLabel(h) }}</div>
 
-      <ng-container *ngFor="let d of days">
+      <ng-container *ngFor="let d of days; trackBy: trackById">
         <div class="hm-day">{{ d.name }}</div>
-        <ng-container *ngFor="let h of hours">
+        <ng-container *ngFor="let h of hours; trackBy: trackById">
           <div
             class="hm-cell"
             [style.background]="getCellColor(getCount(d.n, h), getMaxCount())"

@@ -47,7 +47,7 @@
 
         <button type="button"
                 class="hs-year-card"
-                *ngFor="let y of years"
+                *ngFor="let y of years; trackBy: trackById"
                 [class.is-active]="selectedYear === y.year"
                 (click)="selectYear(y.year)">
           <div class="hyc-year">{{ y.year }}</div>
@@ -94,7 +94,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of rows; let i = index" [class.is-editing]="row.editing">
+                <tr *ngFor="let row of rows; let i = index; trackBy: trackById" [class.is-editing]="row.editing">
                   <td>{{ i + 1 }}</td>
 
                   <td *ngIf="!row.editing">{{ row.date | date:'dd-MMM-yy' }}</td>

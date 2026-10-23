@@ -30,6 +30,9 @@ const REFRESH_INTERVAL_MS = 60_000;
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
 
   private authService = inject(AuthService);
   public  sub         = inject(SubscriptionService);

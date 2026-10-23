@@ -29,7 +29,7 @@
   <!-- List -->
   <div class="tp-list">
     <div class="tp-item"
-      *ngFor="let t of todos"
+      *ngFor="let t of todos; trackBy: trackById"
       [class.tp-done]="t.isCompleted">
 
       <input type="checkbox"

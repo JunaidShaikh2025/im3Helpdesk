@@ -42,6 +42,9 @@ interface TargetRow extends SlaTarget {
   styleUrls: ['./sla-policy-edit.scss']
 })
 export class SlaPolicyEditComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private api = inject(SlaPoliciesService);
   private agents = inject(AgentService);

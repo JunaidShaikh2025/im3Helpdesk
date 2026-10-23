@@ -10,7 +10,7 @@
   <div class="tm-tabs">
     <button
       class="tab-btn"
-      *ngFor="let t of fieldTabs"
+      *ngFor="let t of fieldTabs; trackBy: trackById"
       [class.active]="selectedField === t.field"
       (click)="changeField(t.field)">
       <span>{{ t.label }}</span>
@@ -64,7 +64,7 @@
   <div class="tm-list" *ngIf="!loading">
     <div class="empty" *ngIf="options.length === 0">No options configured.</div>
 
-    <div class="item" *ngFor="let item of options">
+    <div class="item" *ngFor="let item of options; trackBy: trackById">
       <div class="left">
         <div class="value">{{ item.value }}</div>
         <div class="meta">

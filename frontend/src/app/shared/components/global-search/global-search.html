@@ -14,7 +14,7 @@
     <div *ngIf="results.tickets?.length > 0">
       <div class="result-section">Tickets</div>
       <div class="result-item"
-        *ngFor="let t of results.tickets"
+        *ngFor="let t of results.tickets; trackBy: trackById"
         (mousedown)="navigate('ticket', t.id)">
         <span class="result-icon">🎫</span>
         <div>
@@ -27,7 +27,7 @@
     <div *ngIf="results.articles?.length > 0">
       <div class="result-section">MateBoard</div>
       <div class="result-item"
-        *ngFor="let a of results.articles"
+        *ngFor="let a of results.articles; trackBy: trackById"
         (mousedown)="navigate('article', a.id)">
         <span class="result-icon">📄</span>
         <div>
@@ -40,7 +40,7 @@
     <div *ngIf="results.agents?.length > 0">
       <div class="result-section">Agents</div>
       <div class="result-item"
-        *ngFor="let a of results.agents">
+        *ngFor="let a of results.agents; trackBy: trackById">
         <span class="result-icon">👤</span>
         <div>
           <div class="result-title">{{ a.name }}</div>

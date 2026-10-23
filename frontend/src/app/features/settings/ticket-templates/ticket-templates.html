@@ -44,7 +44,7 @@
         <div class="form-group">
           <label>Type</label>
           <select formControlName="ticketType" class="form-sel">
-            <option *ngFor="let t of ticketTypes" [value]="t.value">
+            <option *ngFor="let t of ticketTypes; trackBy: trackById" [value]="t.value">
               {{ t.label }}
             </option>
           </select>
@@ -53,7 +53,7 @@
         <div class="form-group">
           <label>Status</label>
           <select formControlName="status" class="form-sel">
-            <option *ngFor="let s of statuses" [value]="s.value">
+            <option *ngFor="let s of statuses; trackBy: trackById" [value]="s.value">
               {{ s.label }}
             </option>
           </select>
@@ -62,7 +62,7 @@
         <div class="form-group">
           <label>Priority</label>
           <select formControlName="priority" class="form-sel">
-            <option *ngFor="let p of priorities" [value]="p.value">
+            <option *ngFor="let p of priorities; trackBy: trackById" [value]="p.value">
               {{ p.label }}
             </option>
           </select>
@@ -71,7 +71,7 @@
         <div class="form-group">
           <label>Category</label>
           <select formControlName="category" class="form-sel">
-            <option *ngFor="let c of categories" [value]="c">
+            <option *ngFor="let c of categories; trackBy: trackById" [value]="c">
               {{ c }}
             </option>
           </select>
@@ -126,7 +126,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let t of templates">
+        <tr *ngFor="let t of templates; trackBy: trackById">
           <td><strong>{{ t.name }}</strong></td>
           <td class="title-cell">{{ t.title }}</td>
           <td>

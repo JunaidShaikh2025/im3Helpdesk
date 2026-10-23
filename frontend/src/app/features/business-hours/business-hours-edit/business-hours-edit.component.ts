@@ -25,6 +25,9 @@ interface DayRow {
   styleUrls: ['./business-hours-edit.scss']
 })
 export class BusinessHoursEditComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private api = inject(BusinessHoursService);
   private route = inject(ActivatedRoute);

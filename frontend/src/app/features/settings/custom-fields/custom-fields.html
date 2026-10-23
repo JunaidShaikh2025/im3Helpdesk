@@ -26,7 +26,7 @@
         <div class="form-group">
           <label>Field Type</label>
           <select formControlName="fieldType" class="form-sel">
-            <option *ngFor="let t of fieldTypes" [value]="t.value">
+            <option *ngFor="let t of fieldTypes; trackBy: trackById" [value]="t.value">
               {{ t.label }}
             </option>
           </select>
@@ -78,7 +78,7 @@
       </button>
     </div>
 
-    <div class="cf-item" *ngFor="let f of fields">
+    <div class="cf-item" *ngFor="let f of fields; trackBy: trackById">
       <div class="cf-item-left">
         <div class="field-type-badge" [class]="'type-' + f.fieldType">
           {{ f.fieldType }}

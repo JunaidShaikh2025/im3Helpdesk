@@ -21,7 +21,7 @@
   </div>
 
   <div class="en-list">
-    <div class="en-row" *ngFor="let n of activeNotifications">
+    <div class="en-row" *ngFor="let n of activeNotifications; trackBy: trackById">
       <div class="en-check" [class.checked]="n.enabled">
         <svg *ngIf="n.enabled" viewBox="0 0 16 16" width="12" height="12">
           <path d="M3 8l4 4 6-6" stroke="white"

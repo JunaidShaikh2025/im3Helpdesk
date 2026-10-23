@@ -13,7 +13,7 @@
     <!-- Filter tabs -->
     <div class="cl-filter-bar">
       <button
-        *ngFor="let f of filters"
+        *ngFor="let f of filters; trackBy: trackById"
         type="button"
         class="cl-filter-btn"
         [class.active]="
@@ -49,7 +49,7 @@
     *ngIf="!loading && logs.length">
 
     <div
-      *ngFor="let log of logs"
+      *ngFor="let log of logs; trackBy: trackById"
       class="cl-item"
       [class.hovered]="hoveredId === log.id"
       (mouseenter)="hoveredId = log.id"

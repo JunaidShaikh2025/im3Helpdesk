@@ -160,7 +160,7 @@
       <div class="ip-list">
         <div *ngIf="loadingInviteUsers" class="ip-empty">Loading…</div>
         <label class="ip-row"
-          *ngFor="let u of filteredInviteUsers()">
+          *ngFor="let u of filteredInviteUsers(); trackBy: trackById">
           <input type="checkbox"
             [checked]="inviteSelected.has(u.id)"
             (change)="toggleInviteUser(u.id)" />
@@ -249,7 +249,7 @@
 
             <div class="mf-member-item"
               *ngFor="let u of
-                filteredModalUsers"
+                filteredModalUsers; trackBy: trackById"
               [class.sel]="
                 isMemberSelected(u.id)"
               (click)="toggleMember(u.id)">
@@ -344,7 +344,7 @@
 
             <div class="mf-member-item"
               *ngFor="let u of
-                filteredAddMemberUsers"
+                filteredAddMemberUsers; trackBy: trackById"
               [class.sel]="
                 isAddMemberSelected(u.id)"
               (click)="toggleAddMember(u.id)">
@@ -499,7 +499,7 @@
       </div>
 
       <div class="cs-item"
-        *ngFor="let item of filteredItems"
+        *ngFor="let item of filteredItems; trackBy: trackById"
         [class.sel]="
           (!item.isGroupItem &&
             selectedUser?.id === item.id) ||
@@ -700,7 +700,7 @@
 
         <ng-container
           *ngFor="let m of messages;
-            let i = index">
+            let i = index; trackBy: trackById">
 
           <!-- Date separator -->
           <div class="cm-date-sep"

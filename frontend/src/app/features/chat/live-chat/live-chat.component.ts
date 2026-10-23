@@ -73,6 +73,9 @@ import { TOKEN_KEY } from '../../../core/constants/auth.constants';
 })
 export class LiveChatComponent
   implements OnInit, OnDestroy {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   @Input() ticketId = '';
   @Input() isAgent = false;
 

@@ -31,7 +31,7 @@
             (click)="$event.stopPropagation()">
             <button type="button"
               class="layout-item"
-              *ngFor="let o of layoutOptions"
+              *ngFor="let o of layoutOptions; trackBy: trackById"
               [class.active]="currentLayout === o.value"
               (click)="setLayout(o.value)">
               <span class="layout-item-ic" aria-hidden="true">{{ o.icon }}</span>
@@ -150,7 +150,7 @@
           </button>
           <div class="f-multi-menu" *ngIf="openFilterMenu === 'status'"
             (click)="$event.stopPropagation()">
-            <label *ngFor="let s of statusOptions" class="f-multi-item">
+            <label *ngFor="let s of statusOptions; trackBy: trackById" class="f-multi-item">
               <input type="checkbox"
                 [checked]="isFilterChecked('status', s.value)"
                 (change)="toggleFilterValue('status', s.value, $event)" />
@@ -170,7 +170,7 @@
           </button>
           <div class="f-multi-menu" *ngIf="openFilterMenu === 'priority'"
             (click)="$event.stopPropagation()">
-            <label *ngFor="let p of priorityOptions" class="f-multi-item">
+            <label *ngFor="let p of priorityOptions; trackBy: trackById" class="f-multi-item">
               <input type="checkbox"
                 [checked]="isFilterChecked('priority', p.value)"
                 (change)="toggleFilterValue('priority', p.value, $event)" />
@@ -190,7 +190,7 @@
           </button>
           <div class="f-multi-menu" *ngIf="openFilterMenu === 'category'"
             (click)="$event.stopPropagation()">
-            <label *ngFor="let c of categoryOptions" class="f-multi-item">
+            <label *ngFor="let c of categoryOptions; trackBy: trackById" class="f-multi-item">
               <input type="checkbox"
                 [checked]="isFilterChecked('category', c)"
                 (change)="toggleFilterValue('category', c, $event)" />
@@ -210,7 +210,7 @@
             </ng-container>
             <ng-container *ngIf="filters.assignedTo.length > 0">
               <span class="f-stack">
-                <span *ngFor="let id of filters.assignedTo.slice(0, 3)"
+                <span *ngFor="let id of filters.assignedTo.slice(0, 3); trackBy: trackById"
                   class="f-avatar f-avatar-sm"
                   [style.background]="colorFor(id)"
                   [title]="agentName(id)">
@@ -232,7 +232,7 @@
                 (click)="$event.stopPropagation()" />
             </div>
             <div class="f-multi-list">
-              <label *ngFor="let a of filteredAgentOptions()"
+              <label *ngFor="let a of filteredAgentOptions(); trackBy: trackById"
                 class="f-multi-item f-multi-item-rich f-multi-item-plus">
                 <input type="checkbox"
                   [checked]="isFilterChecked('assignedTo', a.id)"
@@ -261,7 +261,7 @@
           </button>
           <div class="f-multi-menu" *ngIf="openFilterMenu === 'groups'"
             (click)="$event.stopPropagation()">
-            <label *ngFor="let g of groupOptions" class="f-multi-item">
+            <label *ngFor="let g of groupOptions; trackBy: trackById" class="f-multi-item">
               <input type="checkbox"
                 [checked]="isFilterChecked('groups', g.id)"
                 (change)="toggleFilterValue('groups', g.id, $event)" />
@@ -281,7 +281,7 @@
           </button>
           <div class="f-multi-menu" *ngIf="openFilterMenu === 'tags'"
             (click)="$event.stopPropagation()">
-            <label *ngFor="let tg of tagOptions" class="f-multi-item">
+            <label *ngFor="let tg of tagOptions; trackBy: trackById" class="f-multi-item">
               <input type="checkbox"
                 [checked]="isFilterChecked('tags', tg)"
                 (change)="toggleFilterValue('tags', tg, $event)" />
@@ -348,7 +348,7 @@
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'card'">
       <div class="ticket-card modern"
-        *ngFor="let t of tickets"
+        *ngFor="let t of tickets; trackBy: trackById"
         [attr.data-priority]="(t.priority || '').toLowerCase()"
         (click)="viewTicket(t.id)">
 
@@ -411,7 +411,7 @@
           </span>
           <ng-container *ngIf="getTagsArr(t.tags) as tags">
             <span class="tag-pill"
-              *ngFor="let tag of tags.slice(0, 3)">
+              *ngFor="let tag of tags.slice(0, 3); trackBy: trackById">
               {{ tag }}
             </span>
             <span class="tag-pill more"
@@ -460,7 +460,7 @@
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'status'">
       <div class="status-col"
-        *ngFor="let status of statusBoardColumns">
+        *ngFor="let status of statusBoardColumns; trackBy: trackById">
         <div class="status-head"
           [style.borderColor]="getStatusColor(status)">
           <span class="status-title">{{ status }}</span>
@@ -477,7 +477,7 @@
           (cdkDropListDropped)="onStatusDrop($event, status)">
 
           <div class="status-ticket"
-            *ngFor="let t of getTicketsForStatus(status)"
+            *ngFor="let t of getTicketsForStatus(status); trackBy: trackById"
             cdkDrag
             [cdkDragData]="t">
             <div class="st-top">
@@ -551,7 +551,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let t of tickets"
+          <tr *ngFor="let t of tickets; trackBy: trackById"
             class="t-row"
             (click)="viewTicket(t.id)">
             <td (click)="$event.stopPropagation()">
@@ -616,7 +616,7 @@
                   *ngIf="t.tags && t.tags.trim()">
                   <span class="tag-pill"
                     *ngFor="let tag of
-                      getTagsArr(t.tags)">
+                      getTagsArr(t.tags); trackBy: trackById">
                     {{ tag }}
                   </span>
                 </ng-container>
@@ -649,7 +649,7 @@
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'grid'">
       <div class="grid-card"
-        *ngFor="let t of tickets"
+        *ngFor="let t of tickets; trackBy: trackById"
         (click)="viewTicket(t.id)">
         <div class="grid-top">
           <span class="t-num small">

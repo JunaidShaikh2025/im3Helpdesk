@@ -44,7 +44,7 @@
       <div class="bhe-field">
         <label class="bhe-label">Time zone</label>
         <select class="bhe-select" [(ngModel)]="timezone" [disabled]="detail.isDefault">
-          <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+          <option *ngFor="let tz of timezones; trackBy: trackById" [value]="tz.value">{{ tz.label }}</option>
         </select>
         <div class="bhe-hint" *ngIf="detail.isDefault">
           Default time zone is set in your account preferences.
@@ -64,7 +64,7 @@
       </div>
 
       <div class="bhe-days" *ngIf="modeChoice === 'Custom'">
-        <div class="bhe-day-row" *ngFor="let d of days">
+        <div class="bhe-day-row" *ngFor="let d of days; trackBy: trackById">
           <label class="bhe-toggle">
             <input type="checkbox" [(ngModel)]="d.enabled" />
             <span class="bhe-toggle-track"><span class="bhe-toggle-thumb"></span></span>
@@ -115,7 +115,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let h of detail.holidays">
+          <tr *ngFor="let h of detail.holidays; trackBy: trackById">
             <td>{{ h.name }}</td>
             <td>{{ formatHolidayDate(h.date) }}</td>
             <td>{{ h.isRecurring ? 'Yes' : 'No' }}</td>
@@ -137,7 +137,7 @@
       <div class="bhe-group-list" *ngIf="groupsDraft.length">
         <div
           class="bhe-group-row"
-          *ngFor="let g of groupsDraft"
+          *ngFor="let g of groupsDraft; trackBy: trackById"
           (click)="toggleGroup(g)"
           [class.active]="g.assigned"
         >

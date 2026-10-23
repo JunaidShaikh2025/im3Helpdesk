@@ -9,7 +9,7 @@
         <label>Status Filter</label>
         <select [(ngModel)]="selectedStatus" (change)="applyStatusFilter()">
           <option value="">All statuses</option>
-          <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+          <option *ngFor="let status of statusOptions; trackBy: trackById" [value]="status">{{ status }}</option>
         </select>
       </div>
     </div>
@@ -56,7 +56,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of emailLogs">
+              <tr *ngFor="let item of emailLogs; trackBy: trackById">
                 <td class="eq-email">{{ item.toEmail }}</td>
                 <td>{{ item.subject }}</td>
                 <td>{{ item.createdAt | date:'dd MMM yyyy, HH:mm' }}</td>
@@ -104,7 +104,7 @@
         </div>
 
         <div class="eq-webhooks">
-          <div class="eq-webhook-item" *ngFor="let log of webhookLogs">
+          <div class="eq-webhook-item" *ngFor="let log of webhookLogs; trackBy: trackById">
             <div class="eq-webhook-head">
               <span class="eq-webhook-event">{{ log.eventType }}</span>
               <span class="eq-webhook-time">{{ log.receivedAt | date:'dd MMM yyyy, HH:mm:ss' }}</span>

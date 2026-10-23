@@ -160,7 +160,7 @@
       *ngIf="!loading && filteredTodos.length > 0">
 
       <div class="tl-item"
-        *ngFor="let t of filteredTodos; let i = index"
+        *ngFor="let t of filteredTodos; let i = index; trackBy: trackById"
         [class.tl-done]="t.isCompleted"
         [class.tl-drag-over]="dragOverIndex === i"
         [class.tl-dragging]="dragIndex === i"
@@ -308,7 +308,7 @@
           <!-- Existing subtasks -->
           <div class="tl-sub-list">
             <div class="tl-sub-item"
-              *ngFor="let sub of (t.subTasks || [])"
+              *ngFor="let sub of (t.subTasks || []); trackBy: trackById"
               [class.tl-sub-done]="sub.isCompleted">
 
               <input type="checkbox"

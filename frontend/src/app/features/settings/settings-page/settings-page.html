@@ -6,7 +6,7 @@
       </div>
       <div class="sidebar-menu">
         <button class="sidebar-item"
-          *ngFor="let tab of tabs"
+          *ngFor="let tab of tabs; trackBy: trackById"
           [class.active]="activeTab === tab.id"
           (click)="activeTab = tab.id">
           <span class="sidebar-icon">{{ tab.icon }}</span>
@@ -40,7 +40,7 @@
             </header>
             <div class="themes-grid">
               <div class="theme-card"
-                *ngFor="let t of themes"
+                *ngFor="let t of themes; trackBy: trackById"
                 [class.active]="currentTheme === t.id"
                 (click)="applyTheme(t.id)">
                 <div class="theme-preview"
@@ -66,7 +66,7 @@
             <div class="icon-style-grid">
               <button type="button"
                 class="icon-style-card"
-                *ngFor="let s of iconStyles"
+                *ngFor="let s of iconStyles; trackBy: trackById"
                 [class.active]="currentIconStyle === s.id"
                 (click)="applyIconStyle(s.id)">
 
@@ -240,7 +240,7 @@
               </div>
               <div class="row-actions">
                 <select [(ngModel)]="language" class="lang-select">
-                  <option *ngFor="let l of languages" [value]="l.code">{{ l.name }}</option>
+                  <option *ngFor="let l of languages; trackBy: trackById" [value]="l.code">{{ l.name }}</option>
                 </select>
                 <button class="pane-save-btn small"
                   (click)="saveLanguage()">Save</button>

@@ -23,7 +23,7 @@
               [ngModelOptions]="{standalone: true}"
               (change)="applyTemplate(selectedTemplateId)">
               <option value="">-- No Template --</option>
-              <option *ngFor="let t of templates" [value]="t.id">
+              <option *ngFor="let t of templates; trackBy: trackById" [value]="t.id">
                 {{ t.name }}
               </option>
             </select>
@@ -93,7 +93,7 @@
             <div class="attachments-preview"
               *ngIf="pendingFiles.length > 0">
               <div class="pending-file"
-                *ngFor="let f of pendingFiles; let i = index">
+                *ngFor="let f of pendingFiles; let i = index; trackBy: trackById">
                 <span class="file-icon">
                   {{ getFileIcon(f.type) }}
                 </span>
@@ -120,7 +120,7 @@
             <div class="prop-field">
               <label>Type</label>
               <select class="form-select" formControlName="ticketType">
-                <option *ngFor="let t of ticketTypes" [value]="t.value">
+                <option *ngFor="let t of ticketTypes; trackBy: trackById" [value]="t.value">
                   {{ t.label }}
                 </option>
               </select>
@@ -129,7 +129,7 @@
             <div class="prop-field">
               <label>Status</label>
               <select class="form-select" formControlName="status">
-                <option *ngFor="let s of statuses" [value]="s.value">
+                <option *ngFor="let s of statuses; trackBy: trackById" [value]="s.value">
                   {{ s.label }}
                 </option>
               </select>
@@ -138,7 +138,7 @@
             <div class="prop-field">
               <label>Priority</label>
               <select class="form-select" formControlName="priority">
-                <option *ngFor="let p of priorities" [value]="p.value">
+                <option *ngFor="let p of priorities; trackBy: trackById" [value]="p.value">
                   {{ p.label }}
                 </option>
               </select>
@@ -147,7 +147,7 @@
             <div class="prop-field">
               <label>Category</label>
               <select class="form-select" formControlName="category">
-                <option *ngFor="let c of categories" [value]="c">
+                <option *ngFor="let c of categories; trackBy: trackById" [value]="c">
                   {{ c }}
                 </option>
               </select>
@@ -157,7 +157,7 @@
               <label>Group</label>
               <select class="form-select" formControlName="agentGroupId">
                 <option value="">No Group</option>
-                <option *ngFor="let g of groups" [value]="g.id">
+                <option *ngFor="let g of groups; trackBy: trackById" [value]="g.id">
                   {{ g.name }}
                 </option>
               </select>
@@ -168,7 +168,7 @@
               <select class="form-select"
                 formControlName="assignedToUserId">
                 <option value="">Unassigned</option>
-                <option *ngFor="let a of agents" [value]="a.id">
+                <option *ngFor="let a of agents; trackBy: trackById" [value]="a.id">
                   {{ a.fullName }}
                 </option>
               </select>
@@ -180,7 +180,7 @@
               <div class="tags-input">
                 <div class="tags-display" *ngIf="tags.length > 0">
                   <span class="tag-chip"
-                    *ngFor="let tag of tags">
+                    *ngFor="let tag of tags; trackBy: trackById">
                     {{ tag }}
                     <button type="button"
                       (click)="removeTag(tag)">×</button>
@@ -200,7 +200,7 @@
             <!-- Custom Fields -->
             <div *ngIf="customFields.length > 0">
               <div class="cf-divider"></div>
-              <div class="prop-field" *ngFor="let f of customFields">
+              <div class="prop-field" *ngFor="let f of customFields; trackBy: trackById">
                 <label>
                   {{ f.label }}
                   <span class="req" *ngIf="f.isRequired">*</span>
@@ -232,7 +232,7 @@
                   [ngModelOptions]="{standalone: true}"
                   class="form-select">
                   <option value="">Select...</option>
-                  <option *ngFor="let opt of f.options?.split(',')"
+                  <option *ngFor="let opt of f.options?.split(','); trackBy: trackById"
                     [value]="opt.trim()">
                     {{ opt.trim() }}
                   </option>

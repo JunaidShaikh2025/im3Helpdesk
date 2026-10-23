@@ -735,7 +735,7 @@
               <span class="fdc-hdr-lbl">Cc&nbsp;:</span>
               <div class="fdc-chip-wrap">
                 <span class="fdc-chip"
-                  *ngFor="let e of replyCc; let i = index">
+                  *ngFor="let e of replyCc; let i = index; trackBy: trackById">
                   {{ e }}
                   <button type="button" (click)="removeCc(i)">×</button>
                 </span>
@@ -756,7 +756,7 @@
               <span class="fdc-hdr-lbl">Bcc&nbsp;:</span>
               <div class="fdc-chip-wrap">
                 <span class="fdc-chip"
-                  *ngFor="let e of replyBcc; let i = index">
+                  *ngFor="let e of replyBcc; let i = index; trackBy: trackById">
                   {{ e }}
                   <button type="button" (click)="removeBcc(i)">×</button>
                 </span>
@@ -789,7 +789,7 @@
               *ngIf="pendingFiles.length > 0">
               <div class="fdc-pf"
                 *ngFor="let f of pendingFiles;
-                  let i = index">
+                  let i = index; trackBy: trackById">
                 {{ getFileIcon(f.type) }}
                 <span>{{ f.name }}</span>
                 <span class="fdc-pf-sz">
@@ -850,7 +850,7 @@
               *ngIf="pendingFiles.length > 0">
               <div class="fdc-pf"
                 *ngFor="let f of pendingFiles;
-                  let i = index">
+                  let i = index; trackBy: trackById">
                 {{ getFileIcon(f.type) }}
                 <span>{{ f.name }}</span>
                 <button type="button"
@@ -920,7 +920,7 @@
               <span class="fdc-hdr-lbl">Cc&nbsp;:</span>
               <div class="fdc-chip-wrap">
                 <span class="fdc-chip"
-                  *ngFor="let e of fwdCc; let i = index">
+                  *ngFor="let e of fwdCc; let i = index; trackBy: trackById">
                   {{ e }}
                   <button type="button" (click)="fwdCc.splice(i,1)">×</button>
                 </span>
@@ -936,7 +936,7 @@
               <span class="fdc-hdr-lbl">Bcc&nbsp;:</span>
               <div class="fdc-chip-wrap">
                 <span class="fdc-chip"
-                  *ngFor="let e of fwdBcc; let i = index">
+                  *ngFor="let e of fwdBcc; let i = index; trackBy: trackById">
                   {{ e }}
                   <button type="button" (click)="fwdBcc.splice(i,1)">×</button>
                 </span>
@@ -960,7 +960,7 @@
               *ngIf="pendingFiles.length > 0">
               <div class="fdc-pf"
                 *ngFor="let f of pendingFiles;
-                  let i = index">
+                  let i = index; trackBy: trackById">
                 {{ getFileIcon(f.type) }}
                 <span>{{ f.name }}</span>
                 <button type="button"
@@ -1046,7 +1046,7 @@
             <div class="fds-lbl">TAGS</div>
             <div class="fds-tags">
               <span class="fds-tag"
-                *ngFor="let t of getTagsArray()">
+                *ngFor="let t of getTagsArray(); trackBy: trackById">
                 @{{ t }}
                 <button type="button"
                   (click)="stageRemoveTag(t)">×</button>
@@ -1068,7 +1068,7 @@
             <select class="fds-sel"
               [(ngModel)]="ticket.ticketType">
               <option value="">-- Select --</option>
-              <option *ngFor="let t of ticketTypes" [value]="t.value">
+              <option *ngFor="let t of ticketTypes; trackBy: trackById" [value]="t.value">
                 {{ t.label }}
               </option>
             </select>
@@ -1081,7 +1081,7 @@
             </div>
             <select class="fds-sel"
               [(ngModel)]="ticket.status">
-              <option *ngFor="let s of statuses"
+              <option *ngFor="let s of statuses; trackBy: trackById"
                 [value]="s.value">{{ s.label }}</option>
             </select>
           </div>
@@ -1091,7 +1091,7 @@
             <div class="fds-lbl">PRIORITY</div>
             <select class="fds-sel"
               [(ngModel)]="ticket.priority">
-              <option *ngFor="let p of priorities" [value]="p.value">
+              <option *ngFor="let p of priorities; trackBy: trackById" [value]="p.value">
                 ● {{ p.label }}
               </option>
             </select>
@@ -1104,7 +1104,7 @@
               [(ngModel)]="selectedGroupId"
               (ngModelChange)="onGroupChanged()">
               <option value="">No Group</option>
-              <option *ngFor="let g of groups"
+              <option *ngFor="let g of groups; trackBy: trackById"
                 [value]="g.id">{{ g.name }}</option>
             </select>
           </div>
@@ -1116,7 +1116,7 @@
               [(ngModel)]="selectedAgentId"
               (ngModelChange)="onAssignedAgentChanged()">
               <option value="">Unassigned</option>
-              <option *ngFor="let a of getAssignableAgents()"
+              <option *ngFor="let a of getAssignableAgents(); trackBy: trackById"
                 [value]="a.id">
                 {{ a.fullName }}
               </option>
@@ -1128,7 +1128,7 @@
                Saved together with the main Update button. -->
           <ng-container *ngIf="customFields.length > 0">
             <div class="fds-grp"
-              *ngFor="let f of customFields">
+              *ngFor="let f of customFields; trackBy: trackById">
               <div class="fds-lbl">
                 {{ f.label | uppercase }}
                 <span *ngIf="f.isRequired"
@@ -1153,7 +1153,7 @@
                   [(ngModel)]="customFieldValues[f.id]">
                   <option value="">Select...</option>
                   <option
-                    *ngFor="let o of (f.options||'').split(',')"
+                    *ngFor="let o of (f.options||'').split(','); trackBy: trackById"
                     [value]="o.trim()">
                     {{ o.trim() }}
                   </option>
@@ -1239,7 +1239,7 @@
       <span class="fdc-lbl">Notify:</span>
       <div class="fdc-notify-wrap">
         <span class="fdc-ntag"
-          *ngFor="let a of notifyAgents">
+          *ngFor="let a of notifyAgents; trackBy: trackById">
           {{ a.fullName || a.email }}
           <button type="button"
             (click)="removeNotify(a)">×</button>
@@ -1251,7 +1251,7 @@
         <div class="fdc-mention-dd"
           *ngIf="mentionResults.length > 0">
           <div class="fdc-m-item"
-            *ngFor="let a of mentionResults"
+            *ngFor="let a of mentionResults; trackBy: trackById"
             (mousedown)="$event.preventDefault()"
             (click)="addMention(a)">
             <div class="fdc-m-name">{{ a.fullName }}</div>

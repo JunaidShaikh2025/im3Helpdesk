@@ -13,7 +13,7 @@
   </header>
 
   <div class="pp-filters">
-    <button *ngFor="let f of ['Pending','Approved','Rejected','']"
+    <button *ngFor="let f of ['Pending','Approved','Rejected','']; trackBy: trackById"
             type="button"
             class="pp-tab"
             [class.active]="statusFilter() === f"
@@ -27,7 +27,7 @@
   <div class="pp-empty" *ngIf="!payments().length">No payments in this status.</div>
 
   <div class="pp-list">
-    <article class="pp-row" *ngFor="let p of payments()">
+    <article class="pp-row" *ngFor="let p of payments(); trackBy: trackById">
       <div class="pp-row-main">
         <div class="pp-org">
           <strong>{{ p.orgName }}</strong>

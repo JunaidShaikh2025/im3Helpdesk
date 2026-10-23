@@ -57,7 +57,7 @@
 
         <div class="agents-grid">
           <div class="agent-card"
-            *ngFor="let a of agents"
+            *ngFor="let a of agents; trackBy: trackById"
             [class.selected]="isMember(a.id)"
             [class.disabled]="!isMember(a.id) && isAgentInOtherGroup(a.id)"
             (click)="toggleMember(a.id)">
@@ -102,7 +102,7 @@
 
   <!-- Groups List -->
   <div class="groups-list" *ngIf="groups.length > 0 && !showForm">
-    <div class="group-item" *ngFor="let g of groups">
+    <div class="group-item" *ngFor="let g of groups; trackBy: trackById">
       <div class="group-left">
         <div class="group-icon-wrap">👥</div>
         <div class="group-info">

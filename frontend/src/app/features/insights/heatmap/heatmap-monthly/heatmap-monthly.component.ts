@@ -27,6 +27,9 @@ type TicketLite = {
   styleUrls: ['./heatmap-monthly.scss']
 })
 export class HeatmapMonthlyComponent implements OnChanges {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);

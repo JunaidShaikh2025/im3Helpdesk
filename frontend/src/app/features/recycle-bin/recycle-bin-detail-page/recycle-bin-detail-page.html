@@ -52,7 +52,7 @@
         <div class="tags-block" *ngIf="detail.tags">
           <label>Tags</label>
           <div class="tags">
-            <span class="tag" *ngFor="let t of detail.tags.split(',')">{{ t.trim() }}</span>
+            <span class="tag" *ngFor="let t of detail.tags.split(','); trackBy: trackById">{{ t.trim() }}</span>
           </div>
         </div>
       </article>

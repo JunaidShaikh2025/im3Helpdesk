@@ -28,7 +28,7 @@
           <div class="col-esc">Escalation</div>
         </div>
 
-        <div class="sla-matrix-row" *ngFor="let row of targets">
+        <div class="sla-matrix-row" *ngFor="let row of targets; trackBy: trackById">
           <div class="col-pri">
             <span class="pri-dot" [style.background]="priorityColor(row.priority)"></span>
             <span class="pri-label">{{ priorityLabel(row.priority) }}</span>
@@ -101,7 +101,7 @@
       </p>
 
       <div class="sla-rule-list">
-        <ng-container *ngFor="let r of reminders; let i = index">
+        <ng-container *ngFor="let r of reminders; let i = index; trackBy: trackById">
           <div class="sla-rule">
             <div class="sla-rule-line">
               When the
@@ -111,7 +111,7 @@
               </select>
               approaches in
               <select [(ngModel)]="r.approachInMinutes">
-                <option *ngFor="let opt of approachChoices" [ngValue]="opt.value">{{ opt.label }}</option>
+                <option *ngFor="let opt of approachChoices; trackBy: trackById" [ngValue]="opt.value">{{ opt.label }}</option>
               </select>
               , send reminder to
             </div>
@@ -137,7 +137,7 @@
       </p>
 
       <div class="sla-rule-list">
-        <ng-container *ngFor="let e of escalations; let i = index">
+        <ng-container *ngFor="let e of escalations; let i = index; trackBy: trackById">
           <div class="sla-rule">
             <div class="sla-rule-line">
               When the
@@ -147,7 +147,7 @@
               </select>
               is not met, escalate
               <select [(ngModel)]="e.escalateAfterMinutes">
-                <option *ngFor="let opt of escalateAfterChoices" [ngValue]="opt.value">
+                <option *ngFor="let opt of escalateAfterChoices; trackBy: trackById" [ngValue]="opt.value">
                   {{ opt.label }}
                 </option>
               </select>
@@ -171,7 +171,7 @@
     <ng-template #recipientPicker let-rule="rule" let-key="key">
       <div class="recipient-picker" [class.open]="openPickerKey === key">
         <div class="recipient-picker-trigger" (click)="togglePicker(key, $event)">
-          <span class="rp-chip" *ngFor="let chip of selectedChips(rule.recipients)">
+          <span class="rp-chip" *ngFor="let chip of selectedChips(rule.recipients); trackBy: trackById">
             {{ chip.label }}
             <button class="rp-chip-x" (click)="removeChip(rule, chip.value, $event)">×</button>
           </span>
@@ -190,7 +190,7 @@
           </div>
           <div class="rp-list">
             <div class="rp-option"
-                 *ngFor="let opt of filteredOptions()"
+                 *ngFor="let opt of filteredOptions(); trackBy: trackById"
                  [class.checked]="isChecked(rule.recipients, opt.value)"
                  (click)="toggleOption(rule, opt.value, $event)">
               <span class="rp-option-label">{{ opt.label }}</span>

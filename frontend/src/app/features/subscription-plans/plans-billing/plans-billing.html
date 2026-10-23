@@ -90,7 +90,7 @@
         <span class="pb-count">{{ features().length }} included</span>
       </div>
       <div class="pb-feature-grid">
-        <article *ngFor="let f of features()" class="pb-feature-item">
+        <article *ngFor="let f of features(); trackBy: trackById" class="pb-feature-item">
           <i class="pb-feature-icon fa-solid" [ngClass]="featureIcon(f)" aria-hidden="true"></i>
           <i class="pb-check">✓</i> {{ f }}
           <p>{{ featureDescription(f) }}</p>
@@ -119,7 +119,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let p of payments()">
+            <tr *ngFor="let p of payments(); trackBy: trackById">
               <td>{{ p.submittedAt | date:'short' }}</td>
               <td class="strong">{{ p.planName }}</td>
               <td>{{ p.billingCycle }}</td>

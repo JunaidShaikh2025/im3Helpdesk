@@ -89,7 +89,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let o of filteredOrganizations" class="ol-row is-clickable" (click)="openOrganizationDetails(o)">
+          <tr *ngFor="let o of filteredOrganizations; trackBy: trackById" class="ol-row is-clickable" (click)="openOrganizationDetails(o)">
 
             <td>
               <div class="ol-org-cell">
@@ -188,7 +188,7 @@
           <section class="sa-recent" *ngIf="selectedOrg.recentUsers?.length">
             <h5>Recent Users</h5>
             <div class="sa-recent-list">
-              <div class="sa-recent-item" *ngFor="let u of selectedOrg.recentUsers">
+              <div class="sa-recent-item" *ngFor="let u of selectedOrg.recentUsers; trackBy: trackById">
                 <div class="sa-mini-av" [class.has-photo]="!!u.photoUrl">
                   <img *ngIf="u.photoUrl" [src]="userPhotoUrl(u.photoUrl)" [alt]="u.fullName || 'User'" />
                   <span *ngIf="!u.photoUrl">{{ getInitials(u.fullName) }}</span>

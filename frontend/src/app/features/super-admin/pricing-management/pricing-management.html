@@ -10,7 +10,7 @@
   <div class="pm-toast" *ngIf="toast() as t">{{ t }}</div>
 
   <div class="pm-grid">
-    <div class="pm-card" *ngFor="let p of plans()" [style.--accent]="p.accent">
+    <div class="pm-card" *ngFor="let p of plans(); trackBy: trackById" [style.--accent]="p.accent">
       <header>
         <div class="pm-dot" [style.background]="p.accent"></div>
         <div>

@@ -18,7 +18,7 @@
       No messages yet
     </div>
 
-    <div *ngFor="let m of messages"
+    <div *ngFor="let m of messages; trackBy: trackById"
       class="chat-msg"
       [class.my-msg]="m.senderName === senderName"
       [class.other-msg]="

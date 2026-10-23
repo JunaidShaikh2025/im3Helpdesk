@@ -32,7 +32,7 @@
     <!-- List -->
     <div class="sla-list" *ngIf="!loading && rows.length > 0">
       <div class="sla-card"
-           *ngFor="let row of rows; let i = index"
+           *ngFor="let row of rows; let i = index; trackBy: trackById"
            (click)="edit(row)">
         <div class="sla-num">{{ i + 1 }}</div>
 

@@ -110,7 +110,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let lead of filteredLeads" class="lm-row">
+          <tr *ngFor="let lead of filteredLeads; trackBy: trackById" class="lm-row">
             <td>
               <div class="lm-org-cell">
                 <div class="lm-org-dot"></div>

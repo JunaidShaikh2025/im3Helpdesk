@@ -14,6 +14,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: ['./email-queue-dashboard.scss']
 })
 export class EmailQueueDashboardComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private readonly superAdminService = inject(SuperAdminService);
   private readonly toastr = inject(ToastrService);

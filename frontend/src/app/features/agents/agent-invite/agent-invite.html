@@ -73,7 +73,7 @@
           <div class="form-group">
             <label>Role <span class="req">*</span></label>
             <select formControlName="role" class="form-select">
-              <option *ngFor="let r of roles" [value]="r.value">
+              <option *ngFor="let r of roles; trackBy: trackById" [value]="r.value">
                 {{ r.label }}
               </option>
             </select>
@@ -102,7 +102,7 @@
           </p>
           <div class="groups-grid" *ngIf="groups.length > 0">
             <div class="group-item"
-              *ngFor="let g of groups"
+              *ngFor="let g of groups; trackBy: trackById"
               [class.selected]="isGroupSelected(g.id)"
               (click)="toggleGroup(g.id)">
               <div class="group-check">

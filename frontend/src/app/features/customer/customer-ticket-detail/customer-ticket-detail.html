@@ -149,7 +149,7 @@
           </div>
 
           <!-- Messages -->
-          <div *ngFor="let c of ticket.comments"
+          <div *ngFor="let c of ticket.comments; trackBy: trackById"
             class="msg-row"
             [class.agent-row]="c.isAgent"
             [class.customer-row]="!c.isAgent">

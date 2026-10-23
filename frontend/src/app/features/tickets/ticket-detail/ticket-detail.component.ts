@@ -110,7 +110,8 @@ export class TicketDetailComponent
    * every 15 seconds (which caused the visible "blink").
    */
   trackById = (_: number, item: any): any =>
-    item?.id ?? item?.fileUrl ?? item?.createdAt ?? _;
+    item?.id ?? item?.ticketNumber ?? item?.fileUrl ?? item?.createdAt ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   trackByValue = (_: number, item: any): any =>
     item?.value ?? item?.id ?? item;
 

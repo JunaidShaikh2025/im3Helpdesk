@@ -80,7 +80,7 @@
       </div>
       <div class="rr-bulk">
         <span class="rr-bulk-label">Apply to all:</span>
-        <button *ngFor="let a of actions"
+        <button *ngFor="let a of actions; trackBy: trackById"
                 type="button"
                 class="rr-chip"
                 [disabled]="isReadOnly"
@@ -105,7 +105,7 @@
         <thead>
           <tr>
             <th class="rr-th-module">Module</th>
-            <th *ngFor="let a of actions" class="rr-th-action">
+            <th *ngFor="let a of actions; trackBy: trackById" class="rr-th-action">
               <span class="rr-th-icon">{{ a.icon }}</span>
               {{ a.label }}
             </th>
@@ -128,7 +128,7 @@
                   <small class="rr-mod-key">{{ m.key }}</small>
                 </div>
               </td>
-              <td *ngFor="let a of actions" class="rr-cell">
+              <td *ngFor="let a of actions; trackBy: trackById" class="rr-cell">
                 <label class="rr-toggle" [class.disabled]="isReadOnly">
                   <input type="checkbox"
                          [checked]="!!currentMatrix[m.key]?.[a.key]"

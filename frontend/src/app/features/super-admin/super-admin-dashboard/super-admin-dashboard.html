@@ -112,7 +112,7 @@
         </div>
 
         <div class="sa-org-row"
-          *ngFor="let org of stats.recentOrgs"
+          *ngFor="let org of stats.recentOrgs; trackBy: trackById"
           (click)="router.navigate(
             ['/admin/organizations'])">
           <div class="sa-org-left">

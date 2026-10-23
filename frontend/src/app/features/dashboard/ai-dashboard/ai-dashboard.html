@@ -121,7 +121,7 @@
           <div class="tw-bars">
             <div
               class="tw-day"
-              *ngFor="let day of tideData.forecast; let i = index"
+              *ngFor="let day of tideData.forecast; let i = index; trackBy: trackById"
               [class.tw-sel]="selectedDayIndex === i"
               (click)="selectDay(i)"
             >
@@ -228,7 +228,7 @@
         <div class="ins-cards">
           <div
             class="ins-card"
-            *ngFor="let ins of insightsData.insights"
+            *ngFor="let ins of insightsData.insights; trackBy: trackById"
             [class]="'ins-card ' + getInsightTypeClass(ins.type)"
           >
             <div class="ic-icon">
@@ -260,7 +260,7 @@
             </div>
             <div
               class="apc-row"
-              *ngFor="let a of insightsData.summary.agentStats; let i = index"
+              *ngFor="let a of insightsData.summary.agentStats; let i = index; trackBy: trackById"
               [class.apc-top]="i === 0"
             >
               <span>
@@ -319,7 +319,7 @@
 
         <!-- Duplicate groups -->
         <div class="dup-groups" *ngIf="duplicatesData.groups?.length">
-          <div class="dup-group" *ngFor="let grp of duplicatesData.groups">
+          <div class="dup-group" *ngFor="let grp of duplicatesData.groups; trackBy: trackById">
             <div class="dg-header">
               <span class="dg-count"> {{ grp.count }} Similar Tickets </span>
               <span class="dg-conf" [class.high]="grp.confidence === 'High'">
@@ -331,7 +331,7 @@
             <div class="dg-tickets">
               <div
                 class="dg-ticket"
-                *ngFor="let t of grp.tickets"
+                *ngFor="let t of grp.tickets; trackBy: trackById"
                 [class.dg-original]="t.isOriginal"
               >
                 <div class="dg-t-left">
@@ -386,13 +386,13 @@
             <div class="merge-list">
               <div class="merge-item orig">
                 <span>✅ Keep Original:</span>
-                <span *ngFor="let t of mergingGroup.tickets">
+                <span *ngFor="let t of mergingGroup.tickets; trackBy: trackById">
                   <ng-container *ngIf="t.isOriginal">
                     #TN{{ t.ticketNumber }} — {{ t.title | slice: 0 : 40 }}
                   </ng-container>
                 </span>
               </div>
-              <div class="merge-item dup" *ngFor="let t of mergingGroup.tickets">
+              <div class="merge-item dup" *ngFor="let t of mergingGroup.tickets; trackBy: trackById">
                 <ng-container *ngIf="!t.isOriginal">
                   <span>🗑 Close Duplicate:</span>
                   <span> #TN{{ t.ticketNumber }} — {{ t.title | slice: 0 : 40 }} </span>
@@ -427,7 +427,7 @@
           <div class="sp-list">
             <div
               class="sp-item"
-              *ngFor="let t of recentTickets"
+              *ngFor="let t of recentTickets; trackBy: trackById"
               [class.sp-sel]="summaryTicketId === t.id"
               (click)="loadSummary(t.id)"
             >
@@ -502,7 +502,7 @@
             <!-- Key facts -->
             <div class="sr-facts">
               <div class="sr-facts-label">Key Facts</div>
-              <div class="sr-fact" *ngFor="let f of summaryData.keyFacts">
+              <div class="sr-fact" *ngFor="let f of summaryData.keyFacts; trackBy: trackById">
                 <span class="sf-dot"></span>
                 {{ f }}
               </div>
@@ -571,7 +571,7 @@
         <div class="ht-insights" *ngIf="hotTopicsData.aiInsights?.length">
           <div
             class="ht-insight-card"
-            *ngFor="let ins of hotTopicsData.aiInsights"
+            *ngFor="let ins of hotTopicsData.aiInsights; trackBy: trackById"
             [class]="getInsightTypeClass(ins.type)"
           >
             <div class="ht-ins-icon">{{ ins.icon }}</div>
@@ -600,7 +600,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let r of hotTopicsData.topTicketTypes">
+                <tr *ngFor="let r of hotTopicsData.topTicketTypes; trackBy: trackById">
                   <td>{{ r.label }}</td>
                   <td class="num">{{ r.count }}</td>
                   <td class="num">{{ r.sharePct }}%</td>
@@ -625,7 +625,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let r of hotTopicsData.topPriorities">
+                <tr *ngFor="let r of hotTopicsData.topPriorities; trackBy: trackById">
                   <td>
                     <span class="pr-chip" [class]="getPriorityClass(r.label)">
                       {{ r.label }}
@@ -647,7 +647,7 @@
             <div class="ht-tag-list" *ngIf="hotTopicsData.topTags?.length; else noTags">
               <span
                 class="ht-tag"
-                *ngFor="let t of hotTopicsData.topTags"
+                *ngFor="let t of hotTopicsData.topTags; trackBy: trackById"
                 [class]="getTrendClass(t.trend)"
               >
                 {{ t.label }}
@@ -665,7 +665,7 @@
             <div class="ht-keywords" *ngIf="hotTopicsData.topKeywords?.length; else noKw">
               <span
                 class="ht-kw"
-                *ngFor="let k of hotTopicsData.topKeywords"
+                *ngFor="let k of hotTopicsData.topKeywords; trackBy: trackById"
                 [style.font-size]="keywordSize(k.count, maxKeywordCount())"
               >
                 {{ k.word }}
@@ -688,7 +688,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let r of hotTopicsData.slowestCategories">
+                <tr *ngFor="let r of hotTopicsData.slowestCategories; trackBy: trackById">
                   <td>{{ r.label }}</td>
                   <td class="num">{{ r.count }}</td>
                   <td class="num">{{ r.avgHours }}h</td>
@@ -828,7 +828,7 @@
 
             <!-- Ticket Cards -->
             <div class="sa-ticket-cards" *ngIf="smartAssignQueue.length">
-              <div class="sa-ticket-card" *ngFor="let ticket of smartAssignQueue">
+              <div class="sa-ticket-card" *ngFor="let ticket of smartAssignQueue; trackBy: trackById">
                 <!-- Ticket Top Bar -->
                 <div class="sa-tc-top">
                   <div class="sa-tc-info">
@@ -853,7 +853,7 @@
                 <div class="sa-tc-recs">
                   <div
                     class="sa-rec-card"
-                    *ngFor="let rec of ticket.topRecommendations; let rIdx = index"
+                    *ngFor="let rec of ticket.topRecommendations; let rIdx = index; trackBy: trackById"
                     [class.top-match]="rIdx === 0"
                   >
                     <!-- Rank + Agent Info -->
@@ -883,7 +883,7 @@
 
                     <!-- "Why?" Reasons List -->
                     <div class="sa-rec-reasons" *ngIf="rec.reasons && rec.reasons.length">
-                      <div class="sa-reason-tag" *ngFor="let reason of rec.reasons">
+                      <div class="sa-reason-tag" *ngFor="let reason of rec.reasons; trackBy: trackById">
                         <span class="sa-reason-check">✓</span>
                         <span>{{ reason }}</span>
                       </div>
@@ -917,7 +917,7 @@
                     >
                       <option [ngValue]="undefined">Select agent...</option>
                       <option
-                        *ngFor="let w of smartAssignStats.agentWorkloads"
+                        *ngFor="let w of smartAssignStats.agentWorkloads; trackBy: trackById"
                         [value]="w.agentId"
                       >
                         {{ w.agentName }} ({{ w.activeTicketCount }} active, {{ w.isOnline ? 'Online' : 'Offline' }})
@@ -957,7 +957,7 @@
                 <span class="sa-box-sub">{{ smartAssignStats.agentWorkloads ? smartAssignStats.agentWorkloads.length : 0 }} Agents</span>
               </div>
               <div class="sa-agent-list">
-                <div class="sa-agent-row" *ngFor="let a of smartAssignStats.agentWorkloads">
+                <div class="sa-agent-row" *ngFor="let a of smartAssignStats.agentWorkloads; trackBy: trackById">
                   <div class="sa-ar-left">
                     <div class="sa-agent-avatar sm">
                       <img *ngIf="a.photoUrl" [src]="a.photoUrl" alt="" />

@@ -49,7 +49,7 @@
         [(ngModel)]="filterRole"
         (ngModelChange)="applyFilter()">
         <option value="">All Roles</option>
-        <option *ngFor="let r of roleOptions" [value]="r">{{ r }}</option>
+        <option *ngFor="let r of roleOptions; trackBy: trackById" [value]="r">{{ r }}</option>
       </select>
 
       <button class="au-clear-btn"
@@ -90,7 +90,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let u of filteredUsers" class="au-row is-clickable" (click)="openUserDetails(u)">
+          <tr *ngFor="let u of filteredUsers; trackBy: trackById" class="au-row is-clickable" (click)="openUserDetails(u)">
 
             <td>
               <div class="au-user-cell">

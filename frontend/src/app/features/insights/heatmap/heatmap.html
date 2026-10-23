@@ -22,7 +22,7 @@
         <div class="filter">
           <label>📅 Date Range</label>
           <select [(ngModel)]="dateRange" (ngModelChange)="onDateRangeChange()">
-            <option *ngFor="let o of dateRangeOptions" [value]="o">{{ o }}</option>
+            <option *ngFor="let o of dateRangeOptions; trackBy: trackById" [value]="o">{{ o }}</option>
           </select>
         </div>
 
@@ -38,7 +38,7 @@
         <div class="filter">
           <label>🏷️ Priority</label>
           <select [(ngModel)]="priority" (ngModelChange)="onOtherFilterChange()">
-            <option *ngFor="let o of priorityOptions" [value]="o">{{ o }}</option>
+            <option *ngFor="let o of priorityOptions; trackBy: trackById" [value]="o">{{ o }}</option>
           </select>
         </div>
 
@@ -46,14 +46,14 @@
           <label>👤 Agent</label>
           <select [(ngModel)]="agentId" (ngModelChange)="onOtherFilterChange()">
             <option value="All">All</option>
-            <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
+            <option *ngFor="let a of agents; trackBy: trackById" [value]="a.id">{{ a.fullName }}</option>
           </select>
         </div>
 
         <div class="filter">
           <label>📂 Type</label>
           <select [(ngModel)]="type" (ngModelChange)="onOtherFilterChange()">
-            <option *ngFor="let o of typeOptions" [value]="o">{{ o }}</option>
+            <option *ngFor="let o of typeOptions; trackBy: trackById" [value]="o">{{ o }}</option>
           </select>
         </div>
       </div>

@@ -20,7 +20,7 @@
         </div>
 
         <div class="bh-list" *ngIf="!loading">
-          <div class="bh-card" *ngFor="let b of items" (click)="edit(b)">
+          <div class="bh-card" *ngFor="let b of items; trackBy: trackById" (click)="edit(b)">
             <div class="bh-card-body">
               <div class="bh-card-name">
                 {{ b.name }}

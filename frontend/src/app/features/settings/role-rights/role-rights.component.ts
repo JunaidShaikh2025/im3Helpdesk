@@ -25,6 +25,9 @@ interface ActionMeta { key: Action; label: string; icon: string; }
   styleUrls: ['./role-rights.scss']
 })
 export class RoleRightsComponent implements OnInit {
+  trackById = (_: number, item: any): any =>
+    item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _;
+  trackByIndex = (_: number): number => _;
   private destroyRef = inject(DestroyRef);
   private svc = inject(RoleRightsService);
   private toastr = inject(ToastrService);
