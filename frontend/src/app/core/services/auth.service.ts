@@ -89,12 +89,6 @@ export class AuthService {
     });
   }
 
-  registerCustomer(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register-customer`, data, {
-      withCredentials: true
-    });
-  }
-
   saveUserData(data: any): void {
     if (data?.user) {
       const u: CurrentUser = {

@@ -93,7 +93,7 @@ export class KbListComponent implements OnInit {
 
     // Specific user's posts
     if (this.selectedUserId) {
-      const publishedOnly = this.userRole === 'Customer';
+      const publishedOnly = false;
       this.kbService.getPostsByUser(this.selectedUserId, publishedOnly).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (data) => { this.articles = data; this.loading = false; this.cdr.detectChanges(); },
         error: () => { this.loading = false; this.cdr.detectChanges(); }
@@ -103,7 +103,7 @@ export class KbListComponent implements OnInit {
 
     // All posts (default)
     const { search, category } = this.filterForm.value;
-    const publishedOnly = this.userRole === 'Customer';
+    const publishedOnly = false;
     this.kbService.getAll({ search, category, publishedOnly }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any[]) => { this.articles = data; this.loading = false; this.cdr.detectChanges(); },
       error: () => { this.loading = false; this.cdr.detectChanges(); }

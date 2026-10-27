@@ -193,10 +193,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/superadmin/payments']);
   }
 
-  public goToCustomerPortal() {
-    this.showProfileDropdown = false;
-    this.router.navigate(['/customer']);
-  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -271,7 +267,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
   userPhotoUrl       = '';
   orgName            = '';
   isSuperAdmin       = false;
-  isCustomer         = false;
   sidebarOpen        = false;
 
   notifications: any[] = [];
@@ -407,15 +402,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Topbar modules exist only for internal users.
-    if (!this.isCustomer) {
-      this.loadUnreadCount();
-      this.loadTodoCount();
-      this.loadKbUnread();
-      this.loadBirthdayReminders();
-      this.loadHolidayReminders();
-      this.loadMissedCallCount();
-    }
+
 
     // Ticket counts are useful for both internal users and customers.
     this.loadMyTicketCounts();
@@ -674,7 +661,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.userName = this.authService.getUserName() || 'User';
     this.userRole = this.authService.getUserRole();
     this.isSuperAdmin = this.userRole === 'SuperAdmin';
-    this.isCustomer = this.userRole === 'Customer';
     this.isCompanyAdmin = this.userRole === 'CompanyAdmin';
 
     // Load this user's effective permission map (used by UI gates).

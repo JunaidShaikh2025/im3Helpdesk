@@ -55,11 +55,6 @@ export const routes: Routes = [
       import('./features/auth/verify-email/verify-email.component').then(m => m.VerifyEmailComponent)
   },
   {
-    path: 'register-customer',
-    loadComponent: () =>
-      import('./features/auth/register-customer/register-customer.component').then(m => m.RegisterCustomerComponent)
-  },
-  {
     path: 'reset-password',
     loadComponent: () =>
       import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent)
@@ -253,18 +248,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/super-admin/lead-management/lead-management.component').then(m => m.LeadManagementComponent),
     canActivate: [superAdminGuard]
-  },
-  {
-    path: 'customer/ticket/:id',
-    loadComponent: () =>
-      import('./features/customer/customer-ticket-detail/customer-ticket-detail.component').then(m => m.CustomerTicketDetailComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'customer',
-    loadComponent: () =>
-      import('./features/customer/customer-portal/customer-portal.component').then(m => m.CustomerPortalComponent),
-    canActivate: [authGuard]
   },
   {
     path: 'kb/create',

@@ -22,13 +22,12 @@
         </svg>
       </div>
       <span class="logo-text">
-        <ng-container *ngIf="!isSuperAdmin && !isCustomer">DeskMate</ng-container>
+        <ng-container *ngIf="!isSuperAdmin">DeskMate</ng-container>
         <ng-container *ngIf="isSuperAdmin">Super Admin</ng-container>
-        <ng-container *ngIf="isCustomer">My Support</ng-container>
       </span>
     </div>
 
-    <nav class="sidebar-nav" *ngIf="!isSuperAdmin && !isCustomer">
+    <nav class="sidebar-nav" *ngIf="!isSuperAdmin">
 
       <div class="nav-section">
         <div class="nav-label">{{ tr.t('mainMenu') || 'Main Menu' }}</div>
@@ -254,31 +253,6 @@
       </div>
     </nav>
 
-    <nav class="sidebar-nav" *ngIf="isCustomer">
-      <div class="nav-section">
-        <div class="nav-label">My Support</div>
-        <a class="nav-item" routerLink="/customer" routerLinkActive="active" *ngIf="rr.can('tickets')">
-          <span class="nav-icon" data-im3-icon-color="warning">
-            <span class="icon-emoji">🎫</span>
-            <span class="icon-fa"><i class="fa-solid fa-ticket"></i></span>
-            <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0-6h20a3 3 0 0 1 0 6M2 9v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9M2 9a3 3 0 0 0 0 6h20a3 3 0 0 0 0-6M12 12h.01M12 16h.01"/></svg>
-          </span>
-          <span>{{ tr.t('tickets') }}</span>
-          <span class="badge" *ngIf="(myTicketCounts.open + myTicketCounts.inProgress + myTicketCounts.pending) > 0">
-            {{ myTicketCounts.open + myTicketCounts.inProgress + myTicketCounts.pending > 99 ? '99+' : (myTicketCounts.open + myTicketCounts.inProgress + myTicketCounts.pending) }}
-          </span>
-        </a>
-        <a class="nav-item" routerLink="/kb" routerLinkActive="active" *ngIf="rr.can('knowledge-base')">
-          <span class="nav-icon" data-im3-icon-color="primary">
-            <span class="icon-emoji">📚</span>
-            <span class="icon-fa"><i class="fa-solid fa-book"></i></span>
-            <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
-          </span>
-          <span>{{ tr.t('insights') }}</span>
-        </a>
-      </div>
-    </nav>
-
     <button
       type="button"
       class="sidebar-collapse-btn"
@@ -308,7 +282,7 @@
     <div class="topbar">
       <button class="hamburger" (click)="sidebarOpen = !sidebarOpen">☰</button>
 
-      <div class="topbar-context" *ngIf="!isSuperAdmin && !isCustomer">
+      <div class="topbar-context" *ngIf="!isSuperAdmin">
         <span class="tc-title">{{ activePageTitle }}</span>
         <ng-container *ngIf="topbarCtx.suffix() as ctxSuffix">
           <span class="tc-sep" *ngIf="ctxSuffix">›</span>
@@ -319,7 +293,6 @@
         </span>
       </div>
 
-      <div class="customer-header" *ngIf="isCustomer">Support Portal Gateway</div>
 
       <div class="super-header" *ngIf="isSuperAdmin">
         <span class="super-label">Platform Core Operations</span>
@@ -356,12 +329,12 @@
         </div>
 
         <button class="new-ticket-btn"
-          *ngIf="!isTicketsSection && !isSuperAdmin && !isCustomer && rr.can('tickets', 'add')"
+          *ngIf="!isTicketsSection && !isSuperAdmin && rr.can('tickets', 'add')"
           (click)="router.navigate(['/tickets/create'])">
           + {{ tr.t('newTicket') }}
         </button>
 
-        <div class="global-search-anchor" [class.is-open]="searchPanelOpen" *ngIf="!isTicketsSection && !isSuperAdmin && !isCustomer && (rr.can('tickets') || rr.can('contacts') || rr.can('knowledge-base'))" (click)="$event.stopPropagation()">
+        <div class="global-search-anchor" [class.is-open]="searchPanelOpen" *ngIf="!isTicketsSection && !isSuperAdmin && (rr.can('tickets') || rr.can('contacts') || rr.can('knowledge-base'))" (click)="$event.stopPropagation()">
           <button type="button" class="gs-trigger" (click)="toggleSearchPanel($event)">
             <svg class="gs-ic" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
             <span>Search</span>
@@ -451,7 +424,7 @@
           </div>
         </div>
 
-        <div class="todo-trigger" *ngIf="!isSuperAdmin && !isCustomer && rr.can('todo')" (click)="toggleTodoPanel()">
+        <div class="todo-trigger" *ngIf="!isSuperAdmin && rr.can('todo')" (click)="toggleTodoPanel()">
           <span class="trigger-icon" data-im3-icon-color="warning">
             <span class="icon-emoji">✅</span>
             <span class="icon-fa"><i class="fa-solid fa-circle-check"></i></span>
@@ -468,7 +441,7 @@
           </div>
         </div>
 
-        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer && rr.can('calendar')" (click)="router.navigate(['/calendar'])">
+        <div class="notif-bell" *ngIf="!isSuperAdmin && rr.can('calendar')" (click)="router.navigate(['/calendar'])">
           <span class="bell-icon" title="Workspace Calendar" data-im3-icon-color="primary">
             <span class="icon-emoji">📅</span>
             <span class="icon-fa"><i class="fa-solid fa-calendar-days"></i></span>
@@ -476,7 +449,7 @@
           </span>
         </div>
 
-        <div class="notif-bell birthday-bell" *ngIf="!isSuperAdmin && !isCustomer && rr.can('calendar') && (eventsBadgeCount > 0 || showBirthdayDropdown)" (click)="toggleBirthdayDropdown($event)">
+        <div class="notif-bell birthday-bell" *ngIf="!isSuperAdmin && rr.can('calendar') && (eventsBadgeCount > 0 || showBirthdayDropdown)" (click)="toggleBirthdayDropdown($event)">
           <span class="bell-icon" [title]="eventsTooltip" data-im3-icon-color="success">
             <span class="icon-emoji">🎉</span>
             <span class="icon-fa"><i class="fa-solid fa-calendar-day"></i></span>
@@ -535,7 +508,7 @@
           </div>
         </div>
 
-        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer && rr.can('knowledge-base')" (click)="toggleKbDropdown()">
+        <div class="notif-bell" *ngIf="!isSuperAdmin && rr.can('knowledge-base')" (click)="toggleKbDropdown()">
           <span class="bell-icon" data-im3-icon-color="primary">
             <span class="icon-emoji">📚</span>
             <span class="icon-fa"><i class="fa-solid fa-book"></i></span>
@@ -565,7 +538,7 @@
           </div>
         </div>
 
-        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer && rr.can('notifications')" (click)="toggleNotifDropdown()">
+        <div class="notif-bell" *ngIf="!isSuperAdmin && rr.can('notifications')" (click)="toggleNotifDropdown()">
           <span class="bell-icon" data-im3-icon-color="danger">
             <span class="icon-emoji">🔔</span>
             <span class="icon-fa"><i class="fa-solid fa-bell"></i></span>

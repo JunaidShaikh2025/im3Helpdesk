@@ -1,6 +1,5 @@
-/* Shared auth form patterns (register + register-customer) */
-app-register,
-app-register-customer {
+/* Shared auth form patterns (register) */
+app-register {
   .auth-card-workspace .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;

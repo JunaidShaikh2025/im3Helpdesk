@@ -39,7 +39,7 @@ export class AllUsersComponent implements OnInit {
   selectedUser: any = null;
   readonly baseUrl = environment.baseUrl;
 
-  roleOptions = ['SuperAdmin', 'CompanyAdmin', 'Agent', 'Customer'];
+  roleOptions = ['SuperAdmin', 'CompanyAdmin', 'Agent'];
 
   get totalCount()    { return this.allUsers.length; }
   getRoleCount(role: string) {
@@ -96,8 +96,7 @@ export class AllUsersComponent implements OnInit {
     const map: any = {
       'SuperAdmin':   { bg: '#f3e8ff', color: '#7c3aed' },
       'CompanyAdmin': { bg: '#e0f2fe', color: '#0369a1' },
-      'Agent':        { bg: '#dcfce7', color: '#15803d' },
-      'Customer':     { bg: '#f3f4f6', color: '#374151' }
+      'Agent':        { bg: '#dcfce7', color: '#15803d' }
     };
     return map[role] || { bg: '#f3f4f6', color: '#374151' };
   }

@@ -64,7 +64,6 @@
   &.total    { background: var(--ui-color-primary-soft); border-color: var(--ui-color-primary-soft); color: var(--ui-color-primary-hover); }
   &.admin    { background: var(--ui-color-primary-soft); border-color: var(--ui-color-primary-soft); color: var(--ui-color-primary-hover); }
   &.agent    { background: var(--ui-color-success-bg); border-color: var(--ui-color-success-bg); color: var(--ui-color-success); }
-  &.customer { background: var(--ui-color-bg-subtle); border-color: var(--ui-color-border); color: var(--ui-color-text-secondary); }
 }
 
 .chip-num   { font-size: 16px; font-weight: 700; }

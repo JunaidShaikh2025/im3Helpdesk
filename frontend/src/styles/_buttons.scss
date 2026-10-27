@@ -45,9 +45,8 @@
   gap: var(--ui-space-2);
 }
 
-/* Shared auth button patterns (register + register-customer) */
-app-register,
-app-register-customer {
+/* Shared auth button patterns (register) */
+app-register {
   .auth-card-workspace .back-btn {
     background: none;
     border: none;

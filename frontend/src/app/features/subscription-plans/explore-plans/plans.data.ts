@@ -219,17 +219,6 @@ const F = {
     ]
   } as PlanFeature,
 
-  customerPortal: {
-    key: 'customer-portal',
-    title: 'Customer self-service portal',
-    icon: '🌐',
-    illustration: 'portal',
-    tagline: 'Let customers raise and track their own tickets.',
-    paragraphs: [
-      'A branded portal where customers create tickets, check status, read replies and browse the knowledge base — without needing an agent.'
-    ]
-  } as PlanFeature,
-
   recycleBin: {
     key: 'recycle-bin',
     title: 'Recycle bin & soft delete',
@@ -377,8 +366,8 @@ const growthTeam:    PlanFeature[] = [F.agents, F.agentGroups, F.emailNotificati
 
 const proRespond: PlanFeature[] = [...growthRespond, F.customFields, F.ticketMasters];
 const proResolve: PlanFeature[] = [...growthResolve, F.callLogs, F.whatsapp, F.slack];
-const proHandle:  PlanFeature[] = [...growthHandle, F.holidaySetup, F.customerPortal, F.recycleBin];
-const proReduce:  PlanFeature[] = [F.knowledgeBase, F.customerPortal];
+const proHandle:  PlanFeature[] = [...growthHandle, F.holidaySetup, F.recycleBin];
+const proReduce:  PlanFeature[] = [F.knowledgeBase];
 const proTeam:    PlanFeature[] = [...growthTeam, F.rolePermissions, F.organizationProfile, F.dashboard, F.reports, F.analyticsHeatmap];
 
 const entRespond: PlanFeature[] = [...proRespond];

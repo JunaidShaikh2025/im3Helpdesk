@@ -222,6 +222,6 @@ export class KbDetailComponent implements OnInit {
   }
 
   getBackRoute(): string {
-    return this.userRole === 'Customer' ? '/customer' : '/kb';
+    return '/kb';
   }
 }

@@ -248,7 +248,6 @@ export class RoleRightsComponent implements OnInit {
       case 'SuperAdmin':   return '👑';
       case 'CompanyAdmin': return '🛡️';
       case 'Agent':        return '🧑‍💼';
-      case 'Customer':     return '🙋';
       default:             return '👤';
     }
   }
@@ -258,7 +257,6 @@ export class RoleRightsComponent implements OnInit {
       case 'SuperAdmin':   return 'Full system access (read-only here)';
       case 'CompanyAdmin': return 'Manages this workspace';
       case 'Agent':        return 'Handles tickets & customers';
-      case 'Customer':     return 'Portal access only';
       default:             return '';
     }
   }
