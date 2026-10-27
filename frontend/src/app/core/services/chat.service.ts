@@ -26,6 +26,7 @@ export class ChatService {
 
   readonly BASE = environment.baseUrl;
   private hub!: signalR.HubConnection;
+  private isConnecting = false;
 
   // ── Reactive streams ──────────────────
   newMessage$    = new BehaviorSubject<any>(null);
@@ -230,7 +231,30 @@ export class ChatService {
 
   // ── SignalR ────────────────────────────
   connect() {
-    if (this.isConnected) return;
+    if (this.isConnecting) return Promise.resolve();
+    if (this.hub) {
+      const state = this.hub.state;
+      if (
+        state === signalR.HubConnectionState.Connected ||
+        state === signalR.HubConnectionState.Connecting ||
+        state === signalR.HubConnectionState.Reconnecting
+      ) {
+        return Promise.resolve();
+      }
+      if (state === signalR.HubConnectionState.Disconnected) {
+        this.isConnecting = true;
+        return this.hub.start()
+          .then(() => {
+            this.isConnected$.next(true);
+            this.loadUnreadCount();
+          })
+          .catch(e => console.error('Chat hub error:', e))
+          .finally(() => {
+            this.isConnecting = false;
+          });
+      }
+    }
+    this.isConnecting = true;
 
     this.hub = new signalR.HubConnectionBuilder()
       .withUrl(`${this.BASE}/hubs/chat`, {
@@ -315,17 +339,26 @@ export class ChatService {
     this.hub.onclose(() =>
       this.isConnected$.next(false));
 
-    this.hub.start()
+    return this.hub.start()
       .then(() => {
         this.isConnected$.next(true);
         this.loadUnreadCount();
       })
       .catch(e =>
-        console.error('Chat hub error:', e));
+        console.error('Chat hub error:', e))
+      .finally(() => {
+        this.isConnecting = false;
+      });
   }
 
-  disconnect() {
-    this.hub?.stop();
+  disconnect(): Promise<void> {
+    this.isConnecting = false;
+    if (this.hub) {
+      return this.hub.stop().finally(() => {
+        this.isConnected$.next(false);
+      });
+    }
+    return Promise.resolve();
   }
 
   // ── Safe hub invoke ────────────────────

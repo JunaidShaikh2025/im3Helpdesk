@@ -21,9 +21,9 @@
 | **Security & Vulnerabilities (SEC)** | 16 | 16 | 0 | 0 | 0 |
 | **Concurrency & Scalability (CONC)** | 9 | 9 | 0 | 0 | 0 |
 | **Architecture & SOLID (ARCH)** | 10 | 0 | 0 | 10 | 0 |
-| **Optimization & Leaks (PERF)** | 6 | 3 | 0 | 3 | 0 |
+| **Optimization & Leaks (PERF)** | 6 | 0 | 0 | 6 | 0 |
 | **Structure & Hygiene (CLN)** | 15 | 0 | 0 | 15 | 0 |
-| **TOTAL** | **56** | **28** | **0** | **28** | **0** |
+| **TOTAL** | **56** | **25** | **0** | **31** | **0** |
 
 ---
 
@@ -490,32 +490,44 @@
   2. **Component TrackBy Implementations**: Equipped all 55 corresponding component classes with `trackById` (`item?.id ?? item?.ticketNumber ?? item?.key ?? item?.name ?? item?.code ?? item?.value ?? item ?? _`) and `trackByIndex`, guaranteeing accurate unique key identification across domain models, collections, primitive lists, and static arrays.
   3. **Automated Compilation & Test Verification**: Validated Angular build with strict template type-checking (`ng build` passing with 0 compilation errors) and executed the unit test suite (`ng test --watch=false`) with 100% pass rate (21/21 test files, 41/41 tests passing, including dedicated `track-by.spec.ts`).
 
-### [TODO] PERF-04: Leaking Background Timers in Global Call Singleton Service
+### [DONE] PERF-04: Leaking Background Timers in Global Call Singleton Service
 - **Severity:** MEDIUM
 - **Agent Source:** Agent 7: Optimization Engineer
 - **Target File(s):** `frontend/src/app/core/services/global-call-notification.service.ts`
 - **Problem Summary:** `setInterval` timers (`this.diagnosticsTimer`, `this.callTimer`) continue ticking in the background even after WebRTC calls disconnect or transition to idle states.
 - **Acceptance Criteria:**
   1. Ensure all `setInterval` instances are properly cleared via `clearInterval` whenever calls terminate or reset.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Refactored background timers and WebRTC lifecycle teardown in `GlobalCallNotificationService` to guarantee zero dangling timer handles or memory leaks:
+  1. **Guarded Timer Deallocation & Nullification**: Introduced dedicated `stopCallTimer()`, `stopDiagnostics()`, `clearDisconnectTimer()`, and `clearAllTimers()` teardown methods that invoke `clearInterval`/`clearTimeout` and explicitly set timer handles (`this.callTimer`, `this.diagnosticsTimer`, `this.disconnectTimer`) to `null`.
+  2. **Teardown Protection via Finally Block**: Wrapped the entire termination lifecycle in `endCall()` inside a `try ... finally { this.clearAllTimers(); }` block, guaranteeing timer deallocation even if media track disposal or peer connection closure throws unexpected exceptions.
+  3. **Auto-Termination Self-Guards**: Added defensive guards inside the timer callbacks: `callTimer` checks `this.isCallActive` and self-terminates if the call is inactive; `diagnosticsTimer` verifies connection state and self-terminates if the peer connection is closed or failed.
+  4. **Connection State & Destruction Teardown**: Updated `onconnectionstatechange` for `failed` and `closed` states to invoke `clearAllTimers()` and clean up connection resources; enhanced `ngOnDestroy()` to tear down all timers, peer connections, and ringtone intervals.
+  5. **Automated Verification & Unit Testing**: Created a dedicated unit test suite in `frontend/src/app/core/services/global-call-notification.service.spec.ts` (12 unit tests verifying timer starts, stops, auto-termination, disconnect grace handling, and teardown). Executed full frontend test suite (`npm test -- --watch=false`) with 100% pass rate (22/22 test files, 53/53 tests passed) and validated production compilation (`npm run build`) with 0 errors. All 72 backend tests also verified passing.
 
-### [TODO] PERF-05: Duplicate SignalR Chat Service Implementations Bundled Simultaneously
+### [DONE] PERF-05: Duplicate SignalR Chat Service Implementations Bundled Simultaneously
 - **Severity:** LOW
 - **Agent Source:** Agent 7: Optimization Engineer
 - **Target File(s):** `frontend/src/app/core/services/chat.ts`, `frontend/src/app/core/services/chat.service.ts`
 - **Problem Summary:** Both `chat.ts` and `chat.service.ts` declare `ChatService` and are compiled into the client bundle, causing dead code bloat and conflicting SignalR connections.
 - **Acceptance Criteria:**
   1. Delete redundant `chat.ts` and ensure all consumers import from `chat.service.ts`.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Resolved duplicate SignalR chat service implementations and unified all chat consumers on `ChatService` from `chat.service.ts`:
+  1. **Purged Redundant Service**: Confirmed complete elimination of duplicate legacy `chat.ts` file from `frontend/src/app/core/services/` with zero remaining references across the entire frontend application.
+  2. **Canonical Service Unification**: Verified that all application consumers (`layout.component.ts`, `chat-page.component.ts`, `call-log.component.ts`, `global-call-popup.component.ts`, `global-call-notification.service.ts`, `global-chat-notification.service.ts`) cleanly import exclusively from `chat.service.ts`, consolidating all SignalR hub events, ticket/org room connections, message streams, call signals, and REST endpoints into a single canonical service.
+  3. **Automated Unit Test Suite**: Created comprehensive test suite in `frontend/src/app/core/services/chat.service.spec.ts` (12 unit tests validating service initialization, state observables, thread viewing, unread badge counters, HTTP endpoints, call logs, and disconnected safety). Executed full frontend test suite (`npm test -- --watch=false`) with 100% pass rate (23/23 test files, 65/65 tests passing).
+  4. **Production Build Validation**: Ran `npm run build` (`ng build`) confirming production bundling and tree-shaking succeed with 0 compilation errors and zero duplicate service definitions.
 
-### [TODO] PERF-06: Heavy Client-Side PDF Generation Libraries Bundled in Vendor Chunk
+### [DONE] PERF-06: Heavy Client-Side PDF Generation Libraries Bundled in Vendor Chunk
 - **Severity:** LOW
 - **Agent Source:** Agent 7: Optimization Engineer
-- **Target File(s):** `frontend/package.json`
+- **Target File(s):** `frontend/package.json`, `frontend/src/app/features/insights/heatmap/heatmap.component.ts`
 - **Problem Summary:** `jspdf` and `html2canvas` are imported directly into main client bundles rather than loaded lazily, increasing initial page load latency.
 - **Acceptance Criteria:**
   1. Load `jspdf` and `html2canvas` dynamically via dynamic `import(...)` only when report export actions are triggered.
-- **Resolution Notes:** [Unassigned]
+- **Resolution Notes:** Verified that `jspdf` and `html2canvas` are eliminated from top-level static imports and decoupled from the initial client bundle:
+  1. **Dynamic On-Demand Imports**: Statically verified zero top-level imports across the frontend codebase. In `heatmap.component.ts`, `html2canvas` and `jspdf` are loaded on-demand via `await import('html2canvas')` and `await import('jspdf')` inside `exportPng()` and `exportPdf()`.
+  2. **Lazy Chunk Segregation**: Executed production build (`ng build --verbose`) confirming `jspdf-es-min` (410.16 kB raw / 112.22 kB transfer) and `html2canvas` (202.84 kB raw / 38.52 kB transfer) reside exclusively in isolated lazy chunk files (`chunk-Z2E7ZWHT.js`, `chunk-55EBCRVJ.js`), keeping the initial bundle lean at 492.49 kB total.
+  3. **Regression Test Pass**: Ran automated frontend test suite (`npm test -- --watch=false`) with 100% pass rate (23/23 test files, 65/65 tests passing).
 
 ---
 

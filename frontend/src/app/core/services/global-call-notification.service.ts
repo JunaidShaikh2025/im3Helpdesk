@@ -95,9 +95,21 @@ export class GlobalCallNotificationService implements OnDestroy {
   /** Live call-network diagnostics for quality verification. */
   diagnostics$ = new BehaviorSubject<CallDiagnostics | null>(null);
 
-  private callTimer: any;
-  private disconnectTimer: any;
-  private diagnosticsTimer: any;
+  private callTimer: any = null;
+  private disconnectTimer: any = null;
+  private diagnosticsTimer: any = null;
+
+  get isCallTimerActive(): boolean {
+    return this.callTimer != null;
+  }
+
+  get isDiagnosticsTimerActive(): boolean {
+    return this.diagnosticsTimer != null;
+  }
+
+  get isDisconnectTimerActive(): boolean {
+    return this.disconnectTimer != null;
+  }
   private ringCtx: AudioContext | null = null;
   private audioUnlockBound = false;
   private remoteAudioEl: HTMLAudioElement | null = null;
@@ -406,6 +418,7 @@ export class GlobalCallNotificationService implements OnDestroy {
     // ✅ incomingCall$ clear karo — dobara popup nahi aayega
     this.chatSvc.incomingCall$.next(null);
     if (callerId) this.chatSvc.rejectCall(callerId);
+    this.clearAllTimers();
   }
 
   // Accept from global popup
@@ -526,54 +539,55 @@ export class GlobalCallNotificationService implements OnDestroy {
     if (this._isEnding) return; // ✅ re-entrant guard
     this._isEnding = true;
 
-    // Conference path: leave the room (server tells other peers).
-    if (this.isConference && this.currentCallLogId && sendSignal) {
-      this.chatSvc.leaveConference(this.currentCallLogId);
+    try {
+      // Conference path: leave the room (server tells other peers).
+      if (this.isConference && this.currentCallLogId && sendSignal) {
+        this.chatSvc.leaveConference(this.currentCallLogId);
+      }
+      if (sendSignal && !this.isConference && this.activeCallOtherId) {
+        this.chatSvc.endCall(this.activeCallOtherId);
+      }
+
+      // Tear down all conference peers.
+      this.peers.forEach((pc) => { try { pc.close(); } catch {} });
+      this.peers.clear();
+      this.remoteStreams.clear();
+      this.peerIceQueue.clear();
+      this.participants.clear();
+      this.isConference = false;
+      this.currentCallLogId = null;
+      this.callMessages = [];
+      this.callChatChanged$.next(0);
+      this.diagnostics$.next(null);
+      this._seenMsgKeys.clear();
+      // Stop every audio level watcher so the mic visualiser doesn't keep
+      // running after the call ends.
+      this._audioWatchers.forEach(stop => { try { stop(); } catch {} });
+      this._audioWatchers.clear();
+      this.speakingIds.clear();
+      this.speakingChanged$.next(0);
+      this.bumpConferenceUI();
+
+      this.localStream?.getTracks().forEach(t => t.stop());
+      this.localStream  = null;
+      this.remoteStream = null;
+      this.remoteStream$.next(null);
+      this.detachRemoteAudioSink();
+
+      if (this.pc) { try { this.pc.close(); } catch {} this.pc = null; }
+
+      this.isCallActive          = false;
+      this.isMinimized           = false;
+      this.activeCall            = null;
+      this.callDuration          = 0;
+      this.rtcState              = 'closed';
+      this.activeCallOtherId     = '';
+      this.incomingCallData      = null;
+      this.isSettingRemoteAnswer = false;
+      this.iceCandidateQueue     = [];
+    } finally {
+      this.clearAllTimers();
     }
-    if (sendSignal && !this.isConference && this.activeCallOtherId) {
-      this.chatSvc.endCall(this.activeCallOtherId);
-    }
-
-    // Tear down all conference peers.
-    this.peers.forEach((pc) => { try { pc.close(); } catch {} });
-    this.peers.clear();
-    this.remoteStreams.clear();
-    this.peerIceQueue.clear();
-    this.participants.clear();
-    this.isConference = false;
-    this.currentCallLogId = null;
-    this.callMessages = [];
-    this.callChatChanged$.next(0);
-    this.stopDiagnostics();
-    this.diagnostics$.next(null);
-    this._seenMsgKeys.clear();
-    // Stop every audio level watcher so the mic visualiser doesn't keep
-    // running after the call ends.
-    this._audioWatchers.forEach(stop => { try { stop(); } catch {} });
-    this._audioWatchers.clear();
-    this.speakingIds.clear();
-    this.speakingChanged$.next(0);
-    this.bumpConferenceUI();
-
-    this.localStream?.getTracks().forEach(t => t.stop());
-    this.localStream  = null;
-    this.remoteStream = null;
-    this.remoteStream$.next(null);
-    this.detachRemoteAudioSink();
-
-    if (this.pc) { try { this.pc.close(); } catch {} this.pc = null; }
-
-    this.isCallActive          = false;
-    this.isMinimized           = false;
-    this.activeCall            = null;
-    this.callDuration          = 0;
-    this.rtcState              = 'closed';
-    this.activeCallOtherId     = '';
-    this.incomingCallData      = null;
-    this.isSettingRemoteAnswer = false;
-    this.iceCandidateQueue     = [];
-    clearInterval(this.callTimer);
-    clearTimeout(this.disconnectTimer);
 
     // ✅ Streams clear — but callEnded$ null se clear karo
     // Pehle callEnded$ ko null karo taaki subscriber loop nahi hoga
@@ -805,6 +819,7 @@ export class GlobalCallNotificationService implements OnDestroy {
       const callLogId = String(invite.callLogId || invite.CallLogId);
       this.chatSvc.rejectConference(callLogId);
     }
+    this.clearAllTimers();
   }
 
   /** Create a fresh PC to `peerId`, attach local tracks, send offer. */
@@ -1002,14 +1017,14 @@ export class GlobalCallNotificationService implements OnDestroy {
 
       // Connected again after a short network/tab hiccup.
       if (state === 'connected') {
-        clearTimeout(this.disconnectTimer);
+        this.clearDisconnectTimer();
         return;
       }
 
       // Browsers may briefly report disconnected on tab switch/background.
       // End only if it stays disconnected for a grace period.
       if (state === 'disconnected') {
-        clearTimeout(this.disconnectTimer);
+        this.clearDisconnectTimer();
         this.disconnectTimer = setTimeout(() => {
           if (this.isCallActive && pc.connectionState === 'disconnected') {
             this.endCall(false);
@@ -1019,9 +1034,17 @@ export class GlobalCallNotificationService implements OnDestroy {
       }
 
       if (state === 'failed' || state === 'closed') {
-        this.stopDiagnostics();
-        clearTimeout(this.disconnectTimer);
-        if (this.isCallActive) this.endCall(false);
+        this.clearAllTimers();
+        if (this.isCallActive) {
+          this.endCall(false);
+        } else {
+          if (this.pc) { try { this.pc.close(); } catch {} this.pc = null; }
+          this.localStream?.getTracks().forEach(t => t.stop());
+          this.localStream  = null;
+          this.remoteStream = null;
+          this.remoteStream$.next(null);
+          this.rtcState = 'closed';
+        }
       }
     };
 
@@ -1160,6 +1183,16 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.prevDiagAt = 0;
 
     const tick = () => {
+      if (
+        !this.diagnosticsTimer ||
+        !this.pc ||
+        this.pc !== pc ||
+        pc.connectionState === 'closed' ||
+        pc.connectionState === 'failed'
+      ) {
+        this.stopDiagnostics();
+        return;
+      }
       this.collectDiagnostics(pc).catch(() => {});
     };
 
@@ -1167,9 +1200,11 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.diagnosticsTimer = setInterval(tick, 3000);
   }
 
-  private stopDiagnostics(): void {
-    clearInterval(this.diagnosticsTimer);
-    this.diagnosticsTimer = null;
+  stopDiagnostics(): void {
+    if (this.diagnosticsTimer) {
+      clearInterval(this.diagnosticsTimer);
+      this.diagnosticsTimer = null;
+    }
     this.prevInboundBytes = 0;
     this.prevOutboundBytes = 0;
     this.prevDiagAt = 0;
@@ -1391,9 +1426,35 @@ export class GlobalCallNotificationService implements OnDestroy {
     }
   }
 
-  private startCallTimer() {
-    clearInterval(this.callTimer);
-    this.callTimer = setInterval(() => this.callDuration++, 1000);
+  startCallTimer(): void {
+    this.stopCallTimer();
+    this.callTimer = setInterval(() => {
+      if (!this.isCallActive) {
+        this.stopCallTimer();
+        return;
+      }
+      this.callDuration++;
+    }, 1000);
+  }
+
+  stopCallTimer(): void {
+    if (this.callTimer) {
+      clearInterval(this.callTimer);
+      this.callTimer = null;
+    }
+  }
+
+  clearDisconnectTimer(): void {
+    if (this.disconnectTimer) {
+      clearTimeout(this.disconnectTimer);
+      this.disconnectTimer = null;
+    }
+  }
+
+  clearAllTimers(): void {
+    this.stopCallTimer();
+    this.stopDiagnostics();
+    this.clearDisconnectTimer();
   }
 
   private playRingtone() {
@@ -1402,6 +1463,7 @@ export class GlobalCallNotificationService implements OnDestroy {
       try {
         this.stopRingtone();
         let stopped = false;
+        let ringTimeout: any = null;
         const beep = () => {
           if (stopped) return;
           const now = ctx.currentTime;
@@ -1415,10 +1477,18 @@ export class GlobalCallNotificationService implements OnDestroy {
           g.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
           o.start(now);
           o.stop(now + 0.48);
-          if (!stopped) setTimeout(beep, 1200);
+          if (!stopped) {
+            ringTimeout = setTimeout(beep, 1200);
+          }
         };
         beep();
-        this._stopRingFn = () => { stopped = true; };
+        this._stopRingFn = () => {
+          stopped = true;
+          if (ringTimeout) {
+            clearTimeout(ringTimeout);
+            ringTimeout = null;
+          }
+        };
       } catch {}
     }).catch(() => {});
   }
@@ -1430,7 +1500,26 @@ export class GlobalCallNotificationService implements OnDestroy {
   ngOnDestroy() {
     this.subs.forEach(s => s.unsubscribe());
     this.stopRingtone();
-    clearInterval(this.callTimer);
-    clearTimeout(this.disconnectTimer);
+    this.clearAllTimers();
+    if (this.pc) {
+      try { this.pc.close(); } catch {}
+      this.pc = null;
+    }
+    this.peers.forEach(pc => { try { pc.close(); } catch {} });
+    this.peers.clear();
+    this.remoteStreams.clear();
+    this.peerIceQueue.clear();
+    this.participants.clear();
+    this.localStream?.getTracks().forEach(t => t.stop());
+    this.localStream = null;
+    this.remoteStream = null;
+    this.detachRemoteAudioSink();
+    this._audioWatchers.forEach(stop => { try { stop(); } catch {} });
+    this._audioWatchers.clear();
+    this.speakingIds.clear();
+    this.isCallActive = false;
+    this.isMinimized = false;
+    this.activeCall = null;
+    this.callDuration = 0;
   }
 }
