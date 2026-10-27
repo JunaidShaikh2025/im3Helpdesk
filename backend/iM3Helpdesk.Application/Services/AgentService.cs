@@ -296,7 +296,7 @@ public class AgentService : IAgentService
             var parsedRole = ParseBulkRole(roleText);
             if (!parsedRole.HasValue)
             {
-                results.Add(BulkImportRowResult.Fail(row.RowNumber, email, roleText, "Role must be Agent, Customer, or Administrator."));
+                results.Add(BulkImportRowResult.Fail(row.RowNumber, email, roleText, "Role must be Agent or Administrator."));
                 continue;
             }
 
@@ -397,7 +397,6 @@ public class AgentService : IAgentService
             "companyadmin" => UserRole.CompanyAdmin,
             "company admin" => UserRole.CompanyAdmin,
             "agent" => UserRole.Agent,
-            "customer" => UserRole.Customer,
             _ => null
         };
     }
@@ -408,7 +407,6 @@ public class AgentService : IAgentService
         {
             "Administrator" => UserRole.CompanyAdmin,
             "Agent" => UserRole.Agent,
-            "Customer" => UserRole.Customer,
             _ => UserRole.Agent
         };
     }

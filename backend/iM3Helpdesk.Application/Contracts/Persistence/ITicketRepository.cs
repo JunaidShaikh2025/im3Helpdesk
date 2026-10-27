@@ -9,8 +9,8 @@ public interface ITicketRepository : IGenericRepository<Ticket>
     Task<Ticket?> GetWithDetailsByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<TicketListItemDto>> GetAllAsync(CancellationToken ct = default);
     Task<IReadOnlyList<TicketCalendarItemDto>> GetCalendarTicketsAsync(
-        DateTime startUtc, DateTime endUtcExclusive, Guid? customerUserId, CancellationToken ct = default);
-    Task<TicketStatusCountsDto> GetMyStatusCountsAsync(Guid userId, bool isCustomer, CancellationToken ct = default);
+        DateTime startUtc, DateTime endUtcExclusive, CancellationToken ct = default);
+    Task<TicketStatusCountsDto> GetMyStatusCountsAsync(Guid userId, CancellationToken ct = default);
     Task<IReadOnlyList<TicketAttachmentItemDto>> GetAttachmentsByTicketIdAsync(Guid ticketId, CancellationToken ct = default);
     Task<int> GetNextTicketNumberAsync(Guid organizationId, CancellationToken ct = default);
     Task<bool> AgentGroupExistsAsync(Guid groupId, Guid organizationId, CancellationToken ct = default);

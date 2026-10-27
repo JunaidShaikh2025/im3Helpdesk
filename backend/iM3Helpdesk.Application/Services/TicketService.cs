@@ -48,8 +48,7 @@ public class TicketService : ITicketService
         if (userId == Guid.Empty)
             return ServiceResult<TicketStatusCountsDto>.Unauthorized();
 
-        bool isCustomer = string.Equals(roleClaim, "Customer", StringComparison.OrdinalIgnoreCase);
-        var counts = await _ticketRepository.GetMyStatusCountsAsync(userId, isCustomer, ct);
+        var counts = await _ticketRepository.GetMyStatusCountsAsync(userId, ct);
         return ServiceResult<TicketStatusCountsDto>.Success(counts);
     }
 
@@ -67,11 +66,8 @@ public class TicketService : ITicketService
         if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 400)
             return ServiceResult<IReadOnlyList<TicketCalendarItemDto>>.BadRequest("Range too large");
 
-        bool isCustomer = string.Equals(roleClaim, "Customer", StringComparison.OrdinalIgnoreCase);
-        Guid? customerUserId = isCustomer ? userId : null;
-
         var (startUtc, endUtcExclusive) = ToUtcRangeForIstDates(start, end);
-        var tickets = await _ticketRepository.GetCalendarTicketsAsync(startUtc, endUtcExclusive, customerUserId, ct);
+        var tickets = await _ticketRepository.GetCalendarTicketsAsync(startUtc, endUtcExclusive, ct);
         return ServiceResult<IReadOnlyList<TicketCalendarItemDto>>.Success(tickets);
     }
 

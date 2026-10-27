@@ -76,7 +76,7 @@ public class TicketRepository : GenericRepository<Ticket>, ITicketRepository
     }
 
     public async Task<IReadOnlyList<TicketCalendarItemDto>> GetCalendarTicketsAsync(
-        DateTime startUtc, DateTime endUtcExclusive, Guid? customerUserId, CancellationToken ct = default)
+        DateTime startUtc, DateTime endUtcExclusive, CancellationToken ct = default)
     {
         var query = _context.Tickets
             .AsNoTracking()
@@ -84,9 +84,6 @@ public class TicketRepository : GenericRepository<Ticket>, ITicketRepository
             .Include(t => t.AssignedTo)
             .AsSplitQuery()
             .AsQueryable();
-
-        if (customerUserId.HasValue)
-            query = query.Where(t => t.CreatedByUserId == customerUserId.Value);
 
         query = query.Where(t =>
             (t.CreatedAt >= startUtc && t.CreatedAt < endUtcExclusive) ||
@@ -120,16 +117,13 @@ public class TicketRepository : GenericRepository<Ticket>, ITicketRepository
     }
 
     public async Task<TicketStatusCountsDto> GetMyStatusCountsAsync(
-        Guid userId, bool isCustomer, CancellationToken ct = default)
+        Guid userId, CancellationToken ct = default)
     {
         var query = _context.Tickets
             .AsNoTracking()
             .AsQueryable();
 
-        if (isCustomer)
-            query = query.Where(t => t.CreatedByUserId == userId);
-        else
-            query = query.Where(t => t.AssignedToUserId == userId);
+        query = query.Where(t => t.AssignedToUserId == userId);
 
         var grouped = await query
             .GroupBy(t => t.Status)

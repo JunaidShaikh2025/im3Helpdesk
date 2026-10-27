@@ -105,8 +105,7 @@ public class UserRepository : GenericRepository<User>, IUserRepository
             .IgnoreQueryFilters()
             .Where(u =>
                 u.Role == Domain.Enums.UserRole.Agent ||
-                u.Role == Domain.Enums.UserRole.CompanyAdmin ||
-                u.Role == Domain.Enums.UserRole.Customer);
+                u.Role == Domain.Enums.UserRole.CompanyAdmin);
 
         if (organizationId.HasValue)
             query = query.Where(u => u.OrganizationId == organizationId.Value);

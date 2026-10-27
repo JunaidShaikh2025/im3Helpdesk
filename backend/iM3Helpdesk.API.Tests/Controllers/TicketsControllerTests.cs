@@ -40,7 +40,7 @@ public class TicketsControllerTests
       FullName = "Customer A",
       Email = "customer@example.com",
       PasswordHash = "x",
-      Role = UserRole.Customer,
+      Role = UserRole.Agent,
       OrganizationId = tenantId
     });
 
@@ -81,7 +81,7 @@ public class TicketsControllerTests
         User = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
           new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-          new Claim(ClaimTypes.Role, "Customer")
+          new Claim(ClaimTypes.Role, "Agent")
         }, "TestAuth"))
       }
     };

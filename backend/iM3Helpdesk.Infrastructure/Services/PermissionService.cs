@@ -111,13 +111,6 @@ public class PermissionService : IPermissionService
         if (role == UserRole.CompanyAdmin)
             return new Row(true, true, true, true, true);
 
-        if (role == UserRole.Customer)
-        {
-            var customerVisible = module is "tickets" or "knowledge-base" or "notifications";
-            var add = module == "tickets";
-            return new Row(customerVisible, add, false, false, false);
-        }
-
         // Agent
         bool adminOnly = module is "organization-profile" or "holiday-setup"
             or "recycle-bin" or "role-rights" or "agents" or "agent-groups"

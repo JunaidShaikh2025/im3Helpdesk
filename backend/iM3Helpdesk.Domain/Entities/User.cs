@@ -11,7 +11,7 @@ public class User
     public string? PhoneNumber { get; set; }
     public bool IsEmailVerified { get; set; } = false;
     public string? EmailVerificationToken { get; set; }
-    public UserRole Role { get; set; } = UserRole.Customer;
+    public UserRole Role { get; set; } = UserRole.Agent;
     public Guid? OrganizationId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }

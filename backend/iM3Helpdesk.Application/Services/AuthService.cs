@@ -183,48 +183,6 @@ public class AuthService : IAuthService
         return ServiceResult<string>.Success("Account created! Please check your email to verify.");
     }
 
-    public async Task<ServiceResult<string>> RegisterCustomerAsync(
-        RegisterCustomerDto dto, CancellationToken ct = default)
-    {
-        if (dto.Password != dto.ConfirmPassword)
-            return ServiceResult<string>.BadRequest("Passwords do not match");
-
-        if (await _uow.Users.IsEmailTakenAsync(dto.Email, ct: ct))
-            return ServiceResult<string>.BadRequest("Email already registered");
-
-        var org = await _uow.Organizations.FirstOrDefaultAsync(
-            o => o.Slug == dto.OrganizationSlug && o.IsActive, ct: ct);
-        if (org == null)
-            return ServiceResult<string>.BadRequest("Invalid organization. Please check your invite link.");
-
-        var verificationToken = Guid.NewGuid().ToString();
-        var user = new User
-        {
-            FullName = dto.FullName,
-            Email = dto.Email,
-            PhoneNumber = dto.PhoneNumber ?? "",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Role = UserRole.Customer,
-            OrganizationId = org.Id,
-            IsEmailVerified = false,
-            EmailVerificationToken = verificationToken
-        };
-        await _uow.Users.AddAsync(user, ct);
-        await _uow.SaveChangesAsync(ct);
-
-        try
-        {
-            await _emailService.SendEmailVerificationAsync(
-                user.Email, user.FullName, verificationToken, org.Name, org.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send customer verification email to {Email}", user.Email);
-        }
-
-        return ServiceResult<string>.Success("Account created! Please verify your email.");
-    }
-
     public async Task<ServiceResult<string>> VerifyEmailAsync(string token, CancellationToken ct = default)
     {
         var user = await _uow.Users.GetByVerificationTokenAsync(token, ct);

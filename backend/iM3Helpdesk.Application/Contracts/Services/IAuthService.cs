@@ -14,9 +14,6 @@ public interface IAuthService
     Task<ServiceResult<string>> RegisterSuperAdminAsync(
         RegisterDto dto, CancellationToken ct = default);
 
-    Task<ServiceResult<string>> RegisterCustomerAsync(
-        RegisterCustomerDto dto, CancellationToken ct = default);
-
     Task<ServiceResult<string>> VerifyEmailAsync(
         string token, CancellationToken ct = default);
 

@@ -114,7 +114,6 @@ public class RoleRightsController : ControllerBase
   {
     UserRole.CompanyAdmin,
     UserRole.Agent,
-    UserRole.Customer,
   };
 
   // Defaults map (sane out-of-the-box behaviour).
@@ -127,14 +126,6 @@ public class RoleRightsController : ControllerBase
     // CompanyAdmin: full on most things; cannot touch SuperAdmin-only stuff.
     if (role == UserRole.CompanyAdmin)
       return new PermissionRow(module, true, true, true, true, true);
-
-    // Customer: only customer-facing modules.
-    if (role == UserRole.Customer)
-    {
-      var customerVisible = module is "tickets" or "knowledge-base" or "notifications";
-      var add = module == "tickets";
-      return new PermissionRow(module, customerVisible, add, false, false, false);
-    }
 
     // Agent: view everywhere except admin-only modules; mutate on operations.
     bool adminOnly = module is "organization-profile" or "holiday-setup"

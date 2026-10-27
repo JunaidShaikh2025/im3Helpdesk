@@ -35,7 +35,7 @@ public static class SubscriptionSeeder
              "agents", "agent-groups", "settings", "email-integration",
              "email-notifications", "canned-responses", "ticket-templates",
              "custom-fields", "ticket-masters", "call-logs", "whatsapp",
-             "slack", "holiday-setup", "customer-portal", "recycle-bin",
+             "slack", "holiday-setup", "recycle-bin",
              "role-rights", "organization-profile", "reports", "analytics-heatmap")
         ),
         ("enterprise", "Enterprise",
@@ -47,7 +47,7 @@ public static class SubscriptionSeeder
              "agents", "agent-groups", "settings", "email-integration",
              "email-notifications", "canned-responses", "ticket-templates",
              "custom-fields", "ticket-masters", "call-logs", "whatsapp",
-             "slack", "holiday-setup", "customer-portal", "recycle-bin",
+             "slack", "holiday-setup", "recycle-bin",
              "role-rights", "organization-profile", "reports", "analytics-heatmap",
              "ai-insights", "audit-log", "multi-org", "leads")
         ),

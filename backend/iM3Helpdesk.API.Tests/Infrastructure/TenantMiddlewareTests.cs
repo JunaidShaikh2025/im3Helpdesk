@@ -96,7 +96,7 @@ public class TenantMiddlewareTests
         var identity = new ClaimsIdentity(new[]
         {
             new Claim("organizationId", tenantId.ToString()),
-            new Claim("role", "Customer")
+            new Claim("role", "Agent")
         }, "TestAuth");
         httpContext.User = new ClaimsPrincipal(identity);
 

@@ -179,33 +179,29 @@ public class InboundEmailController : ControllerBase
       });
     }
 
-    // Find or create customer
-    var customer = await _context.Users
+    // Find or create external Contact
+    var contact = await _context.Contacts
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.Email.ToLower() == fromEmail.ToLower() &&
-            u.OrganizationId == org.Id);
+        .FirstOrDefaultAsync(c =>
+            c.Email.ToLower() == fromEmail.ToLower() &&
+            c.OrganizationId == org.Id);
 
-    if (customer == null)
+    if (contact == null)
     {
-      customer = new User
+      contact = new Contact
       {
         FullName = string.IsNullOrEmpty(fromName)
               ? fromEmail.Split('@')[0]
               : fromName,
         Email = fromEmail,
-        PhoneNumber = "",
-        PasswordHash = BCrypt.Net.BCrypt.HashPassword(
-              Guid.NewGuid().ToString()),
-        Role = UserRole.Customer,
-        OrganizationId = org.Id,
-        IsEmailVerified = true
+        Source = "email",
+        OrganizationId = org.Id
       };
-      _context.Users.Add(customer);
+      _context.Contacts.Add(contact);
       await _context.SaveChangesAsync();
 
       _logger.LogInformation(
-          "Auto-created customer: {Email}", fromEmail);
+          "Auto-created contact: {Email}", fromEmail);
     }
 
     // Use HTML body if available, else plain text
@@ -226,12 +222,13 @@ public class InboundEmailController : ControllerBase
             : subject,
       Description = description,
       FromEmail = fromEmail,
+      FromName = fromName,
       Category = "General",
       Priority = TicketPriority.Medium,
       Status = TicketStatus.Open,
       TicketType = "Support",
       OrganizationId = org.Id,
-      CreatedByUserId = customer.Id,
+      CreatedByUserId = null,
       Tags = string.Join(",", tags)
     };
 
@@ -255,7 +252,7 @@ public class InboundEmailController : ControllerBase
       message = "Ticket created from email",
       ticketId = ticket.Id,
       ticketTitle = ticket.Title,
-      customer = customer.FullName,
+      customer = contact.FullName,
       organization = org.Name
     });
   }

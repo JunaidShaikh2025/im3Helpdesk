@@ -73,8 +73,7 @@ public class ChatController : ControllerBase
           .AsNoTracking()
           .Where(u =>
               u.OrganizationId == orgId &&
-              u.Id != myId &&
-              u.Role != UserRole.Customer) 
+              u.Id != myId) 
           .Select(u => new
           {
             u.Id,

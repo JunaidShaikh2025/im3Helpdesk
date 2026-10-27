@@ -308,35 +308,6 @@ public class EmailPollingService : BackgroundService
 
     var contact = await UpsertContactAsync(
         fromEmail, fromName, org.Id, null, context, ct);
-    // âŒ DISABLED: User auto-creation from email is turned off.
-    // Only Contact should be created, not a User account.
-    // var customer = await context.Users
-    //     .IgnoreQueryFilters()
-    //     .FirstOrDefaultAsync(u =>
-    //         u.Email.ToLower() == fromEmail.ToLower() &&
-    //         u.OrganizationId == org.Id, ct);
-
-    // if (customer == null)
-    // {
-    //   customer = new User
-    //   {
-    //     FullName = fromName,
-    //     Email = fromEmail,
-    //     PhoneNumber = "",
-    //     PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-    //     Role = UserRole.Customer,
-    //     OrganizationId = org.Id,
-    //     IsEmailVerified = true
-    //   };
-    //   context.Users.Add(customer);
-    //   await context.SaveChangesAsync(ct);
-    //   _logger.LogInformation("Auto-created customer: {E}", fromEmail);
-    //   if (contact != null)
-    //   {
-    //     contact.LinkedUserId = customer.Id;
-    //     await context.SaveChangesAsync(ct);
-    //   }
-    // }
 
     var (description, inlineParts) = BuildDescriptionEx(message);
 
@@ -544,27 +515,7 @@ public class EmailPollingService : BackgroundService
         .OrderByDescending(t => t.CreatedAt)
         .Select(t => (Guid?)t.Id)
         .FirstOrDefaultAsync(ct);
-    if (byFromEmail.HasValue) return byFromEmail;
-
-    // 5. Registered user (UI-submitted tickets)
-    var customer = await context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.Email.ToLower() == loweredFrom &&
-            u.OrganizationId == orgId, ct);
-    if (customer == null) return null;
-
-    var byUser = await context.Tickets
-        .IgnoreQueryFilters()
-        .Where(t =>
-            t.CreatedByUserId == customer.Id &&
-            t.OrganizationId == orgId &&
-            t.Status != TicketStatus.Closed &&
-            t.CreatedAt >= since)
-        .OrderByDescending(t => t.CreatedAt)
-        .Select(t => (Guid?)t.Id)
-        .FirstOrDefaultAsync(ct);
-    return byUser;
+    return byFromEmail;
   }
 
   /// <summary>Strip enclosing angle brackets from a Message-Id header value.</summary>

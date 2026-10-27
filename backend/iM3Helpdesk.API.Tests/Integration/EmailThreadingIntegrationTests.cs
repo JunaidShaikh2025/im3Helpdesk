@@ -36,7 +36,7 @@ public class EmailThreadingIntegrationTests
       FullName = "Customer A",
       Email = "customer@example.com",
       PasswordHash = "x",
-      Role = UserRole.Customer,
+      Role = UserRole.Agent,
       OrganizationId = tenantId
     });
     context.Tickets.Add(new Ticket
@@ -99,7 +99,7 @@ public class EmailThreadingIntegrationTests
       FullName = "Customer A",
       Email = "customer@example.com",
       PasswordHash = "x",
-      Role = UserRole.Customer,
+      Role = UserRole.Agent,
       OrganizationId = tenantId
     });
     context.Tickets.Add(new Ticket
@@ -174,7 +174,7 @@ public class EmailThreadingIntegrationTests
           FullName = "Customer A",
           Email = "customer@example.com",
           PasswordHash = "x",
-          Role = UserRole.Customer,
+          Role = UserRole.Agent,
           OrganizationId = tenantId
         },
         new User

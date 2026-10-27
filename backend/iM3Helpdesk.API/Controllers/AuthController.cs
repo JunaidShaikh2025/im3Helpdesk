@@ -121,15 +121,6 @@ public class AuthController : ControllerBase
       : StatusCode(result.StatusCode, new { message = result.ErrorMessage });
   }
 
-  [HttpPost("register-customer")]
-  public async Task<IActionResult> RegisterCustomer([FromBody] RegisterCustomerDto dto, CancellationToken ct = default)
-  {
-    var result = await _authService.RegisterCustomerAsync(dto, ct);
-    return result.IsSuccess 
-      ? Ok(new { message = result.Data }) 
-      : StatusCode(result.StatusCode, new { message = result.ErrorMessage });
-  }
-
   [HttpPost("refresh")]
   public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto? dto = null, CancellationToken ct = default)
   {

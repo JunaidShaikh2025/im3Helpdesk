@@ -93,13 +93,10 @@ public class CallLogsController : ControllerBase
         .Distinct()
         .ToList();
 
-    // ✅ Customer role wale users filter out — sirf agents/staff dikhenge
     var users = await _context.Users
         .AsNoTracking()
         .IgnoreQueryFilters()
-        .Where(u =>
-            userIds.Contains(u.Id) &&
-            u.Role != UserRole.Customer)
+        .Where(u => userIds.Contains(u.Id))
         .Select(u => new
         {
           u.Id,
@@ -150,15 +147,13 @@ public class CallLogsController : ControllerBase
     if (myId == Guid.Empty)
       return Ok(new { count = 0 });
 
-    // ✅ Sirf non-Customer callers ki missed calls count karo
     var count = await _context.CallLogs
         .AsNoTracking()
         .IgnoreQueryFilters()
         .CountAsync(c =>
             c.ReceiverId == myId &&
             c.Status == "missed" &&
-            !c.IsRead &&
-            c.Caller.Role != UserRole.Customer);
+            !c.IsRead);
 
     return Ok(new { count });
   }
@@ -213,8 +208,7 @@ public class CallLogsController : ControllerBase
         .CountAsync(c =>
             c.ReceiverId == myId &&
             c.Status == "missed" &&
-            !c.IsRead &&
-            c.Caller.Role != UserRole.Customer);
+            !c.IsRead);
 
     return Ok(new { count = remaining });
   }
